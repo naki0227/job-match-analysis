@@ -19,7 +19,7 @@
 | PUT | /api/v1/me/career-profile | 軸ごとのpreference, importanceと必須条件を新バージョンで確定 | 200 / 201 |
 | POST | /api/v1/analyses | 公開求人URLの正規化、共有評価の再利用かジョブ参加 | 200 / 202 |
 | GET | /api/v1/analyses/:jobId | 共有jobの公開可能な状態と評価ID（権限は要レビュー） | 200 |
-| GET | /api/v1/jobs/:jobId | 個別求人・根拠・取得日・評価版 | 200 |
+| GET | /api/v1/jobs/:jobPostingId | 個別求人・根拠・取得日・評価版 | 200 |
 | POST | /api/v1/matches | 認可済みprofile版と共有evaluation版を比較 | 200 / 201 |
 | GET | /api/v1/me/saved-jobs | ブックマークのページネーション＋batch評価表示 | 200 |
 

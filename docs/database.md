@@ -103,4 +103,4 @@ sequenceDiagram
 
 ## 公開前に確定すること
 
-全DDL/NOT NULL/FK/ON DELETE/RLS、会社・求人の同一性とURL alias、sourceの保存期間、検索とBatchのEXPLAIN、時刻・通貨・給与期間の単位、権限昇格テスト、migration/rollback/backup。[DB関連Issue](../issues)の受け入れ条件を起点に確定する。
+全DDL/NOT NULL/FK/ON DELETE/RLS、会社・求人の同一性とURL alias、sourceの保存期間、検索とBatchのEXPLAIN、時刻・通貨・給与期間の単位、権限昇格テスト、migration/rollback/backup。[DB関連Epic](https://github.com/naki0227/job-match-analysis/issues/3)の受け入れ条件を起点に確定する。

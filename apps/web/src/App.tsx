@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
 
 function App() {
   const [status, setStatus] = useState<string>("loading");
@@ -26,4 +26,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

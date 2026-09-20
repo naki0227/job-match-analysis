@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "lint": "oxlint apps/web/src apps/api/src"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
   "packageManager": "pnpm@11.24.0",
   "type": "module",
   "devDependencies": {
+    "oxlint": "^1.83.0",
     "prettier": "^3.9.8"
   }
 }

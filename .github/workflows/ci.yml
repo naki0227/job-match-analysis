@@ -54,6 +54,9 @@ jobs:
       - name: Typecheck API
         run: pnpm --filter api typecheck
 
+      - name: Build API
+        run: pnpm --filter api build
+
   common:
     runs-on: ubuntu-24.04
     steps:

@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "oxlint apps/web/src apps/api/src"
+    "lint": "oxlint apps/web/src apps/api/src",
+    "lint:fix": "oxlint --fix apps/web/src apps/api/src",
+    "precommit": "pnpm format && pnpm lint:fix && pnpm lint && pnpm --filter api typecheck && pnpm --filter api build && pnpm --filter web build"
   },
   "keywords": [],
   "author": "",

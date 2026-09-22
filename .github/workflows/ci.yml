@@ -54,6 +54,9 @@ jobs:
       - name: Typecheck API
         run: pnpm --filter api typecheck
 
+      - name: Test API
+        run: pnpm --filter api test
+
       - name: Build API
         run: pnpm --filter api build
 

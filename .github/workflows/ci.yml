@@ -27,6 +27,9 @@ jobs:
       - name: Lint Web
         run: pnpm exec oxlint apps/web/src
 
+      - name: Test Web
+        run: pnpm --filter web test
+
       - name: Build Web
         run: pnpm --filter web build
 

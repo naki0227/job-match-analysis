@@ -9,7 +9,7 @@
     "format:check": "prettier --check .",
     "lint": "oxlint apps/web/src apps/api/src",
     "lint:fix": "oxlint --fix apps/web/src apps/api/src",
-    "precommit": "pnpm format && pnpm lint:fix && pnpm lint && pnpm --filter api typecheck && pnpm --filter api test && pnpm --filter api build && pnpm --filter web build"
+    "precommit": "pnpm format && pnpm lint:fix && pnpm lint && pnpm --filter api typecheck && pnpm --filter api test && pnpm --filter api build && pnpm --filter web test && pnpm --filter web build"
   },
   "keywords": [],
   "author": "",

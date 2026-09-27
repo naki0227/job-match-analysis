@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "pnpm --filter domain test && pnpm --filter api test && pnpm --filter web test",
+    "test:db": "sh scripts/test-db-migration.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "oxlint apps/web/src apps/api/src packages/domain/src packages/domain/tests",

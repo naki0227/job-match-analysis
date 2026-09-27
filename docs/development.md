@@ -35,6 +35,7 @@ M7はプロダクトのMVPローカル完成を阻害しない独立ストリー
 
 ## IssueのDefinition of Done
 
+- Close前にIssue本文の各Acceptance Criteriaとテスト項目を実際の差分・実行結果に照合し、達成したチェックボックスを更新する。未達の必須項目があればCloseしない。
 - 設計された成功・異常・競合のケースが動作し、Vitest / DB integration / Playwright等適切な層でテストされている。
 - PRの型チェック、lint、テスト、必要なImage buildが通る。
 - スキーマ変更にはSQL migration、外部公開仕様変更にはdocs/API契約変更を添える。

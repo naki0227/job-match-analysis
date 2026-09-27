@@ -16,6 +16,8 @@
 
 ## Issues / 進め方
 
+コミット前のローカル検証を有効にするには、初回に `git config --local core.hooksPath .githooks` を実行する。以後のコミットでは `pnpm precommit` が走り、format check・lint・typecheck・test・buildを確認する。必要なら同じコマンドを手動でも実行できる。
+
 - [全Issue](https://github.com/naki0227/job-match-analysis/issues)
 - [技術スパイク Epic #1](https://github.com/naki0227/job-match-analysis/issues/1)
 - [診断・Matchドメイン Epic #2](https://github.com/naki0227/job-match-analysis/issues/2)

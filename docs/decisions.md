@@ -13,6 +13,7 @@
 | ADR-007 | バッチで複数評価を取得 | DB N+1抑制 | join条件・Indexの検証が必要 |
 | ADR-008 | 採用適性の断定をしない | 本人向けの比較・意思決定支援に限定 | 結果表示の表現／根拠の設計が必要 |
 | ADR-009 | Jev APIはAPIサーバーから直接HTTPで呼び出し、Zodでレスポンス契約を検証する | TypeScriptから利用可能で、実APIによるNoul / Choice / Scoreの入出力を確認できた。外部APIの契約違反をアプリ内部へ漏らさない | Jev固有のschema・error mapping・timeout/429処理を保守する必要がある |
+| [ADR-010](adr/010-assessment-axes.md) | MVPの就業価値観は8軸で定義する | 本人の希望を分けて表し、各軸を公開資料の根拠で確認する | 入力負担と `unknown` が増える |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -62,7 +63,7 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
 
 ## 明示的に未確定
 
-- 診断軸の質問文・両極の尺度・重要度0の意味・Hard Constraintの適用ルール。
+- 診断軸の質問文・両極の尺度は[8軸の仕様](assessment-axes.md)で定義。重要度0の意味・Hard Constraintの適用ルールは未確定。
 - rubric_version / evaluator_version / score→表示値の変換・総合点を出す妥当性。
     - Jev Score は rubric level に対する確率加重期待値であり、0〜100 のユーザー嗜好度・企業適合率とは直接対応しない。
     アプリ側で適合率へ変換する場合は、Jev Score とは別の明示的な正規化ルールを設計する。

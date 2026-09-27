@@ -10,6 +10,7 @@
 - [インフラ構成・GitOps・運用](docs/infrastructure.md)
 - [API契約と非同期ジョブ](docs/api.md)
 - [設計判断・未確定事項](docs/decisions.md)
+- [MVPの就業価値観8軸](docs/assessment-axes.md)
 - [開発運用・Issueの進め方](docs/development.md)
 
 **実装方針:** コードは開発者が手書きする。ここにある図は現時点の設計案であり、実測・技術スパイクにより更新する。課題はGitHub Issuesの受け入れ条件を単位に進める。

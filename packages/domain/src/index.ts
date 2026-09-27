@@ -1,1 +1,1 @@
-export {};
+export { parsePercentage } from "./percentage.js";

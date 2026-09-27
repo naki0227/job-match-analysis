@@ -34,6 +34,11 @@ insert into public.career_profile_versions (
   '20000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000001', 1, 1, 'completed'
 );
+insert into public.career_profile_target_roles (
+  profile_version_id, role_order, role_text
+) values (
+  '20000000-0000-0000-0000-000000000001', 0, 'ソフトウェアエンジニア'
+);
 insert into public.career_profile_axis_values (
   profile_version_id, axis_key, axis_version, preference, importance
 ) values (
@@ -134,6 +139,12 @@ select pg_temp.expect_sqlstate(
   $$insert into public.career_constraint_locations
     values ('20000000-0000-0000-0000-000000000001', '13')$$, '23505');
 select pg_temp.expect_sqlstate(
+  $$insert into public.career_profile_target_roles
+    values ('20000000-0000-0000-0000-000000000001', 1, 'ソフトウェアエンジニア')$$, '23505');
+select pg_temp.expect_sqlstate(
+  $$insert into public.career_profile_target_roles
+    values ('20000000-0000-0000-0000-000000000001', 1, '   ')$$, '23514');
+select pg_temp.expect_sqlstate(
   $$update public.career_constraints set min_salary_currency = null
     where profile_version_id = '20000000-0000-0000-0000-000000000001'$$, '23514');
 select pg_temp.expect_sqlstate(
@@ -210,11 +221,11 @@ do $$
 begin
   if (select count(*) from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and c.relkind = 'r') <> 20
+      where n.nspname = 'public' and c.relkind = 'r') <> 21
     or (select count(*) from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and c.relkind = 'r'
-        and c.relrowsecurity) <> 20 then
+        and c.relrowsecurity) <> 21 then
     raise exception 'Every Issue #14 table must have RLS enabled';
   end if;
 end;

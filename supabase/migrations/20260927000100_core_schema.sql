@@ -70,6 +70,17 @@ create table public.career_profile_versions (
 create index career_profile_versions_user_created_idx
   on public.career_profile_versions (user_id, created_at desc);
 
+create table public.career_profile_target_roles (
+  profile_version_id uuid not null
+    references public.career_profile_versions(id) on delete cascade,
+  role_order integer not null check (role_order >= 0),
+  role_text text not null check (
+    length(btrim(role_text)) > 0 and role_text = btrim(role_text)
+  ),
+  primary key (profile_version_id, role_order),
+  unique (profile_version_id, role_text)
+);
+
 create table public.career_profile_axis_values (
   profile_version_id uuid not null,
   axis_key text not null,
@@ -158,6 +169,7 @@ create index source_document_versions_source_fetched_idx
 alter table public.profiles enable row level security;
 alter table public.assessment_axes enable row level security;
 alter table public.career_profile_versions enable row level security;
+alter table public.career_profile_target_roles enable row level security;
 alter table public.career_profile_axis_values enable row level security;
 alter table public.career_constraints enable row level security;
 alter table public.career_constraint_locations enable row level security;

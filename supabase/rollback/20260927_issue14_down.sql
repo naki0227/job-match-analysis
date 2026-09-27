@@ -19,6 +19,7 @@ drop table public.companies;
 drop table public.career_constraint_locations;
 drop table public.career_constraints;
 drop table public.career_profile_axis_values;
+drop table public.career_profile_target_roles;
 drop table public.career_profile_versions;
 drop table public.assessment_axes;
 drop table public.profiles;

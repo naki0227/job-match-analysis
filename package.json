@@ -4,13 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "pnpm --filter api test && pnpm --filter web test",
+    "test": "pnpm --filter domain test && pnpm --filter api test && pnpm --filter web test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "oxlint apps/web/src apps/api/src",
-    "lint:fix": "oxlint --fix apps/web/src apps/api/src",
-    "typecheck": "pnpm --filter api typecheck && pnpm --filter web exec tsc -b",
-    "build": "pnpm --filter api build && pnpm --filter web build",
+    "lint": "oxlint apps/web/src apps/api/src packages/domain/src packages/domain/tests",
+    "lint:fix": "oxlint --fix apps/web/src apps/api/src packages/domain/src packages/domain/tests",
+    "typecheck": "pnpm --filter domain typecheck && pnpm --filter api typecheck && pnpm --filter web exec tsc -b",
+    "build": "pnpm --filter domain build && pnpm --filter api build && pnpm --filter web build",
     "precommit": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "keywords": [],

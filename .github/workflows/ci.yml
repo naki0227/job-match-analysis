@@ -6,6 +6,36 @@ on:
   pull_request:
 
 jobs:
+  domain:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Domain
+        run: pnpm exec oxlint packages/domain/src packages/domain/tests
+
+      - name: Typecheck Domain
+        run: pnpm --filter domain typecheck
+
+      - name: Test Domain
+        run: pnpm --filter domain test
+
+      - name: Build Domain
+        run: pnpm --filter domain build
+
   web:
     runs-on: ubuntu-24.04
     steps:

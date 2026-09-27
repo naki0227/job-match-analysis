@@ -20,6 +20,8 @@
 
 コミット前のローカル検証を有効にするには、初回に `git config --local core.hooksPath .githooks` を実行する。以後のコミットでは `pnpm precommit` が走り、format check・lint・typecheck・test・buildを確認する。必要なら同じコマンドを手動でも実行できる。
 
+Issue #14のPostgreSQL migrationは `pnpm test:db` で検証する。Docker上の一時的なPostgreSQL 17を使い、up・制約違反・RLS・rollbackを確認する。実際のSupabaseへはこのコマンドで接続しない。
+
 - [全Issue](https://github.com/naki0227/job-match-analysis/issues)
 - [技術スパイク Epic #1](https://github.com/naki0227/job-match-analysis/issues/1)
 - [診断・Matchドメイン Epic #2](https://github.com/naki0227/job-match-analysis/issues/2)
@@ -29,4 +31,4 @@
 - [品質 Epic #6](https://github.com/naki0227/job-match-analysis/issues/6)
 - [GitOps/Infra Epic #7](https://github.com/naki0227/job-match-analysis/issues/7)
 
-最初は[Issue #8: Jev API実契約の確認](https://github.com/naki0227/job-match-analysis/issues/8)。README・ドキュメント・Issueは設計案であり、アプリケーションや本番環境はまだ実装・デプロイしていません。
+README・ドキュメント・Issueには実装済みの内容と後続Issueの設計案が混在する。本番環境へのデプロイはまだ行っていない。

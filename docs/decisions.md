@@ -17,6 +17,8 @@
 | [ADR-011](adr/011-importance-and-hard-constraints.md) | 重要度0は比較から除外し、必須条件は個別求人の明示情報で判定する | 未回答と区別し、根拠のない推定を避ける | 判定不能の `unknown` が増える |
 | [ADR-012](adr/012-domain-identifiers.md) | CareerProfileは固定の8軸ID・共通カタログ版と2桁の都道府県コードを使う | 版混在と表記揺れをドメイン境界で拒否する | 軸変更時は全体を新版にし、市区町村・海外は別途拡張が必要 |
 | [ADR-013](adr/013-match-engine-policy.md) | 軸ごとの0/50/100アンカーを比較し、求人と会社の結果を分離する | 総合％に頼らず根拠と相違を示す | 境界値と情報不足の扱いを検証し続ける必要がある |
+| [ADR-014](adr/014-postgresql-physical-schema.md) | UUID・複合FKを中心に物理DDLを定義し、RLSを先に有効化する | 個人/共有/出典の整合性をDBで保証する | 本文30日削除は予定済みworker接続まで自動化されない |
+| [ADR-015](adr/015-target-roles-in-career-profile.md) | 希望職種をCareerProfile版の必須リストとして保持する | 再評価時にも当時の希望を追える | 職種の正規化と自動一致は別途決める |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -70,7 +72,7 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
 - rubric_version / evaluator_version / score→表示値の変換・総合点を出す妥当性。
     - Jev Score は rubric level に対する確率加重期待値であり、0〜100 のユーザー嗜好度・企業適合率とは直接対応しない。
     アプリ側で適合率へ変換する場合は、Jev Score とは別の明示的な正規化ルールを設計する。
-- Supabase無料枠におけるバックアップ実装と復元訓練、保持期間、個人データ削除経路。
+- Supabase無料枠におけるバックアップ実装と復元訓練、個人データ削除要求の実行経路、評価根拠の保持期間。抽出本文は取得から30日後に削除する方針だが、workerへの接続は未実装。
 - crawlerのfetch policy、利用規約、robots、無料枠を超えないジョブ上限、proxy/ブラウザのネットワークレベルSSRF防御。
 - AWS等への移行条件、実際のSLO、service名（現状はjob-match-analysis仮称）。
 - jobId閲覧権限、求人別と会社別の評価継承、出典抽出の引用長と二次利用規約。

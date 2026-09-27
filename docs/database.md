@@ -1,6 +1,16 @@
 # DB論理設計・ER図 v0.1
 
-> **注意:** これはmigration実行済みの物理DDLではなく、実装前レビュー用の論理設計。各列のNOT NULL・FK・削除方針・所有者チェック・RLSはDB設計Issueで確定する。[総合設計書](design.md)を参照。
+> このER図は概念的な関係を示す。Issue #14の物理DDLは[`supabase/migrations/`](../supabase/migrations/)にあり、RLSの閲覧・更新ポリシーとトランザクション処理は後続Issueで実装する。[総合設計書](design.md)を参照。
+
+## Issue #14の物理DDL
+
+- [基本表・8軸seed](../supabase/migrations/20260927000100_core_schema.sql)と[評価・マッチ表](../supabase/migrations/20260927000200_evaluation_match_schema.sql)を順番に適用する。Supabaseの`auth.users`が前提。実体のPKはUUID、関連表は複合PK。個人所有の子行はユーザー削除に連鎖し、共有行の参照は削除を制限する。
+- `career_constraint_locations`は`(profile_version_id, prefecture_code)`、`match_constraint_results`は`(match_result_id, kind)`の複合PK。前者は01〜47の重複を拒否し、後者は必須条件の状態と理由を保持する。
+- `career_profile_target_roles`は版ごとの希望職種リストを順序付きで保持する。空白と同一表記の重複を拒否する。職種による自動一致・必須除外はまだ行わない。
+- `evaluation_targets`の求人と会社の所属、`evaluation_evidence`の軸評価・使用文書、`match_results`のユーザー・プロフィール版と軸カタログ版は複合FKで確認する。会社名はUNIQUEにしない。URLのUNIQUEは`source_urls.normalized_url`だけに置く。
+- `source_document_versions.extracted_text`には抽出本文を保存できる。取得から30日経過した本文は予定済みのworkerがNULLに更新する方針。文書のhash・取得日時と評価の短い根拠抜粋は残す。**worker実装まで自動削除は行われない**ため、本文を保存する運用の開始前に削除処理を接続する。
+- 新規21表すべてでRLSを有効化し、ポリシーはIssue #15で追加する。それまではクライアントロールから行を読めない。
+- 手動rollbackは[down SQL](../supabase/rollback/20260927_issue14_down.sql)。全表とデータを削除するため、適用前にバックアップと依存物を確認する。ローカルのup・無効FK/重複/CHECK・RLS・本文削除条件・downの検証は`pnpm test:db`を実行する。
 
 ## データの所有境界
 
@@ -17,7 +27,9 @@ erDiagram
   AUTH_USERS ||--|| PROFILES : owns
   PROFILES ||--o{ CAREER_PROFILE_VERSIONS : has
   CAREER_PROFILE_VERSIONS ||--o{ CAREER_PROFILE_AXIS_VALUES : contains
+  CAREER_PROFILE_VERSIONS ||--o{ CAREER_PROFILE_TARGET_ROLES : targets
   CAREER_PROFILE_VERSIONS ||--o| CAREER_CONSTRAINTS : defines
+  CAREER_CONSTRAINTS ||--o{ CAREER_CONSTRAINT_LOCATIONS : allows
   ASSESSMENT_AXES ||--o{ CAREER_PROFILE_AXIS_VALUES : referenced
   COMPANIES ||--o{ JOB_POSTINGS : offers
   COMPANIES ||--o{ EVALUATION_TARGETS : scope
@@ -37,6 +49,7 @@ erDiagram
   CAREER_PROFILE_VERSIONS ||--o{ MATCH_RESULTS : snapshot
   EVALUATIONS ||--o{ MATCH_RESULTS : snapshot
   MATCH_RESULTS ||--o{ MATCH_AXIS_RESULTS : details
+  MATCH_RESULTS ||--o{ MATCH_CONSTRAINT_RESULTS : checks
   ASSESSMENT_AXES ||--o{ MATCH_AXIS_RESULTS : referenced
   ANALYSIS_JOBS o|--o| EVALUATIONS : completes
 ~~~
@@ -50,8 +63,10 @@ erDiagram
 | profiles | id = auth.users.id | ユーザー削除時の個人データ削除経路 |
 | assessment_axes | id | UNIQUE(axis_key, axis_version), 両極の定義・質問・ルーブリック。既存版は不変 |
 | career_profile_versions | id | user_id FK、UNIQUE(user_id, version)、draft/completed |
-| career_profile_axis_values | (profile_version_id, axis_id) | preference, importanceの0..100 CHECK |
+| career_profile_target_roles | (profile_version_id, role_order) | 希望職種の順序付きリスト、版内の同一文字列はUNIQUE |
+| career_profile_axis_values | (profile_version_id, axis_key) | preference, importanceの0..100 CHECK、軸カタログ版の複合FK |
 | career_constraints | profile_version_id | min_salary（通貨/期間の単位も保持）、remote要件、地域など |
+| career_constraint_locations | (profile_version_id, prefecture_code) | 都道府県コード01〜47、重複不可 |
 | companies | id | 企業名のみをUNIQUEにしない。外部識別子/公式domain等の照合は別設計 |
 | job_postings | id | company_id FK、求人ID/掲載先ID/正規化URL等で重複を検証 |
 | source_urls | id | normalized_url UNIQUE、raw_url・canonical aliasの扱いは別 |
@@ -59,12 +74,13 @@ erDiagram
 | evaluation_targets | id | target_type company/job、company_id、job_posting_id nullable、整合CHECK + 所属制約 |
 | evaluations | id | target_id、source_set_hash、rubric_version、evaluator_version、model_version；この組合せのUNIQUE |
 | evaluation_sources | (evaluation_id, source_document_version_id) | 評価入力となった正確な文書版へのFK |
-| evaluated_axis_values | (evaluation_id, axis_id) | 明示根拠のある評価値、unknown等の状態、確率は別のメタデータ |
-| evaluation_evidence | id | (evaluation_id, axis_id)への複合FK、source_document_version_id FK、本文内の根拠位置 |
+| evaluated_axis_values | (evaluation_id, axis_key) | 0/50/100アンカー、unknown等の状態、軸カタログ版の複合FK |
+| evaluation_evidence | id | (evaluation_id, axis_key)と(evaluation_id, source_document_version_id)への複合FK、根拠抜粋・位置 |
 | analysis_jobs | id | source_url_id、analyzer_version、status、attempts、lease_until、worker_token |
 | user_saved_jobs | (user_id, job_posting_id) | 個人ブックマーク |
 | match_results | id | user_id / career_profile_version_id / evaluation_id / algorithm_version |
-| match_axis_results | (match_result_id, axis_id) | 当時の希望値・評価値・一致状態と算出理由のsnapshot |
+| match_axis_results | (match_result_id, axis_key) | 当時の希望値・評価値・一致状態と算出理由のsnapshot |
+| match_constraint_results | (match_result_id, kind) | 必須条件の状態と理由のsnapshot |
 
 ## 制約・Index・権限方針
 
@@ -103,4 +119,4 @@ sequenceDiagram
 
 ## 公開前に確定すること
 
-全DDL/NOT NULL/FK/ON DELETE/RLS、会社・求人の同一性とURL alias、sourceの保存期間、検索とBatchのEXPLAIN、時刻・通貨・給与期間の単位、権限昇格テスト、migration/rollback/backup。[DB関連Epic](https://github.com/naki0227/job-match-analysis/issues/3)の受け入れ条件を起点に確定する。
+RLSポリシー、会社・求人の同一性とURL alias、workerによる30日本文削除、検索とBatchのEXPLAIN、権限昇格テスト、本番backup/restore。[DB関連Epic](https://github.com/naki0227/job-match-analysis/issues/3)の受け入れ条件を起点に確定する。

@@ -15,6 +15,7 @@
 | ADR-009 | Jev APIはAPIサーバーから直接HTTPで呼び出し、Zodでレスポンス契約を検証する | TypeScriptから利用可能で、実APIによるNoul / Choice / Scoreの入出力を確認できた。外部APIの契約違反をアプリ内部へ漏らさない | Jev固有のschema・error mapping・timeout/429処理を保守する必要がある |
 | [ADR-010](adr/010-assessment-axes.md) | MVPの就業価値観は8軸で定義する | 本人の希望を分けて表し、各軸を公開資料の根拠で確認する | 入力負担と `unknown` が増える |
 | [ADR-011](adr/011-importance-and-hard-constraints.md) | 重要度0は比較から除外し、必須条件は個別求人の明示情報で判定する | 未回答と区別し、根拠のない推定を避ける | 判定不能の `unknown` が増える |
+| [ADR-012](adr/012-domain-identifiers.md) | CareerProfileは固定の8軸ID・共通カタログ版と2桁の都道府県コードを使う | 版混在と表記揺れをドメイン境界で拒否する | 軸変更時は全体を新版にし、市区町村・海外は別途拡張が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -64,7 +65,7 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
 
 ## 明示的に未確定
 
-- [8軸の仕様](assessment-axes.md)に関する地域名の入力単位・正規化とAPIでの `unknown` の表現。
+- [8軸の仕様](assessment-axes.md)に関する求人の地名から都道府県コードへの正規化とAPIでの `unknown` の表現。
 - rubric_version / evaluator_version / score→表示値の変換・総合点を出す妥当性。
     - Jev Score は rubric level に対する確率加重期待値であり、0〜100 のユーザー嗜好度・企業適合率とは直接対応しない。
     アプリ側で適合率へ変換する場合は、Jev Score とは別の明示的な正規化ルールを設計する。

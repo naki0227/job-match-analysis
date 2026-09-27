@@ -9,6 +9,7 @@ function profileInput() {
   return {
     profileVersion: 1,
     axisCatalogVersion: 1,
+    targetRoles: ["ソフトウェアエンジニア"],
     axisValues: AXIS_KEYS.map((axisKey) => ({
       axisKey,
       axisVersion: 1,
@@ -35,6 +36,7 @@ describe("createCareerProfileVersion", () => {
 
     expect(profile.status).toBe("completed");
     expect(profile.axisValues).toHaveLength(8);
+    expect(profile.targetRoles).toEqual(["ソフトウェアエンジニア"]);
     expect(profile.axisValues[0]).toMatchObject({
       preference: 100,
       importance: 0,
@@ -55,13 +57,16 @@ describe("createCareerProfileVersion", () => {
     const input = profileInput();
     const profile = createCareerProfileVersion(input);
     input.axisValues[0].preference = 0;
+    input.targetRoles[0] = "デザイナー";
     input.constraints.allowedPrefectureCodes[0] = "01";
 
     expect(profile.axisValues[0].preference).toBe(50);
+    expect(profile.targetRoles).toEqual(["ソフトウェアエンジニア"]);
     expect(profile.constraints.allowedPrefectureCodes).toEqual(["13", "27"]);
     expect(Object.isFrozen(profile)).toBe(true);
     expect(Object.isFrozen(profile.axisValues)).toBe(true);
     expect(Object.isFrozen(profile.axisValues[0])).toBe(true);
+    expect(Object.isFrozen(profile.targetRoles)).toBe(true);
     expect(Object.isFrozen(profile.constraints)).toBe(true);
     expect(Object.isFrozen(profile.constraints.minSalary)).toBe(true);
     expect(Object.isFrozen(profile.constraints.allowedPrefectureCodes)).toBe(
@@ -97,6 +102,26 @@ describe("createCareerProfileVersion", () => {
         ],
       }),
     ).toThrow(RangeError);
+  });
+
+  it("requires a nonempty list of distinct, nonblank target roles", () => {
+    for (const targetRoles of [
+      undefined,
+      [],
+      ["  "],
+      ["エンジニア", " エンジニア "],
+      [42],
+    ]) {
+      expect(() =>
+        createCareerProfileVersion({ ...profileInput(), targetRoles }),
+      ).toThrow();
+    }
+    expect(
+      createCareerProfileVersion({
+        ...profileInput(),
+        targetRoles: ["  エンジニア  ", "デザイナー"],
+      }).targetRoles,
+    ).toEqual(["エンジニア", "デザイナー"]);
   });
 
   it("rejects mixed or unsupported catalog versions", () => {
@@ -161,12 +186,15 @@ describe("reviseCareerProfileVersion", () => {
     const previous = createCareerProfileVersion(profileInput());
     const revision = profileInput();
     revision.axisValues[0].preference = 100;
+    revision.targetRoles = ["デザイナー", "リサーチャー"];
     revision.constraints.allowedPrefectureCodes = ["01"];
 
     const next = reviseCareerProfileVersion(previous, revision);
 
     expect(next.profileVersion).toBe(2);
     expect(next.axisValues[0].preference).toBe(100);
+    expect(next.targetRoles).toEqual(["デザイナー", "リサーチャー"]);
+    expect(previous.targetRoles).toEqual(["ソフトウェアエンジニア"]);
     expect(next.constraints.allowedPrefectureCodes).toEqual(["01"]);
     expect(previous.profileVersion).toBe(1);
     expect(previous.axisValues[0].preference).toBe(50);

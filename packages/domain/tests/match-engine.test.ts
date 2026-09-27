@@ -14,6 +14,7 @@ function profile(preference = 75, importance = 100) {
   return createCareerProfileVersion({
     profileVersion: 1,
     axisCatalogVersion: AXIS_CATALOG_VERSION,
+    targetRoles: ["ソフトウェアエンジニア"],
     axisValues: AXIS_KEYS.map((axisKey) => ({
       axisKey,
       axisVersion: AXIS_CATALOG_VERSION,

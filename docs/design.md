@@ -101,7 +101,7 @@ infra/gitops/            # 初期は同一repoでも可。GitOps独立repo移行
 ## 5. 評価・マッチング仕様（未確定部分は仕様スパイクを行う）
 
 ### 入力
-- ユーザー: [MVPの8軸](assessment-axes.md)ごとに`preference: 0..100`と`importance: 0..100`。必須条件は別オブジェクト（最低年収、勤務形態、勤務地、職種など）。
+- ユーザー: [MVPの8軸](assessment-axes.md)ごとに`preference: 0..100`と`importance: 0..100`。希望職種はCareerProfile版に必須のリストとして保持する。必須条件は別オブジェクト（最低年収、勤務地、フルリモート）。希望職種の自動一致・必須除外は別途ルールを決める。
 - 企業・求人: **公開資料に裏付けられる項目のみ**保存。企業共通（文化・制度など）と求人固有（給与・技術・勤務地・職種など）を分離。
 - 情報の状態: `known / unknown / conflicting / stale`。`unknown`を0点扱いしない。出典のURL、抽出箇所、取得日を保持。
 
@@ -121,6 +121,7 @@ infra/gitops/            # 初期は同一repoでも可。GitOps独立repo移行
 ```text
 auth.users 1─1 profiles 1─N career_profile_versions 1─N career_profile_axis_values
                                                └─1 career_constraints
+                                               └─N career_profile_target_roles
 assessment_axes 1─N career_profile_axis_values
 assessment_axes 1─N evaluated_axis_values
 companies 1─N job_postings

@@ -30,6 +30,7 @@ export type CareerProfileVersion = Readonly<{
   profileVersion: number;
   axisCatalogVersion: number;
   status: "completed";
+  targetRoles: readonly string[];
   axisValues: readonly AxisAnswer[];
   constraints: CareerConstraints;
 }>;
@@ -43,6 +44,26 @@ function parseProfileVersion(value: unknown): number {
     throw new RangeError("Profile version must be a positive safe integer");
   }
   return value;
+}
+
+function parseTargetRoles(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new RangeError("A completed profile requires a target role");
+  }
+  const roles = value.map((role: unknown) => {
+    if (typeof role !== "string") {
+      throw new TypeError("Target role must be text");
+    }
+    const trimmed = role.trim();
+    if (trimmed.length === 0) {
+      throw new RangeError("Target role must not be blank");
+    }
+    return trimmed;
+  });
+  if (new Set(roles).size !== roles.length) {
+    throw new RangeError("Duplicate target role");
+  }
+  return Object.freeze(roles);
 }
 
 function parseAxisValues(
@@ -158,6 +179,7 @@ export function createCareerProfileVersion(
     profileVersion: parseProfileVersion(value.profileVersion),
     axisCatalogVersion,
     status: "completed",
+    targetRoles: parseTargetRoles(value.targetRoles),
     axisValues: parseAxisValues(value.axisValues, axisCatalogVersion),
     constraints: parseConstraints(value.constraints),
   });
@@ -179,6 +201,7 @@ export function reviseCareerProfileVersion(
   return createCareerProfileVersion({
     profileVersion: current.profileVersion + 1,
     axisCatalogVersion: revision.axisCatalogVersion,
+    targetRoles: revision.targetRoles,
     axisValues: revision.axisValues,
     constraints: revision.constraints,
   });

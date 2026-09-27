@@ -1,0 +1,21 @@
+name: DB migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test migration, constraints, RLS, and rollback
+        run: sh scripts/test-db-migration.sh

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fbfdff">
+  <title>Job Match UI Mock — Future Vision</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./mock.css">
+</head>
+<body data-mode="future">
+  <div class="gate active" id="gate-auth">
+    <div class="gate-inner">
+      <div class="gate-logo"><span class="brand-mark"></span><span>job match</span><span class="mock-badge">FUTURE MOCK</span></div>
+      <div class="gate-mascot"><img class="mascot" src="../../asset/mascot/wave.webp" alt="手を振る水色のマスコット"></div>
+      <h1>はじめよう。</h1>
+      <p class="sub">気になる求人を、自分の軸で。</p>
+      <button class="google-btn" id="mock-google-login" type="button" style="margin-top:26px"><strong style="color:#4285f4">G</strong> Googleで続ける</button>
+      <button class="text-btn" id="skip-onboarding" type="button" style="margin-top:8px">デモをすぐ見る</button>
+    </div>
+  </div>
+  <div class="gate" id="gate-legal">
+    <div class="gate-inner">
+      <div class="eyebrow">WELCOME</div><h1>最初に確認。</h1>
+      <div style="margin-top:22px">
+        <label class="checkline"><input id="terms-check" type="checkbox"><span><strong>利用規約</strong> に同意する</span></label>
+        <label class="checkline"><input id="privacy-check" type="checkbox"><span><strong>プライバシーポリシー</strong> を確認した</span></label>
+      </div>
+      <button class="primary" id="legal-next" type="button" style="margin-top:24px" disabled>次へ</button>
+    </div>
+  </div>
+  <div class="gate" id="gate-role">
+    <div class="gate-inner">
+      <div class="eyebrow">TARGET ROLE</div><h1>どんな仕事を見てる？</h1>
+      <div class="role-options" id="role-options">
+        <button class="role-tag active" type="button">Backend Engineer</button><button class="role-tag" type="button">Frontend Engineer</button><button class="role-tag" type="button">Mobile Engineer</button><button class="role-tag" type="button">Product Manager</button><button class="role-tag" type="button">Designer</button><button class="role-tag" type="button">Sales</button>
+      </div>
+      <input class="input" type="text" placeholder="その他の職種" style="margin-top:12px">
+      <button class="primary" id="role-next" type="button" style="margin-top:24px">Career Profileへ</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand-row">
+          <button class="brand" id="home-brand" type="button"><span class="brand-mark"></span><span>job match</span></button>
+          <div class="top-actions">
+            <button class="mode-btn" id="mode-switch" type="button">企業デモ</button>
+            <button class="icon-btn" id="scout-open" type="button" aria-label="スカウト">
+              <svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4z"/><path d="m4 7 8 6 8-6"/></svg><span class="notify-dot"></span>
+            </button>
+            <button class="avatar" type="button" data-screen="settings" aria-label="設定">YN</button>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="active" data-screen="home">ホーム</button><button data-screen="analyze">求人分析</button><button data-screen="history">分析履歴</button><button data-screen="insights">インサイト</button>
+        </nav>
+        <nav class="enterprise-nav">
+          <button class="active" data-enterprise="enterprise-home">概要</button><button data-enterprise="enterprise-candidates">候補者</button><button data-enterprise="enterprise-insights">Insight</button><button data-enterprise="enterprise-scouts">スカウト</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="screen active" id="screen-home">
+        <div class="hero">
+          <div><div class="eyebrow">CAREER MATCH</div><h1>気になる求人を、<br>自分の軸で。</h1><p class="sub">近い・違う・まだ分からない。</p></div>
+          <div class="hero-visual"><img class="mascot" src="../../asset/mascot/laptop.webp" alt="ノートパソコンを持つ水色のマスコット"></div>
+        </div>
+        <div class="panel analyze-panel"><form id="home-analyze"><div class="url-row"><input class="input" id="home-url" type="url" placeholder="求人URLを貼り付ける"><button class="primary" type="submit">分析する</button></div></form></div>
+        <section class="section">
+          <div class="section-title"><h2>最近の分析</h2><button class="text-btn" type="button" data-screen="history">すべて見る</button></div>
+          <div class="list">
+            <button class="list-row" type="button" data-result="サンプルテック株式会社"><span><strong>サンプルテック株式会社</strong><span class="meta">Backend Engineer</span><span class="statusline">近い 5　相違 1　不明 2</span></span><span class="chev">›</span></button>
+            <button class="list-row" type="button" data-result="サンプルラボ株式会社"><span><strong>サンプルラボ株式会社</strong><span class="meta">Web Engineer</span><span class="statusline">近い 4　相違 2　不明 1</span></span><span class="chev">›</span></button>
+          </div>
+        </section>
+        <section class="section"><div class="section-title"><h2>スカウト</h2><button class="text-btn" id="home-scout-open" type="button">見る</button></div><div class="slim" style="border-bottom:1px solid var(--line)"><div><strong>サンプルクラウド株式会社</strong><div class="meta">匿名プロフィール宛て · 新着</div></div><span class="future-label">FUTURE</span></div></section>
+        <div class="slim"><div><strong>Career Profile</strong><div class="meta">72% 完成</div><div class="progress"><span></span></div></div><button class="text-btn" type="button" data-screen="assessment">見直す</button></div>
+      </section>
+
+      <section class="screen" id="screen-assessment">
+        <div class="assess page-head">
+          <div class="eyebrow">CAREER PROFILE</div><div class="question-count" id="q-count">1 / 8</div><h1 class="question" id="q-text">どの程度、在宅で働きたいですか？</h1>
+          <div class="slider-wrap"><input class="slider" id="pref-slider" type="range" min="0" max="100" value="72"><div class="ends"><span id="q-left">原則出社</span><span id="q-right">フルリモート</span></div><div class="value" id="pref-value">72</div></div>
+          <h3>どれくらい重視する？</h3><div class="importance" id="importance"><button class="imp" type="button">1</button><button class="imp" type="button">2</button><button class="imp active" type="button">3</button><button class="imp" type="button">4</button><button class="imp" type="button">5</button></div>
+          <div class="actions"><button class="secondary" id="q-prev" type="button">戻る</button><button class="primary" id="q-next" type="button">次へ</button></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-analyze">
+        <div class="analysis-stage page-head">
+          <div class="eyebrow">ANALYZE</div><h1>求人を分析</h1><p class="sub">URLを貼るだけ。</p>
+          <form id="analyze-form" style="margin-top:22px"><div class="url-row"><input class="input" id="analyze-url" type="url" placeholder="https://..."><button class="primary" type="submit">分析する</button></div></form>
+          <div id="analysis-progress" hidden><div class="stage-visual"><img class="mascot" src="../../asset/mascot/search.webp" alt="調べているマスコット"></div><div class="stage-title" id="stage-title">求人情報を確認中</div><div class="steps"><div class="step active"><i class="dot"></i>ページを読む</div><div class="step"><i class="dot"></i>条件を整理</div><div class="step"><i class="dot"></i>価値観と比較</div></div></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-result">
+        <div class="result-head">
+          <div><div class="eyebrow">MATCH RESULT</div><h1 id="result-company">サンプルテック株式会社</h1><p class="sub">Backend Engineer</p><div class="summary"><span><b>5</b>近い</span><span><b>1</b>相違</span><span><b>2</b>不明</span></div></div>
+          <div class="hero-visual"><img class="mascot small" src="../../asset/mascot/success.webp" alt="喜ぶマスコット"></div>
+        </div>
+        <div class="constraint"><span><b>✓</b>年収</span><span><b>?</b>勤務地</span><span><b>×</b>フルリモート</span></div>
+        <div class="inline-actions"><button class="primary" id="open-share" type="button">共有カードを作る</button><button class="secondary" type="button" data-screen="history">分析履歴へ</button></div>
+        <div class="axis-list">
+          <div class="axis"><button class="axis-toggle" type="button"><span><span class="axis-name">裁量</span><span class="meta">近い</span></span><span class="axis-state">根拠を見る</span></button><div class="axis-bars"><div class="bar-row"><span>あなた</span><div class="track"><span style="width:82%"></span></div><span>82</span></div><div class="bar-row"><span>求人</span><div class="track"><span style="width:100%"></span></div><span>100</span></div></div><div class="evidence">「設計・技術選定にも参加」と記載されています。</div></div>
+          <div class="axis"><button class="axis-toggle" type="button"><span><span class="axis-name">働く場所</span><span class="meta">相違</span></span><span class="axis-state">根拠を見る</span></button><div class="axis-bars"><div class="bar-row"><span>あなた</span><div class="track"><span style="width:95%"></span></div><span>95</span></div><div class="bar-row"><span>求人</span><div class="track"><span style="width:50%"></span></div><span>50</span></div></div><div class="evidence">週3日のオフィス勤務が記載されています。</div></div>
+          <div class="axis"><button class="axis-toggle" type="button"><span><span class="axis-name">顧客との接点</span><span class="meta">不明</span></span><span class="axis-state">根拠を見る</span></button><div class="evidence">公開情報だけでは判断できませんでした。</div></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-public">
+        <div class="public-wrap">
+          <div class="page-head"><div class="eyebrow">PUBLIC SHARE</div><h1>共有結果</h1><p class="sub">個人情報は載せない。</p></div>
+          <div class="public-card">
+            <div class="share-ribbon"><span class="dot"></span><span>PUBLIC SHARE</span></div>
+            <div class="public-row"><div><div class="share-brand">job match</div><h2 id="public-company" style="margin-top:16px">サンプルテック株式会社</h2><div class="meta">Backend Engineer</div></div><img class="public-mascot" src="../../asset/mascot/success.webp" alt="応援するマスコット"></div>
+            <div class="share-grid"><div class="share-stat"><b>5</b><span>近い</span></div><div class="share-stat"><b>1</b><span>相違</span></div><div class="share-stat"><b>2</b><span>不明</span></div></div>
+            <div class="share-axes"><span>裁量</span><span>役割の幅</span><span>顧客接点</span></div><div class="public-note">本名・メール・希望年収・希望勤務地は含まれません。</div>
+          </div>
+          <div class="inline-actions"><button class="secondary" type="button" data-screen="result">結果へ戻る</button></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-history">
+        <div class="page-head">
+          <div class="eyebrow">ANALYSIS HISTORY</div><h1>分析済み企業</h1><p class="sub">絞って見返す。</p>
+          <div class="filterbar" id="role-chips"><button class="chip active" type="button" data-role="all">すべて</button><button class="chip" type="button" data-role="backend">Backend</button><button class="chip" type="button" data-role="frontend">Frontend</button><button class="chip" type="button" data-role="platform">Platform</button></div>
+          <div class="filter-grid"><select id="status-filter" class="select"><option value="all">判定：すべて</option><option value="close">近い多め</option><option value="different">相違あり</option><option value="unknown">不明あり</option></select><select id="sort-filter" class="select"><option value="recent">新しい順</option><option value="close">近い順</option><option value="unknown">不明が少ない順</option></select></div>
+          <div class="list" id="history-list">
+            <button class="list-row history-row" type="button" data-role="backend" data-close="5" data-diff="1" data-unknown="2" data-age="1" data-result="サンプルテック株式会社"><span><strong>サンプルテック株式会社</strong><span class="meta">Backend Engineer</span><span class="statusline">近い 5　相違 1　不明 2</span></span><span class="chev">›</span></button>
+            <button class="list-row history-row" type="button" data-role="frontend" data-close="4" data-diff="2" data-unknown="1" data-age="3" data-result="サンプルラボ株式会社"><span><strong>サンプルラボ株式会社</strong><span class="meta">Frontend Engineer</span><span class="statusline">近い 4　相違 2　不明 1</span></span><span class="chev">›</span></button>
+            <button class="list-row history-row" type="button" data-role="platform" data-close="6" data-diff="1" data-unknown="1" data-age="5" data-result="サンプルクラウド株式会社"><span><strong>サンプルクラウド株式会社</strong><span class="meta">Platform Engineer</span><span class="statusline">近い 6　相違 1　不明 1</span></span><span class="chev">›</span></button>
+            <button class="list-row history-row" type="button" data-role="backend" data-close="3" data-diff="3" data-unknown="2" data-age="8" data-result="サンプルワークス株式会社"><span><strong>サンプルワークス株式会社</strong><span class="meta">Backend Engineer</span><span class="statusline">近い 3　相違 3　不明 2</span></span><span class="chev">›</span></button>
+          </div>
+          <div id="history-empty" class="empty"><img src="../../asset/mascot/worried.webp" alt=""><p>この条件ではまだないみたい。</p></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-insights">
+        <div class="insight-wrap page-head">
+          <div class="eyebrow">COMMUNITY INSIGHTS</div><h1>みんなと比べる</h1><p class="sub">8軸で、今の位置を見る。</p>
+          <div class="cohort-tabs" id="cohort-tabs"><button class="chip active" type="button" data-cohort="backend">Backend志望</button><button class="chip" type="button" data-cohort="all">28卒全体</button><button class="chip" type="button" data-cohort="kansai">関西</button><button class="chip" type="button" data-cohort="faculty">同学部</button></div>
+          <div class="insight-grid" id="insight-grid"><div><div class="radar-wrap"><svg id="radar" viewBox="0 0 420 420"></svg></div><div class="legend"><span class="self"><i></i>あなた</span><span class="cohort"><i></i><span id="cohort-label">Backend志望</span></span></div></div><div><div class="insight-metrics" id="insight-metrics"></div></div></div>
+          <div class="safe-cohort" id="safe-cohort"><img src="../../asset/mascot/worried.webp" alt=""><h3>まだ表示しないよ</h3><p class="sub">このコホートは人数が少ないため非表示。</p></div>
+          <section class="section" id="position-section"><div class="section-title"><h2>軸ごとの位置</h2></div><div id="axis-position-list"></div></section>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-scouts">
+        <div class="scout-wrap page-head">
+          <div class="eyebrow">SCOUTS</div><h1>スカウト</h1><p class="sub">最初は匿名のまま。</p>
+          <div id="scout-list" class="list" style="margin-top:18px">
+            <button class="scout-row" type="button" data-scout-thread="cloud"><span><strong>サンプルクラウド株式会社</strong><span class="meta">Platform Engineer · 新着</span></span><span class="chev">›</span></button>
+            <button class="scout-row" type="button" data-scout-thread="lab"><span><strong>サンプルラボ株式会社</strong><span class="meta">Backend Engineer</span></span><span class="chev">›</span></button>
+          </div>
+          <div id="scout-thread" hidden>
+            <button class="text-btn" id="scout-back" type="button">← 一覧</button><h2 id="thread-company" style="margin-top:8px">サンプルクラウド株式会社</h2>
+            <div class="identity-state"><span id="identity-state-text">匿名でやり取り中</span><button class="text-btn" id="identity-reveal-open" type="button">本人情報を開示</button></div>
+            <div class="thread" id="thread-messages"><div class="bubble them">プロフィールを拝見して、Platform Engineerのポジションをご案内したくご連絡しました。</div><div class="bubble me">ありがとうございます。仕事内容をもう少し知りたいです。</div><div class="bubble them">設計から運用まで横断するチームです。まずはカジュアル面談でも大丈夫です。</div></div>
+            <form class="thread-compose" id="thread-form"><input class="input" id="thread-input" placeholder="返信する"><button class="primary" type="submit">送信</button></form>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-candidate-preview">
+        <div class="candidate-wrap page-head">
+          <div class="eyebrow">ANONYMOUS PROFILE</div><h1>企業からの見え方</h1><p class="sub">公開を許可したものだけ。</p>
+          <div class="candidate-card" style="border-top:1px solid var(--line);margin-top:18px"><div class="candidate-head"><div><div class="candidate-id">Candidate #A8F31</div><div class="meta">Backend Engineer</div></div><span class="verify-badge" id="candidate-verification">self-reported</span></div><div class="candidate-stats"><span><b>5</b>近い</span><span><b>1</b>相違</span><span><b>2</b>不明</span></div><div class="visibility-preview" id="candidate-visible-fields"></div></div>
+          <div class="notice">企業側から氏名・メールは見えません。本人が特定企業への開示に同意した後だけ表示されます。</div>
+          <div class="inline-actions"><button class="secondary" type="button" data-screen="settings">公開設定へ</button><button class="primary" type="button" data-screen="scouts">スカウトを見る</button></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-settings">
+        <div class="settings page-head">
+          <div class="eyebrow">SETTINGS</div><h1>設定 <span class="future-label">VISION</span></h1><p class="sub">必要なものだけ。</p>
+          <div class="tabs" id="settings-tabs"><button class="tab active" type="button" data-tab="profile">プロフィール</button><button class="tab" type="button" data-tab="preferences">希望条件</button><button class="tab" type="button" data-tab="privacy">プライバシー</button><button class="tab" type="button" data-tab="notifications">通知</button><button class="tab" type="button" data-tab="account">アカウント</button></div>
+          <div class="settings-pane active" id="pane-profile">
+            <div class="field"><label for="display-name">表示名</label><input id="display-name" value="サンプルユーザー"></div>
+            <div class="field"><label for="school">大学</label><div><input id="school" value="サンプル大学"><div style="margin-top:7px"><span class="verify-badge" id="edu-badge">self-reported</span> <button class="text-btn" id="mock-verify" type="button" style="min-height:28px">確認する</button></div></div></div>
+            <div class="field"><label for="faculty">学部</label><input id="faculty" value="情報学部"></div>
+            <div class="field"><label for="grad-year">卒業予定</label><select id="grad-year"><option>2028</option><option>2029</option></select></div>
+            <button class="primary" id="save-profile" type="button" style="margin-top:20px">保存</button>
+          </div>
+          <div class="settings-pane" id="pane-preferences"><div class="field"><label for="target-role">希望職種</label><input id="target-role" value="Backend Engineer"></div><div class="field"><label for="salary">最低年収</label><input id="salary" value="500万円"></div><div class="field"><label for="location">勤務地</label><input id="location" value="大阪 / 東京"></div><div class="toggle-row"><div><strong>フルリモート必須</strong></div><button class="switch" type="button" aria-pressed="false"></button></div><button class="secondary" type="button" data-screen="assessment" style="margin-top:20px">価値観8軸を見直す</button></div>
+          <div class="settings-pane" id="pane-privacy">
+            <div class="toggle-row"><div><strong>Community Insights</strong><div class="meta">匿名集計に参加</div></div><button class="switch on" id="consent-community" type="button" aria-pressed="true"></button></div>
+            <div class="toggle-row"><div><strong>外部集計利用</strong><div class="meta">企業向けも集計値だけ</div></div><button class="switch" id="consent-external" type="button" aria-pressed="false"></button></div>
+            <div class="toggle-row"><div><strong>匿名プロフィール公開</strong></div><button class="switch on" id="candidate-enabled" type="button" aria-pressed="true"></button></div>
+            <div class="toggle-row"><div><strong>スカウトを受け取る</strong></div><button class="switch on" id="scout-enabled" type="button" aria-pressed="true"></button></div>
+            <div class="toggle-row"><div><strong>大学名を公開</strong></div><button class="switch" id="show-school" type="button" aria-pressed="false"></button></div>
+            <div class="toggle-row"><div><strong>学部を公開</strong></div><button class="switch" id="show-faculty" type="button" aria-pressed="false"></button></div>
+            <div class="toggle-row"><div><strong>ポートフォリオを公開</strong></div><button class="switch on" id="show-portfolio" type="button" aria-pressed="true"></button></div>
+            <button class="secondary" id="candidate-preview-open" type="button" style="margin-top:20px">匿名プロフィールを見る</button>
+            <div class="legal"><div><strong>利用規約</strong><div class="meta">v1.0 · 同意済み</div></div><span class="badge">2026/09/28</span></div>
+            <div class="legal"><div><strong>プライバシーポリシー</strong><div class="meta">v1.0 · 確認済み</div></div><span class="badge">2026/09/28</span></div>
+            <button class="secondary" id="consent-history" type="button" style="margin-top:20px">同意履歴を見る</button>
+          </div>
+          <div class="settings-pane" id="pane-notifications"><div class="toggle-row"><div><strong>解析完了</strong></div><button class="switch on" type="button" aria-pressed="true"></button></div><div class="toggle-row"><div><strong>Community Insights更新</strong></div><button class="switch" type="button" aria-pressed="false"></button></div></div>
+          <div class="settings-pane" id="pane-account"><div class="field"><label>ログイン</label><div>Google OAuth</div></div><div class="field"><label>メール</label><div>sample.user@gmail.com</div></div><div class="download-row"><div><strong>自分のデータ</strong><div class="meta">JSONモック</div></div><button class="secondary" id="export-data" type="button">エクスポート</button></div><button class="secondary danger" id="delete-account" type="button" style="margin-top:20px">アカウント削除</button><button class="text-btn" id="logout" type="button" style="margin-top:10px">ログアウト</button></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-enterprise-home">
+        <div class="enterprise-wrap page-head">
+          <div class="eyebrow">PARTNER DEMO</div><div class="hero"><div><h1>サンプルクラウド株式会社</h1><p class="sub">匿名候補者と集計Insight。</p></div><div class="hero-visual"><img class="mascot small" src="../../asset/mascot/laptop.webp" alt=""></div></div>
+          <div class="notice"><strong style="color:var(--ink)">提携状況はMatch判定に影響しません。</strong><br>スポンサー表示と比較ロジックは別レイヤーです。</div>
+          <div class="kpi-grid"><div class="kpi"><b>124</b><span>求人分析</span></div><div class="kpi"><b>31</b><span>匿名候補者</span></div><div class="kpi"><b>18</b><span>スカウト送信</span></div><div class="kpi"><b>7</b><span>返信</span></div></div>
+          <section class="section"><div class="section-title"><h2>求人の情報不足</h2><button class="text-btn" type="button" data-enterprise="enterprise-insights">詳しく</button></div><div class="list"><div class="slim"><div><strong>顧客との接点</strong><div class="meta">不明になりやすい</div></div><span>42%</span></div><div class="slim"><div><strong>勤務時間の柔軟性</strong><div class="meta">不明になりやすい</div></div><span>36%</span></div></div></section>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-enterprise-candidates">
+        <div class="enterprise-wrap page-head">
+          <div class="eyebrow">CANDIDATES</div><h1>匿名候補者</h1><p class="sub">求人ごとの候補だけ。</p>
+          <div class="notice" style="margin-top:18px">大学・学部・職種などを自由にAND検索する機能はありません。</div>
+          <div style="margin-top:8px">
+            <div class="candidate-card"><button class="list-row candidate-open" type="button" data-candidate="A8F31" style="border:0;padding-left:0;padding-right:0"><span><span class="candidate-id">Candidate #A8F31</span><span class="meta">Backend Engineer · Portfolio公開</span><span class="candidate-stats"><span><b>5</b>近い</span><span><b>1</b>相違</span><span><b>2</b>不明</span></span></span><span class="chev">›</span></button></div>
+            <div class="candidate-card"><button class="list-row candidate-open" type="button" data-candidate="D4C02" style="border:0;padding-left:0;padding-right:0"><span><span class="candidate-id">Candidate #D4C02</span><span class="meta">Platform Engineer · 学校情報非公開</span><span class="candidate-stats"><span><b>6</b>近い</span><span><b>1</b>相違</span><span><b>1</b>不明</span></span></span><span class="chev">›</span></button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-enterprise-insights">
+        <div class="enterprise-wrap page-head">
+          <div class="eyebrow">AGGREGATE INSIGHTS</div><h1>求人の見え方</h1><p class="sub">個人ではなく集計だけ。</p>
+          <div class="filterbar"><button class="chip active" type="button">Backend志望</button><button class="chip" type="button">28卒全体</button><button class="chip" type="button">関西</button></div>
+          <div class="notice">外部公開基準を満たしたコホートだけ表示。少人数コホートは返しません。</div>
+          <section class="section"><div class="section-title"><h2>重視される軸</h2><span class="badge">n=126</span></div><div class="enterprise-chart"><div class="e-bar"><div class="e-bar-head"><strong>働く場所</strong><span>82</span></div><div class="e-track"><span class="accent" style="width:82%"></span></div></div><div class="e-bar"><div class="e-bar-head"><strong>裁量</strong><span>76</span></div><div class="e-track"><span class="accent" style="width:76%"></span></div></div><div class="e-bar"><div class="e-bar-head"><strong>役割の幅</strong><span>71</span></div><div class="e-track"><span style="width:71%"></span></div></div></div></section>
+          <section class="section"><div class="section-title"><h2>情報不足率</h2></div><div class="enterprise-chart"><div class="e-bar"><div class="e-bar-head"><strong>顧客との接点</strong><span>42%</span></div><div class="e-track"><span style="width:42%"></span></div></div><div class="e-bar"><div class="e-bar-head"><strong>勤務時間の柔軟性</strong><span>36%</span></div><div class="e-track"><span style="width:36%"></span></div></div></div></section>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-enterprise-scouts">
+        <div class="enterprise-wrap page-head">
+          <div class="eyebrow">SCOUTS</div><h1>スカウト管理</h1><p class="sub">匿名 → 本人同意後に開示。</p>
+          <div class="list" style="margin-top:18px"><div class="list-row"><span><strong id="ent-thread-name">Candidate #A8F31</strong><span class="meta" id="ent-thread-state">匿名 · 返信あり</span></span><span class="chev">›</span></div><div class="list-row"><span><strong>Candidate #D4C02</strong><span class="meta">匿名 · 送信済み</span></span><span class="chev">›</span></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="share-modal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>共有カード</h3>
+      <div class="share-preview" style="margin-top:14px"><div class="share-ribbon"><span class="dot"></span><span>SHARE RESULT</span></div><div class="share-head"><div class="share-copy"><div class="share-brand">job match</div><h3 id="share-company">サンプルテック株式会社</h3><div class="meta">Backend Engineer</div></div><img class="share-mascot" src="../../asset/mascot/success.webp" alt="応援するマスコット"></div><div class="share-grid"><div class="share-stat"><b>5</b><span>近い</span></div><div class="share-stat"><b>1</b><span>相違</span></div><div class="share-stat"><b>2</b><span>情報不足</span></div></div><div class="share-axes"><span>裁量</span><span>役割の幅</span><span>顧客接点</span></div><p class="share-note">本名・メール・希望年収・希望勤務地は含めず、結果だけを共有。</p></div>
+      <div class="share-actions"><button class="primary" id="share-x" type="button">Xで共有</button><button class="secondary" id="share-image" type="button">画像を保存</button><button class="secondary" id="share-public" type="button">公開ページ</button></div><button class="text-btn" id="share-close" type="button" style="width:100%;margin-top:8px">閉じる</button>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="consent-modal"><div class="modal"><h3>同意履歴</h3><p>2026/09/28　Community Insights v1 · granted<br>2026/09/28　利用規約 v1.0 · accepted<br>2026/09/28　Privacy Policy v1.0 · acknowledged</p><button class="primary" id="consent-close" type="button" style="width:100%;margin-top:18px">閉じる</button></div></div>
+  <div class="modal-backdrop" id="reveal-modal"><div class="modal"><div class="eyebrow">IDENTITY REVEAL</div><h3>この企業に開示する？</h3><p><strong>サンプルクラウド株式会社</strong> にだけ本人情報を開示します。</p><div class="visibility-preview"><div class="visibility-line"><span>氏名</span><strong>サンプルユーザー</strong></div><div class="visibility-line"><span>連絡先メール</span><strong>sample.user@gmail.com</strong></div></div><button class="primary" id="reveal-confirm" type="button" style="width:100%;margin-top:16px">この企業に開示</button><button class="text-btn" id="reveal-cancel" type="button" style="width:100%">今回はしない</button></div></div>
+  <div class="modal-backdrop" id="candidate-modal"><div class="modal"><div class="eyebrow">ANONYMOUS CANDIDATE</div><h3 id="candidate-modal-title">Candidate #A8F31</h3><div class="candidate-stats"><span><b>5</b>近い</span><span><b>1</b>相違</span><span><b>2</b>不明</span></div><div class="visibility-preview" id="candidate-modal-fields"></div><button class="primary" id="send-scout" type="button" style="width:100%;margin-top:14px">スカウトを送る</button><button class="text-btn" id="candidate-close" type="button" style="width:100%">閉じる</button></div></div>
+  <div class="modal-backdrop" id="delete-modal"><div class="modal"><h3>アカウント削除</h3><p>このモックでは実際には削除しません。</p><button class="secondary danger" id="delete-confirm" type="button" style="width:100%;margin-top:16px">削除を確認（モック）</button><button class="text-btn" id="delete-cancel" type="button" style="width:100%">戻る</button></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./mock.js" defer></script>
+</body>
+</html>

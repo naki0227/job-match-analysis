@@ -12,7 +12,7 @@ Issue #12の不変なCareerProfileには、8軸全体の版混在を検出でき
 
 ## 採用した案と理由
 
-ユーザーの判断により固定の8軸IDと都道府県コードを採用する。軸の版は8軸全体で共有する。都道府県コードは[総務省統計局の一覧](https://www.stat.go.jp/data/mesh/m_itiran.htm)の2桁 `01`〜`47` とする。IDと軸名の対応は[評価軸の仕様](../assessment-axes.md)に記す。
+ユーザーの判断により固定の8軸IDと都道府県コードを採用する。軸の版は8軸全体で共有する。都道府県コードは[総務省統計局の一覧](https://www.stat.go.jp/data/mesh/m_itiran.htm)の2桁 `01`〜`47` とする。IDと軸名の対応は[評価軸の仕様](../assessment-axes.md)に記す。確定済みCareerProfileは不変のsnapshotとして作り、更新は新しいプロフィール版を返す。
 
 ## メリット
 

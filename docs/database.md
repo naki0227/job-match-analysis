@@ -109,13 +109,13 @@ sequenceDiagram
   DB-->>API: evaluationId
 ~~~
 
-1. 診断確定: プロフィール版 + 軸値 + 制約を一度に確定。部分入力がcompletedとして見えない。
+1. 診断確定: commit_career_profile RPCでプロフィール版 + 希望職種 + 8軸値 + 制約を一度に確定。所有者行ロック・期待版・冪等キーで競合と再送を扱う。
 2. 解析受付: fresh評価／活動中job／URL作成を競合に耐えるDB関数で処理。
 3. job claim: SKIP LOCKED + status更新 + lease token発行を1操作にする。実行中にDB TXを開きっぱなしにしない。
-4. job 完了: 正しいworker_tokenを持つrunning jobだけ文書・評価・完了処理を一度に確定。リトライによる重複INSERTは一意制約とidempotencyで吸収。
+4. job 完了: commit_analysis_evaluation RPCで正しいworker_tokenを持つrunning jobだけ文書・評価・根拠・完了処理を一度に確定。対象行ロックと評価自然キーで重複を直列化し、内容が同じ場合のみ別jobでも評価を再利用する。完了済みの同じjob/token再送は保存済みIDを返す。
 5. 個人Match保存: 結果 + 軸明細を1TXで保存。現プロフィールと古いプロフィール版の混同を防ぐ。
 
-**Supabase JSの複数HTTP呼び出しは単一Transactionではない。** Postgres functionをRPCから呼ぶ等で原子性を作る。実装時はROLLBACK・同時実行・RLSの統合テストを必須とする。
+**Supabase JSの複数HTTP呼び出しは単一Transactionではない。** Issue #16の2関数はservice_role専用のSECURITY INVOKER RPCとし、ROLLBACK・同時実行・権限の統合テストで検証する。設計理由は[ADR-017](adr/017-atomic-profile-and-evaluation-commits.md)。
 
 ## 公開前に確定すること
 

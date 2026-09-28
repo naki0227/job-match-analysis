@@ -39,6 +39,54 @@ psql_cmd < supabase/tests/issue14_integrity.sql
 psql_cmd < supabase/tests/issue15_auth_fixture.sql
 psql_cmd < supabase/migrations/20260928003628_personal_read_rls.sql
 psql_cmd < supabase/tests/issue15_rls.sql
+psql_cmd < supabase/migrations/20260928031424_commit_career_profile.sql
+psql_cmd < supabase/tests/issue16_profile.sql
+psql_cmd < supabase/migrations/20260928031425_commit_analysis_evaluation.sql
+psql_cmd < supabase/tests/issue16_evaluation.sql
+psql_cmd < supabase/tests/issue16_concurrency_fixture.sql
+profile_log_a=$(mktemp)
+profile_log_b=$(mktemp)
+evaluation_log_a=$(mktemp)
+evaluation_log_b=$(mktemp)
+trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b"; cleanup' EXIT INT TERM
+set +e
+psql_cmd -v key=00000000-0000-0000-0000-000000001629 +  < supabase/tests/issue16_profile_concurrent_call.sql >"$profile_log_a" 2>&1 &
+profile_pid_a=$!
+psql_cmd -v key=00000000-0000-0000-0000-000000001630 +  < supabase/tests/issue16_profile_concurrent_call.sql >"$profile_log_b" 2>&1 &
+profile_pid_b=$!
+wait "$profile_pid_a"; profile_status_a=$?
+wait "$profile_pid_b"; profile_status_b=$?
+set -e
+if [ "$((profile_status_a + profile_status_b))" -ne 3 ]; then
+  cat "$profile_log_a" "$profile_log_b" >&2
+  printf '%s\n' 'Concurrent profile calls did not yield one success and one conflict' >&2
+  exit 1
+fi
+profile_count=$(psql_cmd -Atc "select count(*) from public.career_profile_versions
+  where user_id = '00000000-0000-0000-0000-000000001621'")
+if [ "$profile_count" != 1 ]; then
+  printf '%s\n' 'Concurrent profile calls created duplicate versions' >&2
+  exit 1
+fi
+psql_cmd -v job_id=00000000-0000-0000-0000-000000001625 +  -v worker_token=00000000-0000-0000-0000-000000001627 +  < supabase/tests/issue16_evaluation_concurrent_call.sql >"$evaluation_log_a" 2>&1 &
+evaluation_pid_a=$!
+psql_cmd -v job_id=00000000-0000-0000-0000-000000001626 +  -v worker_token=00000000-0000-0000-0000-000000001628 +  < supabase/tests/issue16_evaluation_concurrent_call.sql >"$evaluation_log_b" 2>&1 &
+evaluation_pid_b=$!
+wait "$evaluation_pid_a"
+wait "$evaluation_pid_b"
+evaluation_count=$(psql_cmd -Atc "select count(*) from public.evaluations
+  where target_id = '00000000-0000-0000-0000-000000001624'")
+completed_count=$(psql_cmd -Atc "select count(*) from public.analysis_jobs
+  where status = 'completed' and evaluation_id in (
+    select id from public.evaluations
+    where target_id = '00000000-0000-0000-0000-000000001624')")
+if [ "$evaluation_count" != 1 ] || [ "$completed_count" != 2 ]; then
+  cat "$evaluation_log_a" "$evaluation_log_b" >&2
+  printf '%s\n' 'Concurrent evaluation calls did not share one complete evaluation' >&2
+  exit 1
+fi
+psql_cmd < supabase/rollback/20260928_issue16_evaluation_down.sql
+psql_cmd < supabase/rollback/20260928_issue16_profile_down.sql
 psql_cmd < supabase/rollback/20260928_issue15_down.sql
 psql_cmd < supabase/tests/issue15_rollback.sql
 psql_cmd < supabase/rollback/20260927_issue14_down.sql
@@ -49,4 +97,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15 migrations, integrity, RLS, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16 migrations, integrity, RLS, atomicity, and rollback checks passed'

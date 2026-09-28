@@ -23,4 +23,6 @@ IPの非公開範囲は2026-09-28時点の[IANA IPv4](https://www.iana.org/assig
 
 本番Crawlerに接続する前に、ブラウザプロセス自身の外向き通信をネットワーク層でも制限する。PlaywrightのroutingだけでDNS prefetchやWebRTC等まで完全に遮断したと主張しない。k3sのegress方針と実環境での拒否検証は#36で扱う。対応サイトで上記制限が過度に失敗する場合は、実測と安全性を確認して閾値を変更する。利用規約・robots・取得頻度のサイト別判定は別の取得ポリシーとして残る。
 
+2026-09-29に公開の[Scraping Sandbox](https://sites.toscrape.com/)で実ブラウザの互換性を確認した。取得境界経由で静的版・JS版とも表示項目10件、ブラウザ要求はそれぞれ6件・7件、合計応答バイトは237,828 B・316,917 B、ブロック0件だった。これは通常の公開ページが読めることの確認であり、ネットワーク層の遮断を証明しない。
+
 参照: [OWASP SSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)、[Playwright BrowserContext.route](https://playwright.dev/docs/api/class-browsercontext)。

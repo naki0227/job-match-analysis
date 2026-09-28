@@ -15,6 +15,7 @@
 | Method | Path | 概要 | 成功 |
 |---|---|---|---|
 | GET | /api/v1/me | 認証ユーザー | 200 |
+| POST | /api/v1/me/profile | Google認証後に本人のprofiles行を冪等に作成。bodyなし、Bearer token必須 | 204 / 400 / 401 / 403 / 503 |
 | GET | /api/v1/me/career-profile | 最新の確定プロフィール版 | 200 / 404 |
 | PUT | /api/v1/me/career-profile | 軸ごとのpreference, importanceと必須条件を新バージョンで確定 | 200 / 201 |
 | POST | /api/v1/analyses | 公開求人URLの正規化、共有評価の再利用かジョブ参加 | 200 / 202 |

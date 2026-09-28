@@ -9,7 +9,7 @@
 - `career_profile_target_roles`は版ごとの希望職種リストを順序付きで保持する。空白と同一表記の重複を拒否する。職種による自動一致・必須除外はまだ行わない。
 - `evaluation_targets`の求人と会社の所属、`evaluation_evidence`の軸評価・使用文書、`match_results`のユーザー・プロフィール版と軸カタログ版は複合FKで確認する。会社名はUNIQUEにしない。URLのUNIQUEは`source_urls.normalized_url`だけに置く。
 - `source_document_versions.extracted_text`には抽出本文を保存できる。取得から30日経過した本文は予定済みのworkerがNULLに更新する方針。文書のhash・取得日時と評価の短い根拠抜粋は残す。**worker実装まで自動削除は行われない**ため、本文を保存する運用の開始前に削除処理を接続する。
-- 新規21表すべてでRLSを有効化し、ポリシーはIssue #15で追加する。それまではクライアントロールから行を読めない。
+- 21表すべてでRLSを有効化。Issue #15のmigrationはクライアントの表権限を取り消し、個人10表に認証済み本人のSELECTだけを許す。共有11表と匿名ロールは直接参照・変更できない。
 - 手動rollbackは[down SQL](../supabase/rollback/20260927_issue14_down.sql)。全表とデータを削除するため、適用前にバックアップと依存物を確認する。ローカルのup・無効FK/重複/CHECK・RLS・本文削除条件・downの検証は`pnpm test:db`を実行する。
 
 ## データの所有境界
@@ -89,7 +89,7 @@ erDiagram
 - マッチ結果の user_id と career_profile_versions.user_id の一致は **DBでも** 担保する。例えば career_profile_versionsにUNIQUE(id,user_id)、match_resultsに複合FK(profile_version_id,user_id)を使用する。アプリ側認可だけに依存しない。
 - evaluation_evidenceは存在する軸評価にだけ紐付ける複合FK、さらに根拠文書がevaluation_sourcesに含まれることをDBで担保する複合FKを検討。
 - 軸の版が食い違う値を比較しない。異なる版間は明示的な移行／対応表を設けるか「比較不可」。軸ルーブリック変更は既存行更新ではなく新versionを追加。
-- 個人テーブルのRLSは auth.uid() と所有者の一致、子テーブルは親へのEXISTSまたは複合所有者FKで判定。service-roleの扱いとSECURITY DEFINER関数は最小限・search_path固定・認可検証を必須にする。
+- 個人テーブルのSELECTポリシーは auth.uid() と所有者の一致、子テーブルは親へのEXISTSで判定する。クライアントに書込権限は付けない。service-role/secret keyはサーバーのみで保持し、APIでGoogle identityと本人IDを確認する。SECURITY DEFINER関数は追加していない。
 - 共有企業データの更新はサーバー権限だけ。外部ページ本文の生データをクライアントに無制限に配布しない。重要な値は出典・取得日を表示。
 - FKで関連行を自動削除すると過去評価や他人の保存履歴まで消える可能性があるため、共有側にCASCADEを機械的に使わない。個人データの消去要求には削除経路を用意する。
 - N+1を避ける: 複数求人の最新評価・保存状態は一括JOIN / batch query + cursor pagination。user_id・FKとジョブ状態/leaseの索引をEXPLAINで確認。

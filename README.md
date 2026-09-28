@@ -13,6 +13,7 @@
 - [MVPの就業価値観8軸](docs/assessment-axes.md)
 - [MatchEngineの判定規則](docs/matching.md)
 - [開発運用・Issueの進め方](docs/development.md)
+- [Googleログインと個人データ権限](docs/auth.md)
 
 **実装方針:** コードは開発者が手書きする。ここにある図は現時点の設計案であり、実測・技術スパイクにより更新する。課題はGitHub Issuesの受け入れ条件を単位に進める。
 
@@ -20,7 +21,7 @@
 
 コミット前のローカル検証を有効にするには、初回に `git config --local core.hooksPath .githooks` を実行する。以後のコミットでは `pnpm precommit` が走り、format check・lint・typecheck・test・buildを確認する。必要なら同じコマンドを手動でも実行できる。
 
-Issue #14のPostgreSQL migrationは `pnpm test:db` で検証する。Docker上の一時的なPostgreSQL 17を使い、up・制約違反・RLS・rollbackを確認する。実際のSupabaseへはこのコマンドで接続しない。
+Issue #14/#15のPostgreSQL migrationは `pnpm test:db` で検証する。Docker上の一時的なPostgreSQL 17を使い、up・制約違反・RLS・rollbackを確認する。実際のSupabaseへはこのコマンドで接続しない。ローカルSupabaseを起動した後のAuthとData APIの統合確認は `pnpm test:auth` で行う。
 
 - [全Issue](https://github.com/naki0227/job-match-analysis/issues)
 - [技術スパイク Epic #1](https://github.com/naki0227/job-match-analysis/issues/1)

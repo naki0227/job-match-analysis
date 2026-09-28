@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --env-file-if-exists=.env.local --import tsx --watch src/index.ts",
     "test": "node --import tsx --test 'tests/**/*.ts'",
+    "test:auth": "node --import tsx scripts/test-local-auth.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js"
@@ -16,6 +17,7 @@
   "type": "module",
   "dependencies": {
     "@hono/node-server": "^2.1.1",
+    "@supabase/supabase-js": "2.117.2",
     "hono": "^4.13.8",
     "zod": "^4.6.5"
   },

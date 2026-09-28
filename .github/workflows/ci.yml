@@ -55,7 +55,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint Web
-        run: pnpm exec oxlint apps/web/src
+        run: pnpm exec oxlint apps/web/src apps/web/tests
 
       - name: Test Web
         run: pnpm --filter web test
@@ -82,7 +82,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint API
-        run: pnpm exec oxlint apps/api/src
+        run: pnpm exec oxlint apps/api/src apps/api/scripts apps/api/tests
 
       - name: Typecheck API
         run: pnpm --filter api typecheck

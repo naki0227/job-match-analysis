@@ -2,6 +2,16 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import App from "../src/App";
 
+vi.mock("../src/auth", () => ({
+  getSupabaseClient: () => ({
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+    },
+  }),
+  initializeOwnProfile: vi.fn(),
+  startGoogleSignIn: vi.fn(),
+}));
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -21,4 +31,7 @@ test("APIのステータスがOKと表示される。", async () => {
   render(<App />);
 
   expect(await screen.findByText(/API Status:\s*ok/i)).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Googleでログイン" }),
+  ).toBeInTheDocument();
 });

@@ -19,6 +19,7 @@
 | [ADR-013](adr/013-match-engine-policy.md) | 軸ごとの0/50/100アンカーを比較し、求人と会社の結果を分離する | 総合％に頼らず根拠と相違を示す | 境界値と情報不足の扱いを検証し続ける必要がある |
 | [ADR-014](adr/014-postgresql-physical-schema.md) | UUID・複合FKを中心に物理DDLを定義し、RLSを先に有効化する | 個人/共有/出典の整合性をDBで保証する | 本文30日削除は予定済みworker接続まで自動化されない |
 | [ADR-015](adr/015-target-roles-in-career-profile.md) | 希望職種をCareerProfile版の必須リストとして保持する | 再評価時にも当時の希望を追える | 職種の正規化と自動一致は別途決める |
+| [ADR-016](adr/016-google-auth-and-personal-read-rls.md) | Google OAuth、APIでのprofile初期化、本人参照のみのRLS | 個人データを所有者に限定し、変更をAPIへ集約する | Google provider設定の実ログイン検証が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 

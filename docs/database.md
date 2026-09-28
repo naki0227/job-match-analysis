@@ -92,7 +92,7 @@ erDiagram
 - 個人テーブルのSELECTポリシーは auth.uid() と所有者の一致、子テーブルは親へのEXISTSで判定する。クライアントに書込権限は付けない。service-role/secret keyはサーバーのみで保持し、APIでGoogle identityと本人IDを確認する。SECURITY DEFINER関数は追加していない。
 - 共有企業データの更新はサーバー権限だけ。外部ページ本文の生データをクライアントに無制限に配布しない。重要な値は出典・取得日を表示。
 - FKで関連行を自動削除すると過去評価や他人の保存履歴まで消える可能性があるため、共有側にCASCADEを機械的に使わない。個人データの消去要求には削除経路を用意する。
-- N+1を避ける: 複数求人の最新評価・保存状態は一括JOIN / batch query + cursor pagination。user_id・FKとジョブ状態/leaseの索引をEXPLAINで確認。
+- N+1を避ける: 保存済み求人はIssue #17のlist_saved_jobs_pageで、本人の保存行・求人・会社・各最新評価を1回のRPCで取得する。保存日時+求人IDのkeyset cursorと最大100件の上限を使い、専用索引をEXPLAINで確認する。[ADR-018](adr/018-saved-jobs-batch-pagination.md)。
 
 ## 原子的操作（トランザクション境界）
 

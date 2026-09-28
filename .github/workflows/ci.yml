@@ -132,6 +132,36 @@ jobs:
       - name: Build API
         run: pnpm --filter api build
 
+  crawler:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Crawler
+        run: pnpm exec oxlint apps/crawler/src apps/crawler/tests
+
+      - name: Typecheck Crawler
+        run: pnpm --filter crawler typecheck
+
+      - name: Test Crawler
+        run: pnpm --filter crawler test
+
+      - name: Build Crawler
+        run: pnpm --filter crawler build
+
   common:
     runs-on: ubuntu-24.04
     steps:

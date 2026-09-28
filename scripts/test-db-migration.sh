@@ -96,6 +96,10 @@ if ! printf '%s\n' "$issue17_plan" | grep -Fq 'user_saved_jobs_page_idx'; then
   printf '%s\n' 'EXPLAIN did not use the saved jobs page index' >&2
   exit 1
 fi
+psql_cmd < supabase/migrations/20260928161035_optional_profile_education_legal_history.sql
+psql_cmd < supabase/tests/issue38_optional_profile_legal.sql
+psql_cmd < supabase/rollback/20260928_issue38_down.sql
+psql_cmd < supabase/tests/issue38_rollback.sql
 psql_cmd < supabase/rollback/20260928_issue17_down.sql
 psql_cmd < supabase/rollback/20260928_issue16_evaluation_down.sql
 psql_cmd < supabase/rollback/20260928_issue16_profile_down.sql
@@ -109,4 +113,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17/#25 migrations, integrity, RLS, atomicity, profile revisions, pagination, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#25/#38 migrations, integrity, RLS, atomicity, profile revisions, pagination, and rollback checks passed'

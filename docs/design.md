@@ -120,6 +120,8 @@ infra/gitops/            # 初期は同一repoでも可。GitOps独立repo移行
 
 ```text
 auth.users 1─1 profiles 1─N career_profile_versions 1─N career_profile_axis_values
+                       ├─N profile_educations
+                       └─N user_legal_acknowledgements N─1 legal_documents
                                                └─1 career_constraints
                                                └─N career_profile_target_roles
 assessment_axes 1─N career_profile_axis_values

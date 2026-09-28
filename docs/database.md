@@ -12,19 +12,26 @@
 - 21表すべてでRLSを有効化。Issue #15のmigrationはクライアントの表権限を取り消し、個人10表に認証済み本人のSELECTだけを許す。共有11表と匿名ロールは直接参照・変更できない。
 - 手動rollbackは[down SQL](../supabase/rollback/20260927_issue14_down.sql)。全表とデータを削除するため、適用前にバックアップと依存物を確認する。ローカルのup・無効FK/重複/CHECK・RLS・本文削除条件・downの検証は`pnpm test:db`を実行する。
 
+## Issue #38の任意プロフィール・法的文書履歴
+
+[追加migration](../supabase/migrations/20260928161035_optional_profile_education_legal_history.sql)は既存`profiles`にnullable列を加え、学歴と公開文書・本人確認履歴を別表で保持する。学歴と確認履歴は本人のみSELECT可能で、匿名には公開済み文書だけを見せる。認証済みクライアントは書込できない。文書本文と確認履歴はサーバーロールにも更新・削除権限を与えない。[rollback](../supabase/rollback/20260928_issue38_down.sql)は追加データを削除するため、適用前にバックアップする。設計理由は[ADR-022](adr/022-private-profile-education-legal-history.md)を参照。
+
 ## データの所有境界
 
-**個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、user_saved_jobs、match_results。本人だけが閲覧・更新できる。
+**個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、user_saved_jobs、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。
 
 **共有データ:** companies、job_postings、source_urls、source_document_versions、evaluation_targets、evaluations/evaluated_axis_values/evidence、analysis_jobs。公開企業／求人の情報だけを保存する。共有評価へユーザープロフィールを混ぜない。
 
-**参照データ:** assessment_axes（意味／ルーブリックの版）、analyzer/evaluator/algorithmの版管理。
+**参照データ:** assessment_axes（意味／ルーブリックの版）、legal_documents（公開済み法的文書）、analyzer/evaluator/algorithmの版管理。
 
 ## ER図（重要なFK・1対N）
 
 ~~~mermaid
 erDiagram
   AUTH_USERS ||--|| PROFILES : owns
+  PROFILES ||--o{ PROFILE_EDUCATIONS : records
+  PROFILES ||--o{ USER_LEGAL_ACKNOWLEDGEMENTS : records
+  LEGAL_DOCUMENTS ||--o{ USER_LEGAL_ACKNOWLEDGEMENTS : acknowledged
   PROFILES ||--o{ CAREER_PROFILE_VERSIONS : has
   CAREER_PROFILE_VERSIONS ||--o{ CAREER_PROFILE_AXIS_VALUES : contains
   CAREER_PROFILE_VERSIONS ||--o{ CAREER_PROFILE_TARGET_ROLES : targets
@@ -60,7 +67,10 @@ erDiagram
 
 | テーブル | PK | 重要な列／UNIQUE／FK |
 |---|---|---|
-| profiles | id = auth.users.id | ユーザー削除時の個人データ削除経路 |
+| profiles | id = auth.users.id | 任意の表示名・氏名・連絡先。ログイン用メールはauth.users.email |
+| profile_educations | id | user_id FK、複数学歴、self_reported/verified（検証運用は未実装） |
+| legal_documents | id | UNIQUE(document_type, version)、本文・公開時刻・適用時刻 |
+| user_legal_acknowledgements | id | user_idと文書版のFK、UNIQUE(user_id, legal_document_id, action)、記録時刻 |
 | assessment_axes | id | UNIQUE(axis_key, axis_version), 両極の定義・質問・ルーブリック。既存版は不変 |
 | career_profile_versions | id | user_id FK、UNIQUE(user_id, version)、draft/completed |
 | career_profile_target_roles | (profile_version_id, role_order) | 希望職種の順序付きリスト、版内の同一文字列はUNIQUE |

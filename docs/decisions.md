@@ -25,6 +25,7 @@
 | [ADR-019](adr/019-shared-web-api-contracts.md) | Web/APIのZod契約をpackages/contractsへ分離する | server実装やdomainへの逆依存を避ける | workspaceのbuild順序が必要 |
 | [ADR-020](adr/020-career-profile-api.md) | 診断GETは本人JWTでRLS適用、PUTはサーバー専用RPC | 本人確認と原子的な版保存を両立 | 読取は版・子行の複数問い合わせ |
 | [ADR-021](adr/021-safe-public-fetch-boundary.md) | 公開URLは接続時にDNS全回答を検査してIPを固定し、redirectとブラウザ要求も同じ取得境界に通す | URL事前検査後のDNS切替とサブリソース経由の内部接続を防ぐ | 対応ページに制限があり、ネットワーク層のegress検証は#36が必要 |
+| [ADR-022](adr/022-private-profile-education-legal-history.md) | 任意プロフィール・複数学歴・版付き法的文書と確認履歴を分離する | 就業希望版と認証メールの責務を守り、文書版ごとの確認を追跡する | 入力API/UIと法的本文の公開運用は別途必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 

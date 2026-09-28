@@ -34,3 +34,9 @@ export async function initializeOwnProfile(
   });
   if (!response.ok) throw new Error("Profile initialization failed");
 }
+
+export async function getCurrentAccessToken(): Promise<string> {
+  const { data, error } = await getSupabaseClient().auth.getSession();
+  if (error || !data.session) throw new Error("Authentication required");
+  return data.session.access_token;
+}

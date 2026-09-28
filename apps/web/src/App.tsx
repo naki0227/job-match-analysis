@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { healthResponseSchema } from "@job-match/contracts";
 import {
+  getCurrentAccessToken,
   getSupabaseClient,
   initializeOwnProfile,
   startGoogleSignIn,
 } from "./auth";
+import { CareerProfileForm } from "./CareerProfileForm";
 import "./App.css";
 
 function App() {
@@ -70,7 +72,9 @@ function App() {
           Googleでログイン
         </button>
       )}
-      {authStatus === "signed_in" && <p>ログイン済み</p>}
+      {authStatus === "signed_in" && (
+        <CareerProfileForm getAccessToken={getCurrentAccessToken} />
+      )}
       {authStatus === "error" && (
         <p role="alert">認証を完了できませんでした。</p>
       )}

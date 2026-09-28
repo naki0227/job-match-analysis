@@ -22,6 +22,7 @@
 | [ADR-016](adr/016-google-auth-and-personal-read-rls.md) | Google OAuth、APIでのprofile初期化、本人参照のみのRLS | 個人データを所有者に限定し、変更をAPIへ集約する | Google provider設定の実ログイン検証が必要 |
 | [ADR-017](adr/017-atomic-profile-and-evaluation-commits.md) | プロフィールと評価をそれぞれ1回のRPCで原子的に確定する | 部分確定と再送時の重複を防ぐ | サーバーとDB関数の入力契約を合わせる |
 | [ADR-018](adr/018-saved-jobs-batch-pagination.md) | 保存済み求人一覧は1回のRPCとkeyset cursorで読む | DB往復のN+1を防ぐ | 一覧列の変更時はRPCとrepositoryの両方を更新する |
+| [ADR-019](adr/019-shared-web-api-contracts.md) | Web/APIのZod契約をpackages/contractsへ分離する | server実装やdomainへの逆依存を避ける | workspaceのbuild順序が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 

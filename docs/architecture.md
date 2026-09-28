@@ -1,6 +1,6 @@
 # アプリケーションアーキテクチャ v0.1
 
-> [総合設計書](design.md)を具体化した論理構成案。サービス運用のための最小構成と、GitOpsを学ぶための構成を分離する。コード実装は未着手。
+> [総合設計書](design.md)を具体化した論理構成案。サービス運用のための最小構成と、GitOpsを学ぶための構成を分離する。図には実装済みと今後の計画が含まれる。
 
 ## 目的・境界
 
@@ -136,3 +136,5 @@ docs
 ~~~
 
 分割は責務の目印。最初から独立パッケージやマイクロサービスを増やす必然性はない。詳細は[DB](database.md)、[API](api.md)、[Infrastructure](infrastructure.md)を参照。
+
+Issue #24ではWeb/API共通のhealth契約を `packages/contracts` に実装した。現行の依存はWeb/API → contractsで、domainは純粋関数のまま保つ。`packages/application` はユースケース実装時に追加する。[ADR-019](adr/019-shared-web-api-contracts.md)。

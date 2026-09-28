@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { healthResponse } from "@job-match/contracts";
 import { Hono } from "hono";
 import {
   createSupabaseProfileBootstrapDeps,
@@ -10,7 +11,7 @@ export function createApp(
 ) {
   const app = new Hono();
 
-  app.get("/health", (c) => c.json({ status: "ok" }));
+  app.get("/health", (c) => c.json(healthResponse));
 
   app.post("/v1/me/profile", async (c) => {
     const requestId = randomUUID();

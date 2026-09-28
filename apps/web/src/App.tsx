@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { healthResponseSchema } from "@job-match/contracts";
 import {
   getSupabaseClient,
   initializeOwnProfile,
@@ -16,8 +17,8 @@ function App() {
     async function checkHealth() {
       try {
         const response = await fetch("/api/health");
-        const data = await response.json();
-
+        if (!response.ok) throw new Error("Health unavailable");
+        const data = healthResponseSchema.parse(await response.json());
         setStatus(data.status);
       } catch {
         setStatus("error");

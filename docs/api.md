@@ -1,6 +1,6 @@
 # API契約・非同期状態 v0.1
 
-> 実際のZod schema、認証middleware、HTTPレスポンス型、Jev SDKの契約はIssueで検証してから実装する。記載のJSONは概念例であり本番API実装済みではない。参照: [総合設計書](design.md)、[Architecture](architecture.md)。
+> 一部は実装済み、一部は後続Issueの草案。診断プロフィールの実契約は`packages/contracts/src/career-profile.ts`を参照する。参照: [総合設計書](design.md)、[Architecture](architecture.md)。
 
 ## 基本規約
 
@@ -16,13 +16,21 @@
 |---|---|---|---|
 | GET | /api/v1/me | 認証ユーザー | 200 |
 | POST | /api/v1/me/profile | Google認証後に本人のprofiles行を冪等に作成。bodyなし、Bearer token必須 | 204 / 400 / 401 / 403 / 503 |
-| GET | /api/v1/me/career-profile | 最新の確定プロフィール版 | 200 / 404 |
-| PUT | /api/v1/me/career-profile | 軸ごとのpreference, importanceと必須条件を新バージョンで確定 | 200 / 201 |
+| GET | /api/v1/me/career-profile | 本人の最新確定プロフィール版。Bearer token必須 | 200 / 401 / 403 / 404 / 503 |
+| PUT | /api/v1/me/career-profile | 軸ごとのpreference, importanceと必須条件を新バージョンで確定。Bearer token必須 | 200 / 201 / 400 / 401 / 403 / 409 / 503 |
 | POST | /api/v1/analyses | 公開求人URLの正規化、共有評価の再利用かジョブ参加 | 200 / 202 |
 | GET | /api/v1/analyses/:jobId | 共有jobの公開可能な状態と評価ID（権限は要レビュー） | 200 |
 | GET | /api/v1/jobs/:jobPostingId | 個別求人・根拠・取得日・評価版 | 200 |
 | POST | /api/v1/matches | 認可済みprofile版と共有evaluation版を比較 | 200 / 201 |
 | GET | /api/v1/me/saved-jobs | ブックマークのページネーション＋batch評価表示 | 200 |
+
+### 診断プロフィール（Issue #25）
+
+公開経路は`/api/v1/me/career-profile`、Hono内部の経路は`/v1/me/career-profile`。GETにbodyはない。PUTのJSON bodyは`{expectedVersion, idempotencyKey, profile}`。`expectedVersion`は初回0、更新時は表示中の版番号。`idempotencyKey`はUUIDで、同じ内容の再送では同じ値を使う。
+
+`profile`には`axisCatalogVersion: 1`、1件以上の`targetRoles`、8軸それぞれ1件の`axisValues`（`axisKey`、`axisVersion: 1`、`preference`/`importance: 0..100`）、`constraints`（任意の`minSalary: {amount, currency: "JPY", period: "year"}`、`allowedPrefectureCodes: []`、`fullRemoteRequired: boolean`）を含む。空配列の勤務地は条件未指定。未回答の軸があると400で保存しない。
+
+GET 200とPUT 200/201のJSONは`{profileVersionId, profileVersion, profile}`。GET 404は確定版がない場合。PUT 409は別の版が先に確定された場合。エラーは共通の`{code, message, requestId}`で返し、内部DB詳細は含めない。GETは検証済み本人JWT付きpublishable clientを使いRLSで本人行だけを読む。PUTは検証済み本人IDをservice_role専用`commit_career_profile`へ渡す。[ADR-020](adr/020-career-profile-api.md)。
 
 ## 共有解析ジョブ状態
 

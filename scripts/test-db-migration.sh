@@ -43,6 +43,7 @@ psql_cmd < supabase/migrations/20260928003628_personal_read_rls.sql
 psql_cmd < supabase/tests/issue15_rls.sql
 psql_cmd < supabase/migrations/20260928031424_commit_career_profile.sql
 psql_cmd < supabase/tests/issue16_profile.sql
+psql_cmd < supabase/tests/issue25_profile_versions.sql
 psql_cmd < supabase/migrations/20260928031425_commit_analysis_evaluation.sql
 psql_cmd < supabase/tests/issue16_evaluation.sql
 psql_cmd < supabase/tests/issue16_concurrency_fixture.sql
@@ -108,4 +109,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17 migrations, integrity, RLS, atomicity, pagination, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#25 migrations, integrity, RLS, atomicity, profile revisions, pagination, and rollback checks passed'

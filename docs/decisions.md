@@ -23,6 +23,7 @@
 | [ADR-017](adr/017-atomic-profile-and-evaluation-commits.md) | プロフィールと評価をそれぞれ1回のRPCで原子的に確定する | 部分確定と再送時の重複を防ぐ | サーバーとDB関数の入力契約を合わせる |
 | [ADR-018](adr/018-saved-jobs-batch-pagination.md) | 保存済み求人一覧は1回のRPCとkeyset cursorで読む | DB往復のN+1を防ぐ | 一覧列の変更時はRPCとrepositoryの両方を更新する |
 | [ADR-019](adr/019-shared-web-api-contracts.md) | Web/APIのZod契約をpackages/contractsへ分離する | server実装やdomainへの逆依存を避ける | workspaceのbuild順序が必要 |
+| [ADR-020](adr/020-career-profile-api.md) | 診断GETは本人JWTでRLS適用、PUTはサーバー専用RPC | 本人確認と原子的な版保存を両立 | 読取は版・子行の複数問い合わせ |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -80,6 +81,6 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
 - crawlerのfetch policy、利用規約、robots、無料枠を超えないジョブ上限、proxy/ブラウザのネットワークレベルSSRF防御。
 - AWS等への移行条件、実際のSLO、service名（現状はjob-match-analysis仮称）。
 - jobId閲覧権限、求人別と会社別の評価継承、出典抽出の引用長と二次利用規約。
-- 正式なAPI prefix（/api か /api/v1）とZod契約。
+- 未実装endpointの正式なAPI prefixとZod契約。診断プロフィールは`/api/v1`と共有Zod契約で実装済み。
 
 未確定項目を確定事項としてコードに埋め込まない。各Issueの実験・レビュー結果をここにADRとして追記する。

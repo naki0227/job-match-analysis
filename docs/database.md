@@ -1,6 +1,6 @@
 # DB論理設計・ER図 v0.1
 
-> このER図は概念的な関係を示す。Issue #14の物理DDLは[`supabase/migrations/`](../supabase/migrations/)にあり、RLSの閲覧・更新ポリシーとトランザクション処理は後続Issueで実装する。[総合設計書](design.md)を参照。
+> このER図は概念的な関係を示す。Issue #14の物理DDL、Issue #15のRLS、Issue #16の原子的RPCは[`supabase/migrations/`](../supabase/migrations/)にある。[総合設計書](design.md)を参照。
 
 ## Issue #14の物理DDL
 

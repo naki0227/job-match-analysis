@@ -5,9 +5,12 @@ import {
   createSupabaseProfileBootstrapDeps,
   type ProfileBootstrapDeps,
 } from "./auth/profile-bootstrap.js";
+import { createCareerProfileRoutes } from "./career-profile-routes.js";
+import type { CareerProfileStore } from "./repositories/career-profiles.js";
 
 export function createApp(
   deps: () => ProfileBootstrapDeps = createSupabaseProfileBootstrapDeps,
+  careerStoreDeps?: () => CareerProfileStore,
 ) {
   const app = new Hono();
 
@@ -48,6 +51,8 @@ export function createApp(
       return fail("service_unavailable", "Service unavailable", 503);
     }
   });
+
+  app.route("/", createCareerProfileRoutes(deps, careerStoreDeps));
 
   return app;
 }

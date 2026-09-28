@@ -1,0 +1,19 @@
+{
+  "name": "crawler",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.5",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

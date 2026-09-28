@@ -90,7 +90,7 @@ fi
 psql_cmd < supabase/migrations/20260928125000_saved_jobs_page.sql
 psql_cmd < supabase/tests/issue17_saved_jobs_page.sql
 issue17_plan=$(psql_cmd -At < supabase/tests/issue17_explain.sql)
-if ! printf '%s\n' "$issue17_plan" | rg -q 'user_saved_jobs_page_idx'; then
+if ! printf '%s\n' "$issue17_plan" | grep -Fq 'user_saved_jobs_page_idx'; then
   printf '%s\n' "$issue17_plan" >&2
   printf '%s\n' 'EXPLAIN did not use the saved jobs page index' >&2
   exit 1

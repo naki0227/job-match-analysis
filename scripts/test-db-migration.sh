@@ -85,6 +85,15 @@ if [ "$evaluation_count" != 1 ] || [ "$completed_count" != 2 ]; then
   printf '%s\n' 'Concurrent evaluation calls did not share one complete evaluation' >&2
   exit 1
 fi
+psql_cmd < supabase/migrations/20260928125000_saved_jobs_page.sql
+psql_cmd < supabase/tests/issue17_saved_jobs_page.sql
+issue17_plan=$(psql_cmd -At < supabase/tests/issue17_explain.sql)
+if ! printf '%s\n' "$issue17_plan" | rg -q 'user_saved_jobs_page_idx'; then
+  printf '%s\n' "$issue17_plan" >&2
+  printf '%s\n' 'EXPLAIN did not use the saved jobs page index' >&2
+  exit 1
+fi
+psql_cmd < supabase/rollback/20260928_issue17_down.sql
 psql_cmd < supabase/rollback/20260928_issue16_evaluation_down.sql
 psql_cmd < supabase/rollback/20260928_issue16_profile_down.sql
 psql_cmd < supabase/rollback/20260928_issue15_down.sql
@@ -97,4 +106,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16 migrations, integrity, RLS, atomicity, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17 migrations, integrity, RLS, atomicity, pagination, and rollback checks passed'

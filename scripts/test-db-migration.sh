@@ -36,6 +36,11 @@ psql_cmd -c 'create schema auth; create table auth.users (id uuid primary key);'
 psql_cmd < supabase/migrations/20260927000100_core_schema.sql
 psql_cmd < supabase/migrations/20260927000200_evaluation_match_schema.sql
 psql_cmd < supabase/tests/issue14_integrity.sql
+psql_cmd < supabase/tests/issue15_auth_fixture.sql
+psql_cmd < supabase/migrations/20260928003628_personal_read_rls.sql
+psql_cmd < supabase/tests/issue15_rls.sql
+psql_cmd < supabase/rollback/20260928_issue15_down.sql
+psql_cmd < supabase/tests/issue15_rollback.sql
 psql_cmd < supabase/rollback/20260927_issue14_down.sql
 
 remaining=$(psql_cmd -Atc "select count(*) from pg_tables where schemaname = 'public'")
@@ -44,4 +49,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issue #14 migration, integrity, RLS, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15 migrations, integrity, RLS, and rollback checks passed'

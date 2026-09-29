@@ -160,6 +160,10 @@ if [ "$(cat "$issue20_claim_a" "$issue20_claim_b" | sed '/^$/d' | wc -l | tr -d 
   exit 1
 fi
 psql_cmd < supabase/tests/issue22_evaluation_versions.sql
+psql_cmd < supabase/migrations/20260929093000_match_result_rpc.sql
+psql_cmd < supabase/tests/match_result_rpc.sql
+psql_cmd < supabase/rollback/20260929_match_result_down.sql
+psql_cmd < supabase/tests/match_result_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue20_down.sql
 psql_cmd < supabase/tests/issue20_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue19_down.sql
@@ -181,4 +185,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17/#19/#20/#22/#25/#38/#45 migrations, integrity, RLS, atomicity, leases, versioned evaluation reuse, singleflight, pagination, history, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#19/#20/#22/#25/#38/#45 migrations, integrity, RLS, atomicity, leases, versioned evaluation reuse, singleflight, pagination, history, Match RPC, and rollback checks passed'

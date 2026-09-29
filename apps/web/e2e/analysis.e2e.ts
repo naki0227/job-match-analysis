@@ -49,7 +49,7 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
     });
   });
 
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page
     .getByLabel("求人ページのURL")
     .fill("https://jobs.example.com/posting/1");

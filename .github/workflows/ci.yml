@@ -117,8 +117,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build shared contracts
-        run: pnpm --filter @job-match/contracts build
+      - name: Build shared packages
+        run: pnpm --filter @job-match/contracts build && pnpm --filter @job-match/domain build && pnpm --filter @job-match/application build
 
       - name: Lint API
         run: pnpm exec oxlint apps/api/src apps/api/scripts apps/api/tests

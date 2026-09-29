@@ -52,7 +52,8 @@ profile_log_b=$(mktemp)
 evaluation_log_a=$(mktemp)
 evaluation_log_b=$(mktemp)
 issue45_guard_log=$(mktemp)
-trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b" "$issue45_guard_log"; cleanup' EXIT INT TERM
+issue19_parallel_log=$(mktemp)
+trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b" "$issue45_guard_log" "$issue19_parallel_log"; cleanup' EXIT INT TERM
 set +e
 psql_cmd -v key=00000000-0000-0000-0000-000000001629 +  < supabase/tests/issue16_profile_concurrent_call.sql >"$profile_log_a" 2>&1 &
 profile_pid_a=$!
@@ -121,6 +122,24 @@ if ! printf '%s\n' "$issue45_plan" | grep -Fq 'Unique'; then
   printf '%s\n' 'Issue #45 EXPLAIN did not de-duplicate jobs' >&2
   exit 1
 fi
+psql_cmd < supabase/migrations/20260929022634_request_analysis_singleflight.sql
+psql_cmd < supabase/tests/issue19_request_analysis.sql
+seq 1 100 | xargs -P 20 -I '{}' docker exec "$container_name" \
+  psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres \
+  -c "select job_id from public.request_analysis(
+    'https://example.org/issue19-parallel?utm_source=test',
+    'https://example.org/issue19-parallel', 'issue19-v1',
+    '2026-09-27T00:00:00Z')" > "$issue19_parallel_log"
+if [ "$(wc -l < "$issue19_parallel_log" | tr -d ' ')" != '100' ] \
+  || [ "$(sort -u "$issue19_parallel_log" | wc -l | tr -d ' ')" != '1' ] \
+  || [ "$(psql_cmd -Atc "select count(*) from public.analysis_jobs j
+    join public.source_urls s on s.id = j.source_url_id
+    where s.normalized_url = 'https://example.org/issue19-parallel'")" != '1' ]; then
+  printf '%s\n' '100 concurrent analysis requests did not share one active job' >&2
+  exit 1
+fi
+psql_cmd < supabase/rollback/20260929_issue19_down.sql
+psql_cmd < supabase/tests/issue19_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue45_down.sql
 psql_cmd < supabase/tests/issue45_rollback.sql
 psql_cmd < supabase/rollback/20260928_issue38_down.sql
@@ -138,4 +157,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17/#25/#38/#45 migrations, integrity, RLS, atomicity, pagination, history, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#19/#25/#38/#45 migrations, integrity, RLS, atomicity, singleflight, pagination, history, and rollback checks passed'

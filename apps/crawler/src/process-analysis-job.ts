@@ -12,12 +12,16 @@ import type { ResolveAddresses } from "./url-policy.js";
 
 export type AnalysisSource = {
   url: string;
-  targetId: string;
+  targetId?: string;
   scope: "company" | "job";
 };
 
 export type AnalysisProcessorDeps = {
   loadSource: (sourceUrlId: string) => Promise<AnalysisSource | null>;
+  resolveJobTarget?: (
+    job: ClaimedAnalysisJob,
+    identity: { title: string; employerName: string },
+  ) => Promise<string>;
   siteAllowed?: (origin: string) => Promise<boolean>;
   engine: DecisionEngine;
   maxCandidates: number;
@@ -48,6 +52,14 @@ export async function processAnalysisJob(
     now: deps.now,
   });
   await renew();
+  if (
+    !source.targetId &&
+    (source.scope !== "job" ||
+      !fetched.document.jobIdentity ||
+      !deps.resolveJobTarget)
+  ) {
+    throw new PermanentAnalysisError();
+  }
   const result = await evaluateSource({
     sourceUrlId: job.sourceUrlId,
     document: fetched.document,
@@ -57,5 +69,13 @@ export async function processAnalysisJob(
     maxExcerptChars: deps.maxExcerptChars,
   });
   await renew();
-  return { targetId: source.targetId, ...result };
+  let targetId = source.targetId;
+  if (!targetId) {
+    const identity = fetched.document.jobIdentity;
+    const resolver = deps.resolveJobTarget;
+    if (!identity || !resolver) throw new PermanentAnalysisError();
+    targetId = await resolver(job, identity);
+    await renew();
+  }
+  return { targetId, ...result };
 }

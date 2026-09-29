@@ -16,10 +16,7 @@ const container = process.env.JOB_MATCH_DB_CONTAINER;
 if (!container) throw new Error("JOB_MATCH_DB_CONTAINER is required");
 
 const sourceId = "20000000-0000-4000-8000-000000000020";
-const companyId = "20000000-0000-4000-8000-000000000021";
-const targetId = "20000000-0000-4000-8000-000000000022";
 const jobId = "20000000-0000-4000-8000-000000000023";
-const postingId = "20000000-0000-4000-8000-000000000024";
 const url = "https://example.org/issue20-process-recovery";
 
 async function query(statement: string): Promise<string> {
@@ -59,7 +56,11 @@ const send: RequestOnce = async (requestedUrl) => {
   const robots = requestedUrl.pathname === "/robots.txt";
   const body = robots
     ? "User-agent: *\nAllow: /"
-    : `<main data-job><h1>公開求人</h1><p>${jobText}</p>
+    : `<script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "公開求人",
+        hiringOrganization: { name: "Issue 20 Process Recovery" },
+      })}</script><main data-job><h1>公開求人</h1><p>${jobText}</p>
         <aside data-company><p>会社全体ではフルリモートです。</p></aside></main>`;
   const response: FetchedResource = {
     url: requestedUrl.href,
@@ -125,7 +126,16 @@ async function runWorker(mode: "hold" | "recover"): Promise<void> {
       return processAnalysisJob(job, renew, {
         loadSource: async (id) => {
           assert.equal(id, sourceId);
-          return { url, targetId, scope: "job" };
+          return { url, scope: "job" };
+        },
+        resolveJobTarget: async (claimed, identity) => {
+          assert.deepEqual(identity, {
+            title: "公開求人",
+            employerName: "Issue 20 Process Recovery",
+          });
+          return query(`select public.resolve_job_evaluation_target(
+            '${uuid(claimed.jobId)}', '${uuid(claimed.workerToken)}',
+            '公開求人', 'Issue 20 Process Recovery')`);
         },
         siteAllowed: async (origin) => origin === "https://example.org",
         engine: createFakeDecisionEngine(),
@@ -167,13 +177,6 @@ async function waitForClaim(child: ReturnType<typeof spawn>): Promise<void> {
 async function main(): Promise<void> {
   await query(`insert into public.source_urls(id, raw_url, normalized_url)
     values ('${sourceId}', '${url}', '${url}');
-    insert into public.companies(id, name)
-    values ('${companyId}', 'Issue 20 Process Recovery');
-    insert into public.job_postings(id, company_id, source_url_id, title)
-    values ('${postingId}', '${companyId}', '${sourceId}', '公開求人');
-    insert into public.evaluation_targets(
-      id, target_type, company_id, job_posting_id)
-    values ('${targetId}', 'job', '${companyId}', '${postingId}');
     insert into public.analysis_jobs(id, source_url_id, analyzer_version, status)
     values ('${jobId}', '${sourceId}', 'issue20-process-v1', 'queued')`);
 
@@ -215,6 +218,16 @@ async function main(): Promise<void> {
       join public.analysis_jobs j on j.evaluation_id = a.evaluation_id
       where j.id = '${jobId}'`),
     "8",
+  );
+  assert.equal(
+    await query(`select count(*) from public.analysis_jobs j
+      join public.evaluations e on e.id = j.evaluation_id
+      join public.evaluation_targets t on t.id = e.target_id
+      join public.job_postings p on p.id = t.job_posting_id
+      join public.companies c on c.id = p.company_id
+      where j.id = '${jobId}' and p.source_url_id = '${sourceId}'
+        and p.title = '公開求人' and c.name = 'Issue 20 Process Recovery'`),
+    "1",
   );
   process.stdout.write("killed worker was reclaimed and completed once\n");
 }

@@ -38,6 +38,7 @@
 | [ADR-032](adr/032-match-api.md) | 解析完了後にWebが本人のMatchをPOSTし、application層でdomain比較→1 RPCで保存する | 分析履歴の元を残し、所有者・snapshot一致をDBで保証する | 求人条件が未保存で必須条件は当面unknown、実データ確認はworker接続後 |
 | [ADR-033](adr/033-analysis-history-delivery.md) | 本人の解析依頼を共有jobと別表に原子的に記録し、再訪時に未反映評価をMatchへ変換する | 離脱後も分析済み企業へ反映し、共有jobに個人情報を持たせない | 初回反映の遅延・20件上限を実測で確認 |
 | [ADR-034](adr/034-public-crawl-eligibility.md) | 公開HTTPSページはrobots許可を取得条件とし、サイト別の手動承認を必須にしない | 任意の公開求人URLを扱えるようにする | 利用条件上の許諾までは保証しない。問題のあるサイトは遮断する |
+| [ADR-035](adr/035-job-target-from-structured-metadata.md) | 単一のJobPosting JSON-LDから求人名と雇用主名を読み、URL内だけで評価対象を再利用する | 会社名・ホスト名だけの誤統合を防ぐ | JSON-LDのないページは未対応。対象行が評価前に残ることがある |
 
 ## 技術スパイクで検証・継続確認する項目
 

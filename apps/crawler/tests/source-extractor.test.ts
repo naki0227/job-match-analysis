@@ -93,4 +93,48 @@ describe("source document extraction", () => {
         .some((item) => item.text.includes("企業全体の制度")),
     ).toBe(false);
   });
+
+  it("takes job identity only from one explicit JobPosting with employer", () => {
+    const document = extractSourceDocument(
+      `<script type="application/ld+json">${JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        title: "Platform Engineer",
+        hiringOrganization: { "@type": "Organization", name: "Example Ltd" },
+      })}</script><main data-job><h1>Platform Engineer</h1><p>${jobText}</p></main>`,
+      "https://jobs.example/1",
+      new Date(),
+    );
+    expect(document.jobIdentity).toEqual({
+      title: "Platform Engineer",
+      employerName: "Example Ltd",
+    });
+    expect(document.extractedText).not.toContain("hiringOrganization");
+  });
+
+  it("does not infer identity from headings or ambiguous JobPosting metadata", () => {
+    const one = {
+      "@type": "JobPosting",
+      title: "A",
+      hiringOrganization: { name: "Company" },
+    };
+    const two = {
+      "@type": "JobPosting",
+      title: "B",
+      hiringOrganization: { name: "Company" },
+    };
+    const document = extractSourceDocument(
+      `<script type="application/ld+json">${JSON.stringify({ "@graph": [one, two] })}</script><main><h1>A</h1><p>${jobText}</p></main>`,
+      "https://jobs.example/list",
+      new Date(),
+    );
+    expect(document.jobIdentity).toBeUndefined();
+    expect(
+      extractSourceDocument(
+        `<main><h1>A</h1><p>${jobText}</p></main>`,
+        "https://jobs.example/1",
+        new Date(),
+      ).jobIdentity,
+    ).toBeUndefined();
+  });
 });

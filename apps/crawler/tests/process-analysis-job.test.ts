@@ -31,6 +31,65 @@ function response(url: URL, body: string): FetchedResource {
 }
 
 describe("analysis job processor", () => {
+  it("resolves a new target only from explicit JobPosting metadata", async () => {
+    const identity = {
+      "@type": "JobPosting",
+      title: "Platform Engineer",
+      hiringOrganization: { name: "Example Ltd" },
+    };
+    const send: RequestOnce = async (url) =>
+      url.pathname === "/robots.txt"
+        ? response(url, "User-agent: *\nAllow: /")
+        : response(
+            url,
+            `<script type="application/ld+json">${JSON.stringify(identity)}</script><main data-job><p>${jobText}</p></main>`,
+          );
+    const resolveJobTarget = vi.fn(async () => targetId);
+    const result = await processAnalysisJob(job, async () => undefined, {
+      loadSource: async () => ({
+        url: "https://jobs.example/posting/1",
+        scope: "job",
+      }),
+      resolveJobTarget,
+      engine: createFakeDecisionEngine(),
+      maxCandidates: 8,
+      maxExcerptChars: 120,
+      resolve: async () => ["8.8.8.8"],
+      send,
+    });
+    expect(resolveJobTarget).toHaveBeenCalledWith(job, {
+      title: "Platform Engineer",
+      employerName: "Example Ltd",
+    });
+    expect(result.targetId).toBe(targetId);
+  });
+
+  it("does not call the DecisionEngine when a new URL has no job identity", async () => {
+    const engine = { evaluate: vi.fn(createFakeDecisionEngine().evaluate) };
+    const send: RequestOnce = async (url) =>
+      url.pathname === "/robots.txt"
+        ? response(url, "User-agent: *\nAllow: /")
+        : response(
+            url,
+            `<main><h1>Unidentified job</h1><p>${jobText}</p></main>`,
+          );
+    await expect(
+      processAnalysisJob(job, async () => undefined, {
+        loadSource: async () => ({
+          url: "https://jobs.example/posting/1",
+          scope: "job",
+        }),
+        resolveJobTarget: async () => targetId,
+        engine,
+        maxCandidates: 8,
+        maxExcerptChars: 120,
+        resolve: async () => ["8.8.8.8"],
+        send,
+      }),
+    ).rejects.toBeInstanceOf(PermanentAnalysisError);
+    expect(engine.evaluate).not.toHaveBeenCalled();
+  });
+
   it("checks robots for a public site, extracts a job document, then creates a persisted evaluation payload", async () => {
     const visited: string[] = [];
     const send: RequestOnce = async (url) => {

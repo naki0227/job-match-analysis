@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { parse, type DefaultTreeAdapterTypes as Html } from "parse5";
+import { z } from "zod";
 
 export const EXTRACTOR_VERSION = "html-v1";
 export const MIN_JOB_CHARACTERS = 100;
@@ -21,7 +22,65 @@ export type ExtractedSourceDocument = {
   sections: SourceSection[];
   fragments: SourceFragment[];
   sufficient: boolean;
+  jobIdentity?: { title: string; employerName: string };
 };
+
+const jobPostingSchema = z.object({
+  "@type": z.union([z.literal("JobPosting"), z.array(z.string())]),
+  title: z.string().trim().min(1).max(300),
+  hiringOrganization: z.object({
+    name: z.string().trim().min(1).max(300),
+  }),
+});
+
+function jsonLdNodes(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value.flatMap(jsonLdNodes);
+  if (!value || typeof value !== "object") return [];
+  const graph = "@graph" in value ? jsonLdNodes(value["@graph"]) : [];
+  return [value, ...graph];
+}
+
+function jobIdentity(root: Html.Node): ExtractedSourceDocument["jobIdentity"] {
+  const identities: { title: string; employerName: string }[] = [];
+  const visit = (node: Html.Node) => {
+    if (
+      isElement(node) &&
+      node.tagName === "script" &&
+      attribute(node, "type")?.toLowerCase() === "application/ld+json"
+    ) {
+      const value = node.childNodes
+        .map((child) => ("value" in child ? child.value : ""))
+        .join("");
+      try {
+        for (const item of jsonLdNodes(JSON.parse(value) as unknown)) {
+          const parsed = jobPostingSchema.safeParse(item);
+          if (!parsed.success) continue;
+          const types = parsed.data["@type"];
+          if (
+            types === "JobPosting" ||
+            (Array.isArray(types) && types.includes("JobPosting"))
+          ) {
+            identities.push({
+              title: parsed.data.title,
+              employerName: parsed.data.hiringOrganization.name,
+            });
+          }
+        }
+      } catch {
+        // Malformed structured metadata cannot establish a job identity.
+      }
+    }
+    if ("childNodes" in node) for (const child of node.childNodes) visit(child);
+  };
+  visit(root);
+  const unique = new Map(
+    identities.map((item) => [
+      JSON.stringify([item.title, item.employerName]),
+      item,
+    ]),
+  );
+  return unique.size === 1 ? [...unique.values()][0] : undefined;
+}
 
 export function evaluationDocumentPayload(
   sourceUrlId: string,
@@ -185,5 +244,6 @@ export function extractSourceDocument(
     sections,
     fragments,
     sufficient: jobText.replace(/\s/g, "").length >= MIN_JOB_CHARACTERS,
+    jobIdentity: jobIdentity(root),
   };
 }

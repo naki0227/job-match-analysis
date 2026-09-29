@@ -2,6 +2,7 @@ import { Mascot } from "../../components/Mascot";
 import { AxisResultItem } from "./AxisResultItem";
 import {
   constraintLabels,
+  constraintReasonLabels,
   constraintStatusLabels,
   orderAxes,
   summarizeTarget,
@@ -25,7 +26,7 @@ function TargetSection({
 }) {
   return (
     <section className="target-section" aria-label={title}>
-      <h2>{title}</h2>
+      <h3>{title}</h3>
       <p className="meta">{description}</p>
       {target.status === "incompatible" ? (
         <p className="notice">
@@ -58,7 +59,9 @@ export function MatchReport({ report }: Props) {
       <div className="result-head">
         <div>
           <div className="eyebrow">MATCH RESULT</div>
-          <h1 id="match-report-heading">{report.companyName}</h1>
+          <h2 id="match-report-heading" className="report-title">
+            {report.companyName}
+          </h2>
           <p className="sub">{report.jobTitle}</p>
           {summary && (
             <p className="summary" aria-label="求人の軸別の比較結果">
@@ -87,6 +90,11 @@ export function MatchReport({ report }: Props) {
           >
             {constraintLabels[constraint.kind]}:{" "}
             <b>{constraintStatusLabels[constraint.status]}</b>
+            {constraint.reason && (
+              <span className="constraint-reason">
+                （{constraintReasonLabels[constraint.reason]}）
+              </span>
+            )}
           </li>
         ))}
       </ul>

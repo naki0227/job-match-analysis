@@ -5,6 +5,8 @@ import type {
 
 const jobUrl = "https://jobs.example.com/sample-tech/backend";
 const fetchedAt = "2026-09-20T01:02:03.000Z";
+export const jobEvaluationId = "3f0c7c1e-8d2b-4a52-9c36-2f7f2f0c9a11";
+const companyEvaluationId = "0c1e9a11-8d2b-4a52-9c36-2f7f2f0c3f7f";
 
 export const jobAxes: AxisResult[] = [
   {
@@ -54,11 +56,22 @@ export const jobAxes: AxisResult[] = [
 ];
 
 export const sampleReport: MatchReportView = {
+  matchResultId: "8a4d1c2e-51c1-4f4e-9f7e-6c3a1b2d4e5f",
+  createdAt: "2026-09-29T00:00:00.000Z",
+  profileVersion: 2,
+  algorithmVersion: "match-engine-v1",
   companyName: "サンプルテック株式会社",
   jobTitle: "Backend Engineer",
-  job: { status: "comparable", axes: jobAxes },
+  job: {
+    status: "comparable",
+    evaluationId: jobEvaluationId,
+    evaluatedAt: fetchedAt,
+    axes: jobAxes,
+  },
   company: {
     status: "comparable",
+    evaluationId: companyEvaluationId,
+    evaluatedAt: fetchedAt,
     axes: [
       {
         axisKey: "schedule_flexibility",
@@ -78,7 +91,11 @@ export const sampleReport: MatchReportView = {
   },
   hardConstraints: [
     { kind: "min_salary", status: "met" },
-    { kind: "location", status: "unknown" },
-    { kind: "full_remote", status: "unmet" },
+    { kind: "location", status: "unknown", reason: "missing_information" },
+    {
+      kind: "full_remote",
+      status: "unmet",
+      reason: "regular_office_attendance_required",
+    },
   ],
 };

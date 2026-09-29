@@ -10,6 +10,16 @@
   padding-top: 18px;
 }
 
+.report-title {
+  margin-top: 6px;
+  font-size: clamp(26px, 6vw, 38px);
+  line-height: 1.25;
+}
+
+.constraint-reason {
+  font-size: 12px;
+}
+
 .summary {
   display: flex;
   flex-wrap: wrap;

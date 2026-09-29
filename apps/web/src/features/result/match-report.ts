@@ -1,47 +1,21 @@
-import type { careerAxisKeys } from "@job-match/contracts";
+import type {
+  MatchAxisResult,
+  MatchConstraintResult,
+  MatchReport,
+  MatchTargetResult,
+} from "@job-match/contracts";
 
-/**
- * View model for one personal match. It mirrors the domain MatchResult
- * (docs/matching.md) until the match API contract is defined.
- */
-export type AxisKey = (typeof careerAxisKeys)[number];
-export type AxisStatus =
-  "close" | "different" | "excluded" | "unknown" | "conflicting" | "stale";
-
-export type Evidence = {
-  quote: string;
-  sourceUrl: string;
-  fetchedAt: string;
-};
-
-export type AxisResult = {
-  axisKey: AxisKey;
-  status: AxisStatus;
-  preference: number;
-  importance: number;
-  observed: 0 | 50 | 100 | null;
-  evidence: readonly Evidence[];
-};
-
-export type TargetResult =
-  | { status: "comparable"; axes: readonly AxisResult[] }
-  | { status: "incompatible" };
-
-export type ConstraintKind = "min_salary" | "location" | "full_remote";
-export type ConstraintStatus = "met" | "unmet" | "unknown" | "not_required";
-
-export type ConstraintResult = {
-  kind: ConstraintKind;
-  status: ConstraintStatus;
-};
-
-export type MatchReportView = {
-  companyName: string;
-  jobTitle: string;
-  job: TargetResult;
-  company: TargetResult | null;
-  hardConstraints: readonly ConstraintResult[];
-};
+/** Display helpers for the shared match report contract. */
+export type AxisResult = MatchAxisResult;
+export type AxisKey = AxisResult["axisKey"];
+export type AxisStatus = AxisResult["status"];
+export type Evidence = AxisResult["evidence"][number];
+export type TargetResult = MatchTargetResult;
+export type ConstraintResult = MatchConstraintResult;
+export type ConstraintKind = ConstraintResult["kind"];
+export type ConstraintStatus = ConstraintResult["status"];
+export type ConstraintReason = NonNullable<ConstraintResult["reason"]>;
+export type MatchReportView = MatchReport;
 
 export const axisNames: Record<AxisKey, string> = {
   work_location: "働く場所",
@@ -74,6 +48,17 @@ export const constraintStatusLabels: Record<ConstraintStatus, string> = {
   unmet: "満たさない",
   unknown: "不明",
   not_required: "条件なし",
+};
+
+export const constraintReasonLabels: Record<ConstraintReason, string> = {
+  missing_information: "求人情報に記載なし",
+  conflicting_information: "記載が矛盾",
+  stale_information: "情報が古い",
+  salary_unit_mismatch: "給与の単位が異なる",
+  salary_range_overlaps_minimum: "給与幅が希望額をまたぐ",
+  salary_below_minimum: "希望額を下回る",
+  location_outside_allowed: "希望の勤務地外",
+  regular_office_attendance_required: "定期的な出社あり",
 };
 
 export type TargetSummary = {

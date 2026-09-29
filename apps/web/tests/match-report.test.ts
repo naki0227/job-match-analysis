@@ -4,10 +4,16 @@ import {
   safeSourceUrl,
   summarizeTarget,
 } from "../src/features/result/match-report";
-import { jobAxes } from "./fixtures/match-report";
+import { jobAxes, jobEvaluationId } from "./fixtures/match-report";
+
+const target = {
+  status: "comparable" as const,
+  evaluationId: jobEvaluationId,
+  evaluatedAt: "2026-09-20T01:02:03.000Z",
+};
 
 test("summary counts unknown, conflicting and stale as not yet known", () => {
-  expect(summarizeTarget({ status: "comparable", axes: jobAxes })).toEqual({
+  expect(summarizeTarget({ ...target, axes: jobAxes })).toEqual({
     close: 1,
     different: 1,
     unknown: 2,
@@ -16,13 +22,13 @@ test("summary counts unknown, conflicting and stale as not yet known", () => {
 });
 
 test("empty and incompatible targets are summarized safely", () => {
-  expect(summarizeTarget({ status: "comparable", axes: [] })).toEqual({
+  expect(summarizeTarget({ ...target, axes: [] })).toEqual({
     close: 0,
     different: 0,
     unknown: 0,
     excluded: 0,
   });
-  expect(summarizeTarget({ status: "incompatible" })).toBeNull();
+  expect(summarizeTarget({ ...target, status: "incompatible" })).toBeNull();
 });
 
 test("axes are ordered by importance with excluded axes last", () => {

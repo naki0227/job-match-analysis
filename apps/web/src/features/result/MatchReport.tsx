@@ -1,4 +1,5 @@
 import { Mascot } from "../../components/Mascot";
+import { ShareButton } from "../share/ShareButton";
 import { AxisResultItem } from "./AxisResultItem";
 import {
   constraintLabels,
@@ -80,6 +81,10 @@ export function MatchReport({ report }: Props) {
         <div className="hero-visual">
           <Mascot pose={hasConflict ? "worried" : "success"} size="small" />
         </div>
+      </div>
+
+      <div className="actions">
+        <ShareButton report={report} />
       </div>
 
       <ul className="constraints" aria-label="必須条件">

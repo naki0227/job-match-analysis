@@ -17,9 +17,10 @@ test("job and company results are shown in separate sections", () => {
   const company = screen.getByRole("region", {
     name: "会社全体について（参考）",
   });
+  const companyQuote = "全社でコアタイムのないフレックス制度を導入しています。";
   expect(within(job).getByText("裁量")).toBeInTheDocument();
-  expect(within(job).queryByText("勤務時間の柔軟性")).not.toBeInTheDocument();
-  expect(within(company).getByText("勤務時間の柔軟性")).toBeInTheDocument();
+  expect(within(job).queryByText(companyQuote)).not.toBeInTheDocument();
+  expect(within(company).getByText(companyQuote)).toBeInTheDocument();
   expect(
     within(company).getByText(/この求人に当てはまるとは限りません/),
   ).toBeInTheDocument();
@@ -46,8 +47,9 @@ test("evidence shows the source link and fetch time", () => {
 
 test("axes without evidence say so instead of guessing", () => {
   render(<MatchReport report={sampleReport} />);
+  const job = screen.getByRole("region", { name: "この求人について" });
   const openPanel = (name: RegExp) => {
-    const toggle = screen.getByRole("button", { name });
+    const toggle = within(job).getByRole("button", { name });
     fireEvent.click(toggle);
     return document.getElementById(toggle.getAttribute("aria-controls")!)!;
   };
@@ -66,7 +68,7 @@ test("axes without evidence say so instead of guessing", () => {
 test("summary and hard constraints are shown without an overall score", () => {
   const { container } = render(<MatchReport report={sampleReport} />);
   expect(screen.getByLabelText("求人の軸別の比較結果")).toHaveTextContent(
-    "1近い1相違2不明",
+    "1近い1相違5不明",
   );
   const constraints = screen.getByRole("list", { name: "必須条件" });
   expect(constraints).toHaveTextContent("最低年収: 満たす");

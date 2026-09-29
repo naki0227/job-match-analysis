@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Mascot } from "../../components/Mascot";
 import { formatDateTime } from "../../lib/format-date";
 import type { AnalysisState, RefreshStatus } from "./analysis-state";
@@ -5,6 +6,8 @@ import type { AnalysisState, RefreshStatus } from "./analysis-state";
 type Props = {
   state: AnalysisState;
   onRetry: (url: string) => void;
+  /** Personal comparison for a shared evaluation, shown after its status. */
+  renderResult?: (evaluationId: string) => ReactNode;
 };
 
 const errorMessages = {
@@ -40,8 +43,8 @@ function Steps({ running }: { running: boolean }) {
   );
 }
 
-/** Shows shared job state only; the personal comparison is a separate step. */
-export function AnalysisStatus({ state, onRetry }: Props) {
+/** Shows shared job state; the personal comparison is rendered by the caller. */
+export function AnalysisStatus({ state, onRetry, renderResult }: Props) {
   switch (state.kind) {
     case "idle":
     case "submitting":
@@ -65,62 +68,65 @@ export function AnalysisStatus({ state, onRetry }: Props) {
       );
     case "ready":
       return (
-        <div className="analysis-status" role="status">
-          <div className="stage-visual">
-            <Mascot pose="success" size="small" />
-          </div>
-          <h2 className="stage-title">
-            {state.origin === "cache"
-              ? "解析済みの共有評価が見つかりました"
-              : "解析が完了しました"}
-          </h2>
-          <dl className="facts">
-            <div>
-              <dt>求人URL</dt>
-              <dd className="url-text">{state.url}</dd>
+        <>
+          <div className="analysis-status" role="status">
+            <div className="stage-visual">
+              <Mascot pose="success" size="small" />
             </div>
-            {state.sourceFetchedAt && (
+            <h2 className="stage-title">
+              {state.origin === "cache"
+                ? "解析済みの共有評価が見つかりました"
+                : "解析が完了しました"}
+            </h2>
+            <dl className="facts">
+              <div>
+                <dt>求人URL</dt>
+                <dd className="url-text">{state.url}</dd>
+              </div>
+              {state.sourceFetchedAt && (
+                <div>
+                  <dt>公開情報の取得日時</dt>
+                  <dd>{formatDateTime(state.sourceFetchedAt)}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+          {renderResult?.(state.evaluationId)}
+        </>
+      );
+    case "stale":
+      return (
+        <>
+          <div className="analysis-status" role="status">
+            <div className="stage-visual">
+              <Mascot pose="point" size="small" />
+            </div>
+            <h2 className="stage-title">前回の解析結果があります</h2>
+            <dl className="facts">
+              <div>
+                <dt>求人URL</dt>
+                <dd className="url-text">{state.url}</dd>
+              </div>
               <div>
                 <dt>公開情報の取得日時</dt>
                 <dd>{formatDateTime(state.sourceFetchedAt)}</dd>
               </div>
+            </dl>
+            <p className="notice warn">{refreshMessage(state.refresh)}</p>
+            {(state.refresh === "failed" || state.refresh === "timeout") && (
+              <div className="actions">
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => onRetry(state.url)}
+                >
+                  最新情報を再確認
+                </button>
+              </div>
             )}
-          </dl>
-          <p className="notice">
-            あなたの希望条件との軸別の比較は、比較結果APIの接続後にここへ表示されます。
-          </p>
-        </div>
-      );
-    case "stale":
-      return (
-        <div className="analysis-status" role="status">
-          <div className="stage-visual">
-            <Mascot pose="point" size="small" />
           </div>
-          <h2 className="stage-title">前回の解析結果があります</h2>
-          <dl className="facts">
-            <div>
-              <dt>求人URL</dt>
-              <dd className="url-text">{state.url}</dd>
-            </div>
-            <div>
-              <dt>公開情報の取得日時</dt>
-              <dd>{formatDateTime(state.sourceFetchedAt)}</dd>
-            </div>
-          </dl>
-          <p className="notice warn">{refreshMessage(state.refresh)}</p>
-          {(state.refresh === "failed" || state.refresh === "timeout") && (
-            <div className="actions">
-              <button
-                className="secondary"
-                type="button"
-                onClick={() => onRetry(state.url)}
-              >
-                最新情報を再確認
-              </button>
-            </div>
-          )}
-        </div>
+          {renderResult?.(state.evaluationId)}
+        </>
       );
     case "failed":
       return (

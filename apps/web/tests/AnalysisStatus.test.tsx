@@ -117,3 +117,31 @@ test("status wording never claims hiring suitability", () => {
     cleanup();
   }
 });
+
+test("the personal result is rendered only for usable evaluations", () => {
+  const renderResult = vi.fn((id: string) => <p>result {id}</p>);
+  const { rerender } = render(
+    <AnalysisStatus
+      state={{ kind: "waiting", url, jobId, progress: "queued" }}
+      onRetry={() => {}}
+      renderResult={renderResult}
+    />,
+  );
+  expect(renderResult).not.toHaveBeenCalled();
+  rerender(
+    <AnalysisStatus
+      state={{
+        kind: "stale",
+        url,
+        evaluationId,
+        sourceFetchedAt: fetchedAt,
+        refreshJobId: jobId,
+        refresh: "running",
+      }}
+      onRetry={() => {}}
+      renderResult={renderResult}
+    />,
+  );
+  expect(screen.getByText(`result ${evaluationId}`)).toBeInTheDocument();
+  expect(screen.getByRole("status")).not.toHaveTextContent("result");
+});

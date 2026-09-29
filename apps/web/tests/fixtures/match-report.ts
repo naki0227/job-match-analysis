@@ -55,6 +55,18 @@ export const jobAxes: AxisResult[] = [
   },
 ];
 
+/** Axes without evidence, so the fixtures carry all eight axes. */
+function unknownAxes(keys: AxisResult["axisKey"][]): AxisResult[] {
+  return keys.map((axisKey) => ({
+    axisKey,
+    status: "unknown",
+    preference: 50,
+    importance: 20,
+    observed: null,
+    evidence: [],
+  }));
+}
+
 export const sampleReport: MatchReportView = {
   matchResultId: "8a4d1c2e-51c1-4f4e-9f7e-6c3a1b2d4e5f",
   createdAt: "2026-09-29T00:00:00.000Z",
@@ -66,7 +78,14 @@ export const sampleReport: MatchReportView = {
     status: "comparable",
     evaluationId: jobEvaluationId,
     evaluatedAt: fetchedAt,
-    axes: jobAxes,
+    axes: [
+      ...jobAxes,
+      ...unknownAxes([
+        "collaboration",
+        "growth_direction",
+        "schedule_flexibility",
+      ]),
+    ],
   },
   company: {
     status: "comparable",
@@ -87,6 +106,15 @@ export const sampleReport: MatchReportView = {
           },
         ],
       },
+      ...unknownAxes([
+        "work_location",
+        "autonomy",
+        "collaboration",
+        "growth_direction",
+        "work_change",
+        "role_breadth",
+        "customer_contact",
+      ]),
     ],
   },
   hardConstraints: [

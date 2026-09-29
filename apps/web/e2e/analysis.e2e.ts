@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { sampleReport } from "../tests/fixtures/match-report";
 import { signInWithFixture } from "./session-fixture";
 
 const jobId = "3f0c7c1e-8d2b-4a52-9c36-2f7f2f0c9a11";
-const evaluationId = "8a4d1c2e-51c1-4f4e-9f7e-6c3a1b2d4e5f";
+const evaluationId = sampleReport.job.evaluationId;
 
-test("求人URLを送信し、共有ジョブの完了までポーリングする", async ({
+test("求人URLを送信し、共有ジョブの完了後に本人の比較結果を表示する", async ({
   page,
 }) => {
   await signInWithFixture(page);
@@ -31,6 +32,16 @@ test("求人URLを送信し、共有ジョブの完了までポーリングす�
     });
   });
 
+  const matchRequests: unknown[] = [];
+  await page.route("**/api/v1/matches", async (route) => {
+    matchRequests.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(sampleReport),
+    });
+  });
+
   await page.goto("/");
   await page
     .getByLabel("求人ページのURL")
@@ -44,5 +55,12 @@ test("求人URLを送信し、共有ジョブの完了までポーリングす�
   await expect(page.getByText("解析が完了しました")).toBeVisible({
     timeout: 10_000,
   });
+  await expect(
+    page.getByRole("heading", { name: "サンプルテック株式会社" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "この求人について" }),
+  ).toBeVisible();
   expect(posted).toEqual([{ url: "https://jobs.example.com/posting/1" }]);
+  expect(matchRequests).toEqual([{ evaluationId }]);
 });

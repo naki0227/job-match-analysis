@@ -1,3 +1,4 @@
+import { MatchSection } from "../result/MatchSection";
 import type { AnalysisState } from "./analysis-state";
 import { AnalysisStatus } from "./AnalysisStatus";
 import { AnalyzeForm } from "./AnalyzeForm";
@@ -6,9 +7,16 @@ import "./analysis.css";
 type Props = {
   state: AnalysisState;
   onSubmit: (url: string) => void;
+  getAccessToken: () => Promise<string>;
+  onEditProfile: () => void;
 };
 
-export function AnalyzeScreen({ state, onSubmit }: Props) {
+export function AnalyzeScreen({
+  state,
+  onSubmit,
+  getAccessToken,
+  onEditProfile,
+}: Props) {
   const url = state.kind === "idle" ? "" : state.url;
 
   return (
@@ -26,7 +34,18 @@ export function AnalyzeScreen({ state, onSubmit }: Props) {
           invalid={state.kind === "error" && state.reason === "invalid_url"}
           onSubmit={onSubmit}
         />
-        <AnalysisStatus state={state} onRetry={onSubmit} />
+        <AnalysisStatus
+          state={state}
+          onRetry={onSubmit}
+          renderResult={(evaluationId) => (
+            <MatchSection
+              key={evaluationId}
+              evaluationId={evaluationId}
+              getAccessToken={getAccessToken}
+              onEditProfile={onEditProfile}
+            />
+          )}
+        />
       </div>
     </section>
   );

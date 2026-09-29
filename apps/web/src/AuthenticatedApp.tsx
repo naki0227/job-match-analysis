@@ -27,7 +27,12 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
           />
         )}
         {screen === "analyze" && (
-          <AnalyzeScreen state={analysis.state} onSubmit={analyze} />
+          <AnalyzeScreen
+            state={analysis.state}
+            onSubmit={analyze}
+            getAccessToken={getAccessToken}
+            onEditProfile={() => setScreen("profile")}
+          />
         )}
         {screen === "profile" && (
           <CareerProfileForm getAccessToken={getAccessToken} />

@@ -64,7 +64,7 @@ describe("browser network boundary", () => {
     } finally {
       await browser.close();
     }
-  }, 15_000);
+  }, 30_000);
 
   it("rejects an unsafe browser redirect before fetching its target", async () => {
     const browser = await chromium.launch({

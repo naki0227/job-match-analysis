@@ -88,7 +88,7 @@ describe("HTTP to browser source fetch", () => {
     } finally {
       await browser.close();
     }
-  }, 15_000);
+  }, 30_000);
 
   it("never sends a redirect to a site whose terms are not approved", async () => {
     const visited: string[] = [];

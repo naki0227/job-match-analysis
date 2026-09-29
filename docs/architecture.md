@@ -139,4 +139,4 @@ docs
 
 Issue #24ではWeb/API共通のhealth契約を `packages/contracts` に実装した。現行の依存はWeb/API → contractsで、domainは純粋関数のまま保つ。`packages/application` はユースケース実装時に追加する。[ADR-019](adr/019-shared-web-api-contracts.md)。
 
-Issue #26のWebは`src/features`（auth、career-profile、analysis、result）単位に分け、`apps/web/mock`のモックを見た目の基準にする。現時点では画面切替とポーリングを依存追加なしで実装し、TanStack Queryは結果詳細・分析履歴の接続時に再検討する。[ADR-031](adr/031-web-ui-structure.md)。
+Issue #26のWebは`src/features`（auth、career-profile、analysis、result）単位に分け、`apps/web/mock`のモックを見た目の基準にする。画面切替はReact state、共有ジョブの受付・ポーリングはTanStack Queryで実装する。[ADR-031](adr/031-web-ui-structure.md)。

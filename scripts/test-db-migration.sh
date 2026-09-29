@@ -51,7 +51,8 @@ profile_log_a=$(mktemp)
 profile_log_b=$(mktemp)
 evaluation_log_a=$(mktemp)
 evaluation_log_b=$(mktemp)
-trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b"; cleanup' EXIT INT TERM
+issue45_guard_log=$(mktemp)
+trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b" "$issue45_guard_log"; cleanup' EXIT INT TERM
 set +e
 psql_cmd -v key=00000000-0000-0000-0000-000000001629 +  < supabase/tests/issue16_profile_concurrent_call.sql >"$profile_log_a" 2>&1 &
 profile_pid_a=$!
@@ -98,6 +99,30 @@ if ! printf '%s\n' "$issue17_plan" | grep -Fq 'user_saved_jobs_page_idx'; then
 fi
 psql_cmd < supabase/migrations/20260928161035_optional_profile_education_legal_history.sql
 psql_cmd < supabase/tests/issue38_optional_profile_legal.sql
+if psql_cmd < supabase/migrations/20260929011641_analysis_history_from_matches.sql >"$issue45_guard_log" 2>&1; then
+  printf '%s\n' 'Issue #45 migration discarded existing saved rows' >&2
+  exit 1
+fi
+if ! grep -Fq 'legacy_saved_jobs_not_empty' "$issue45_guard_log"; then
+  cat "$issue45_guard_log" >&2
+  printf '%s\n' 'Issue #45 migration failed for an unexpected reason' >&2
+  exit 1
+fi
+if [ "$(psql_cmd -Atc 'select count(*) from public.user_saved_jobs')" != '2001' ]; then
+  printf '%s\n' 'Issue #45 guard did not preserve legacy saved rows' >&2
+  exit 1
+fi
+psql_cmd -c 'delete from public.user_saved_jobs;'
+psql_cmd < supabase/migrations/20260929011641_analysis_history_from_matches.sql
+psql_cmd < supabase/tests/issue45_analysis_history.sql
+issue45_plan=$(psql_cmd -At < supabase/tests/issue45_explain.sql)
+if ! printf '%s\n' "$issue45_plan" | grep -Fq 'Unique'; then
+  printf '%s\n' "$issue45_plan" >&2
+  printf '%s\n' 'Issue #45 EXPLAIN did not de-duplicate jobs' >&2
+  exit 1
+fi
+psql_cmd < supabase/rollback/20260929_issue45_down.sql
+psql_cmd < supabase/tests/issue45_rollback.sql
 psql_cmd < supabase/rollback/20260928_issue38_down.sql
 psql_cmd < supabase/tests/issue38_rollback.sql
 psql_cmd < supabase/rollback/20260928_issue17_down.sql
@@ -113,4 +138,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17/#25/#38 migrations, integrity, RLS, atomicity, profile revisions, pagination, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#25/#38/#45 migrations, integrity, RLS, atomicity, pagination, history, and rollback checks passed'

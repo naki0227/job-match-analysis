@@ -32,16 +32,18 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
 
   await page.goto("/");
   await page.getByRole("button", { name: "希望条件" }).click();
-  await page.getByRole("textbox", { name: "希望職種" }).fill("エンジニア");
+  await page.getByRole("button", { name: "Backend Engineer" }).click();
+  await page.getByRole("button", { name: "次へ" }).click();
   for (let index = 0; index < 8; index += 1) {
-    await page.getByRole("button", { name: "回答する" }).first().click();
+    if (index === 0) {
+      await page.getByRole("slider", { name: "希望値" }).focus();
+      await page.keyboard.press("Home");
+      await page.getByRole("radio", { name: "とても重視" }).check();
+    } else {
+      await page.getByRole("radio", { name: "ふつう" }).check();
+    }
+    await page.getByRole("button", { name: "次へ" }).click();
   }
-  const sliders = page.getByRole("slider");
-  await expect(sliders).toHaveCount(16);
-  await sliders.nth(0).focus();
-  await page.keyboard.press("Home");
-  await sliders.nth(1).focus();
-  await page.keyboard.press("End");
   await page
     .getByRole("spinbutton", { name: "最低年収（円、額面）" })
     .fill("5000000");
@@ -50,18 +52,23 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
   await page
     .getByRole("checkbox", { name: "フルリモートを必須にする" })
     .check();
-  await page.getByRole("button", { name: "診断を保存" }).click();
-  await expect(page.getByRole("status")).toContainText("第1版を保存しました。");
+  await page.getByRole("button", { name: "保存する" }).click();
+  await expect(page.getByText("希望条件の第1版を保存しました")).toBeVisible();
 
   await page.reload();
   await page.getByRole("button", { name: "希望条件" }).click();
-  await expect(page.getByRole("textbox", { name: "希望職種" })).toHaveValue(
-    "エンジニア",
-  );
-  await expect(page.getByText("現在の確定版: 第1版")).toBeVisible();
-  await expect(page.getByRole("slider").nth(0)).toHaveValue("0");
-  await expect(page.getByRole("slider").nth(1)).toHaveValue("100");
+  await expect(page.getByText(/現在の確定版: 第1版/)).toBeVisible();
   await expect(
-    page.getByRole("checkbox", { name: "フルリモートを必須にする" }),
-  ).toBeChecked();
+    page.getByRole("button", { name: "Backend Engineer" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "次へ" }).click();
+  await expect(page.getByRole("slider", { name: "希望値" })).toHaveValue("0");
+  await expect(page.getByRole("radio", { name: "とても重視" })).toBeChecked();
+  expect(saved?.profile).toMatchObject({
+    constraints: {
+      minSalary: { amount: 5_000_000 },
+      allowedPrefectureCodes: ["13"],
+      fullRemoteRequired: true,
+    },
+  });
 });

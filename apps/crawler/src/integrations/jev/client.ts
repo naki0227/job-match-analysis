@@ -33,7 +33,7 @@ type ScoreQuestion = {
 
 type JevQuestion = NoulQuestion | ChoiceQuestion | ScoreQuestion;
 
-type JevRequest = {
+export type JevRequest = {
   state: string;
   questions: Record<string, JevQuestion>;
 };
@@ -79,7 +79,7 @@ const JevResponseSchema = z.object({
   }),
 });
 
-type JevResponse = z.infer<typeof JevResponseSchema>;
+export type JevResponse = z.infer<typeof JevResponseSchema>;
 
 export async function callJev(
   { state, questions }: JevRequest,

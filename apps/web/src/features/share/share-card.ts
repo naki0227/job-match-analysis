@@ -84,5 +84,9 @@ export function drawShareCard(ctx: CardCanvas, card: ShareCardData): void {
   }
   ctx.fillStyle = "#5f7085";
   ctx.font = '500 20px "Zen Kaku Gothic New", sans-serif';
-  ctx.fillText("個人情報を含めず、比較結果だけを共有しています", 84, 556);
+  ctx.fillText(
+    "本名・メール・希望年収・希望勤務地・希望値は含みません",
+    84,
+    556,
+  );
 }

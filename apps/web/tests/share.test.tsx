@@ -52,6 +52,7 @@ test("drawing writes the same fields to the canvas", () => {
       "サンプルテック株式会社",
       "Backend Engineer",
       "近い軸：裁量",
+      "本名・メール・希望年収・希望勤務地・希望値は含みません",
     ]),
   );
 });

@@ -21,7 +21,7 @@ export function HistoryScreen({ history, onOpen }: Props) {
       ) : (
         <PendingFeature
           title="一覧はまだ表示できません"
-          reason="分析履歴の一覧APIの接続待ちです（Issue #27）。分析結果そのものは保存されています。"
+          reason="分析履歴の一覧APIの接続待ちです（Issue #27）。"
         />
       )}
     </section>

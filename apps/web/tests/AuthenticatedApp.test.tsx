@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { AuthenticatedApp } from "../src/AuthenticatedApp";
+import { createQueryWrapper } from "./render-with-query";
 
 const jobId = "3f0c7c1e-8d2b-4a52-9c36-2f7f2f0c9a11";
 
@@ -18,7 +19,9 @@ test("home submission moves to the analysis screen and shows progress", async ()
       }),
   );
   vi.stubGlobal("fetch", fetcher);
-  render(<AuthenticatedApp getAccessToken={async () => "token"} />);
+  render(<AuthenticatedApp getAccessToken={async () => "token"} />, {
+    wrapper: createQueryWrapper(),
+  });
 
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
@@ -41,7 +44,9 @@ test("home submission moves to the analysis screen and shows progress", async ()
 test("invalid URL is flagged without calling the API", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
-  render(<AuthenticatedApp getAccessToken={async () => "token"} />);
+  render(<AuthenticatedApp getAccessToken={async () => "token"} />, {
+    wrapper: createQueryWrapper(),
+  });
   fireEvent.click(screen.getByRole("button", { name: "求人分析" }));
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "jobs.example.com" },

@@ -1,9 +1,11 @@
 import { requestAnalysisSchema } from "@job-match/contracts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 import {
   AnalysisApiError,
   readAnalysisJob,
   requestAnalysis,
+  type AnalysisApiErrorKind,
 } from "./analysis-api";
 import {
   applyJobUpdate,
@@ -23,11 +25,14 @@ export type AnalysisRequestOptions = {
   timeoutMs?: number;
 };
 
-function errorKind(error: unknown) {
+function errorKind(error: unknown): AnalysisApiErrorKind {
   if (error instanceof AnalysisApiError) return error.kind;
   // getAccessToken rejects only when the session is missing.
-  return "unauthorized" as const;
+  return "unauthorized";
 }
+
+export const analysisJobQueryKey = (jobId: string) =>
+  ["analysis-job", jobId] as const;
 
 /** Submits a job URL and polls the shared job until it settles. */
 export function useAnalysisRequest({
@@ -37,88 +42,96 @@ export function useAnalysisRequest({
   maxPollIntervalMs = 10_000,
   timeoutMs = 180_000,
 }: AnalysisRequestOptions) {
-  const [state, setState] = useState<AnalysisState>(idleState);
-  const submission = useRef(0);
-  const jobId = pollingJobId(state);
+  const [invalidUrl, setInvalidUrl] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [expiredAttempt, setExpiredAttempt] = useState<number | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async (url: string) =>
+      requestAnalysis(await getAccessToken(), url, fetcher),
+  });
+
+  let base: AnalysisState = idleState;
+  if (invalidUrl !== null) {
+    base = { kind: "error", url: invalidUrl, reason: "invalid_url" };
+  } else if (mutation.isPending && mutation.variables) {
+    base = { kind: "submitting", url: mutation.variables };
+  } else if (mutation.isError && mutation.variables) {
+    base = {
+      kind: "error",
+      url: mutation.variables,
+      reason: errorKind(mutation.error),
+    };
+  } else if (mutation.isSuccess) {
+    base = stateFromPost(mutation.variables, mutation.data);
+  }
+
+  const jobId = pollingJobId(base);
+  const expired = expiredAttempt === attempt;
+
+  const job = useQuery({
+    queryKey: analysisJobQueryKey(jobId ?? ""),
+    queryFn: async ({ signal }) =>
+      readAnalysisJob(await getAccessToken(), jobId ?? "", fetcher, signal),
+    enabled: jobId !== null && !expired,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === "completed" || status === "failed") {
+        return false;
+      }
+      // Temporary outages keep polling; other errors are final.
+      if (query.state.error && errorKind(query.state.error) !== "unavailable") {
+        return false;
+      }
+      const polls = query.state.dataUpdateCount + query.state.errorUpdateCount;
+      return Math.min(
+        Math.round(pollIntervalMs * 1.5 ** Math.max(polls - 1, 0)),
+        maxPollIntervalMs,
+      );
+    },
+  });
+
+  let state = base;
+  if (jobId !== null) {
+    if (job.data) state = applyJobUpdate(state, job.data);
+    if (job.error && errorKind(job.error) !== "unavailable") {
+      state = failPolling(state, jobId, errorKind(job.error));
+    }
+  }
+  const activeJobId = pollingJobId(state);
+  if (activeJobId !== null && expired) {
+    state = expirePolling(state, activeJobId);
+  }
+
+  useEffect(() => {
+    if (activeJobId === null || expired) return;
+    const timer = setTimeout(() => setExpiredAttempt(attempt), timeoutMs);
+    return () => clearTimeout(timer);
+  }, [activeJobId, attempt, expired, timeoutMs]);
+
+  const { mutate, reset: resetMutation } = mutation;
 
   const submit = useCallback(
-    async (rawUrl: string) => {
+    (rawUrl: string) => {
       const url = rawUrl.trim();
-      const current = ++submission.current;
+      setAttempt((current) => current + 1);
       if (!requestAnalysisSchema.safeParse({ url }).success) {
-        setState({ kind: "error", url, reason: "invalid_url" });
+        resetMutation();
+        setInvalidUrl(url);
         return;
       }
-      setState({ kind: "submitting", url });
-      try {
-        const token = await getAccessToken();
-        const response = await requestAnalysis(token, url, fetcher);
-        if (current === submission.current) {
-          setState(stateFromPost(url, response));
-        }
-      } catch (error) {
-        if (current === submission.current) {
-          setState({ kind: "error", url, reason: errorKind(error) });
-        }
-      }
+      setInvalidUrl(null);
+      mutate(url);
     },
-    [fetcher, getAccessToken],
+    [mutate, resetMutation],
   );
 
   const reset = useCallback(() => {
-    submission.current += 1;
-    setState(idleState);
-  }, []);
-
-  useEffect(() => {
-    if (!jobId) return;
-    const controller = new AbortController();
-    const deadline = Date.now() + timeoutMs;
-    let delay = pollIntervalMs;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const tick = async () => {
-      if (Date.now() >= deadline) {
-        setState((current) => expirePolling(current, jobId));
-        return;
-      }
-      try {
-        const token = await getAccessToken();
-        const job = await readAnalysisJob(
-          token,
-          jobId,
-          fetcher,
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
-        setState((current) => applyJobUpdate(current, job));
-        if (job.status === "completed" || job.status === "failed") return;
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        const kind = errorKind(error);
-        // Temporary outages are retried until the deadline.
-        if (kind !== "unavailable") {
-          setState((current) => failPolling(current, jobId, kind));
-          return;
-        }
-      }
-      delay = Math.min(Math.round(delay * 1.5), maxPollIntervalMs);
-      timer = setTimeout(() => void tick(), delay);
-    };
-
-    timer = setTimeout(() => void tick(), delay);
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [
-    fetcher,
-    getAccessToken,
-    jobId,
-    maxPollIntervalMs,
-    pollIntervalMs,
-    timeoutMs,
-  ]);
+    setAttempt((current) => current + 1);
+    setInvalidUrl(null);
+    resetMutation();
+  }, [resetMutation]);
 
   return { state, submit, reset };
 }

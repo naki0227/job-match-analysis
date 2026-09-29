@@ -13,7 +13,7 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
 
   function analyze(url: string) {
     setScreen("analyze");
-    void analysis.submit(url);
+    analysis.submit(url);
   }
 
   return (

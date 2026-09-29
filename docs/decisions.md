@@ -28,6 +28,7 @@
 | [ADR-022](adr/022-private-profile-education-legal-history.md) | 任意プロフィール・複数学歴・版付き法的文書と確認履歴を分離する | 就業希望版と認証メールの責務を守り、文書版ごとの確認を追跡する | 入力API/UIと法的本文の公開運用は別途必要 |
 | [ADR-023](adr/023-analysis-history-from-matches.md) | 保存操作をなくし、本人の求人Match結果を分析履歴の元にする | 二重の状態管理をなくし、再分析の版を残す | 一覧の重複除去はMatch件数に応じて再評価する |
 | [ADR-024](adr/024-atomic-analysis-registration.md) | 正規化URL行ロックの1 RPCでcache確認と共有ジョブ参加を直列化する | 同時受付・完了直後の重複ジョブを抑える | 同一URLへの集中時は行ロック待ちを実測する |
+| [ADR-025](adr/025-analysis-job-leases.md) | SKIP LOCKEDのclaimとworker token/leaseで停止後のジョブを引き継ぐ | 多重workerでも1件ずつ所有し、旧tokenの確定を拒否する | lease長・試行上限の運用値と外部API予算は実測後に決める |
 
 ## 技術スパイクで検証・継続確認する項目
 

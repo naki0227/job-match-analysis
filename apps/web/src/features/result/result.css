@@ -1,0 +1,163 @@
+.match-report {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.result-head {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  padding-top: 18px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 19px;
+  padding-top: 13px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.summary b {
+  margin-right: 3px;
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.constraints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 15px 0 0;
+  padding: 16px 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.constraints b {
+  color: var(--ink);
+}
+
+.constraints .constraint-unmet b {
+  color: var(--danger);
+}
+
+.target-section {
+  margin-top: 30px;
+}
+
+.axis-results {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.axis-result {
+  padding: 16px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.axis-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.axis-name {
+  font-weight: 900;
+}
+
+.axis-status {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status-close .axis-status {
+  color: var(--blue-ink);
+}
+
+.status-different .axis-status {
+  color: var(--danger);
+}
+
+.axis-bars {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 36px;
+  gap: 9px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf2f6;
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #8294a5;
+}
+
+.bar-row:first-child .track span {
+  background: var(--blue);
+}
+
+.axis-evidence {
+  padding-top: 11px;
+}
+
+.axis-evidence ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence-item + .evidence-item {
+  margin-top: 12px;
+}
+
+.evidence-item blockquote {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--blue-line);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.evidence-item a {
+  overflow-wrap: anywhere;
+}
+
+.evidence-date {
+  display: block;
+}
+
+@media (min-width: 760px) {
+  .result-head {
+    grid-template-columns: minmax(0, 1fr) 220px;
+  }
+}

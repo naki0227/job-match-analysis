@@ -18,7 +18,7 @@
 
 ## データの所有境界
 
-**個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、user_saved_jobs、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。
+**個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。
 
 **共有データ:** companies、job_postings、source_urls、source_document_versions、evaluation_targets、evaluations/evaluated_axis_values/evidence、analysis_jobs。公開企業／求人の情報だけを保存する。共有評価へユーザープロフィールを混ぜない。
 
@@ -50,8 +50,6 @@ erDiagram
   ASSESSMENT_AXES ||--o{ EVALUATED_AXIS_VALUES : referenced
   EVALUATED_AXIS_VALUES ||--o{ EVALUATION_EVIDENCE : supports
   SOURCE_DOCUMENT_VERSIONS ||--o{ EVALUATION_EVIDENCE : quoted
-  PROFILES ||--o{ USER_SAVED_JOBS : saves
-  JOB_POSTINGS ||--o{ USER_SAVED_JOBS : saved
   PROFILES ||--o{ MATCH_RESULTS : owns
   CAREER_PROFILE_VERSIONS ||--o{ MATCH_RESULTS : snapshot
   EVALUATIONS ||--o{ MATCH_RESULTS : snapshot
@@ -87,7 +85,6 @@ erDiagram
 | evaluated_axis_values | (evaluation_id, axis_key) | 0/50/100アンカー、unknown等の状態、軸カタログ版の複合FK |
 | evaluation_evidence | id | (evaluation_id, axis_key)と(evaluation_id, source_document_version_id)への複合FK、根拠抜粋・位置 |
 | analysis_jobs | id | source_url_id、analyzer_version、status、attempts、lease_until、worker_token |
-| user_saved_jobs | (user_id, job_posting_id) | 個人ブックマーク |
 | match_results | id | user_id / career_profile_version_id / evaluation_id / algorithm_version |
 | match_axis_results | (match_result_id, axis_key) | 当時の希望値・評価値・一致状態と算出理由のsnapshot |
 | match_constraint_results | (match_result_id, kind) | 必須条件の状態と理由のsnapshot |
@@ -102,7 +99,7 @@ erDiagram
 - 個人テーブルのSELECTポリシーは auth.uid() と所有者の一致、子テーブルは親へのEXISTSで判定する。クライアントに書込権限は付けない。service-role/secret keyはサーバーのみで保持し、APIでGoogle identityと本人IDを確認する。SECURITY DEFINER関数は追加していない。
 - 共有企業データの更新はサーバー権限だけ。外部ページ本文の生データをクライアントに無制限に配布しない。重要な値は出典・取得日を表示。
 - FKで関連行を自動削除すると過去評価や他人の保存履歴まで消える可能性があるため、共有側にCASCADEを機械的に使わない。個人データの消去要求には削除経路を用意する。
-- N+1を避ける: 保存済み求人はIssue #17のlist_saved_jobs_pageで、本人の保存行・求人・会社・各最新評価を1回のRPCで取得する。保存日時+求人IDのkeyset cursorと最大100件の上限を使い、専用索引をEXPLAINで確認する。[ADR-018](adr/018-saved-jobs-batch-pagination.md)。
+- N+1を避ける: Issue #45の`list_analysis_history_page`は本人の求人Match結果から求人ごとの最新1件を選び、求人・会社・そのMatchで使った求人評価と最新の会社評価を1回のRPCで返す。Match日時+IDのkeyset cursorと最大100件の上限を使う。過去のMatch行は詳細表示用に保持する。[ADR-023](adr/023-analysis-history-from-matches.md)。
 
 ## 原子的操作（トランザクション境界）
 

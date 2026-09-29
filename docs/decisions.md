@@ -21,11 +21,12 @@
 | [ADR-015](adr/015-target-roles-in-career-profile.md) | 希望職種をCareerProfile版の必須リストとして保持する | 再評価時にも当時の希望を追える | 職種の正規化と自動一致は別途決める |
 | [ADR-016](adr/016-google-auth-and-personal-read-rls.md) | Google OAuth、APIでのprofile初期化、本人参照のみのRLS | 個人データを所有者に限定し、変更をAPIへ集約する | Google provider設定の実ログイン検証が必要 |
 | [ADR-017](adr/017-atomic-profile-and-evaluation-commits.md) | プロフィールと評価をそれぞれ1回のRPCで原子的に確定する | 部分確定と再送時の重複を防ぐ | サーバーとDB関数の入力契約を合わせる |
-| [ADR-018](adr/018-saved-jobs-batch-pagination.md) | 保存済み求人一覧は1回のRPCとkeyset cursorで読む | DB往復のN+1を防ぐ | 一覧列の変更時はRPCとrepositoryの両方を更新する |
+| [ADR-018](adr/018-saved-jobs-batch-pagination.md) | 保存済み求人一覧の旧設計。ADR-023で置換 | DB往復のN+1を防ぐ手法を確立した | 旧テーブル/RPCはIssue #45で廃止 |
 | [ADR-019](adr/019-shared-web-api-contracts.md) | Web/APIのZod契約をpackages/contractsへ分離する | server実装やdomainへの逆依存を避ける | workspaceのbuild順序が必要 |
 | [ADR-020](adr/020-career-profile-api.md) | 診断GETは本人JWTでRLS適用、PUTはサーバー専用RPC | 本人確認と原子的な版保存を両立 | 読取は版・子行の複数問い合わせ |
 | [ADR-021](adr/021-safe-public-fetch-boundary.md) | 公開URLは接続時にDNS全回答を検査してIPを固定し、redirectとブラウザ要求も同じ取得境界に通す | URL事前検査後のDNS切替とサブリソース経由の内部接続を防ぐ | 対応ページに制限があり、ネットワーク層のegress検証は#36が必要 |
 | [ADR-022](adr/022-private-profile-education-legal-history.md) | 任意プロフィール・複数学歴・版付き法的文書と確認履歴を分離する | 就業希望版と認証メールの責務を守り、文書版ごとの確認を追跡する | 入力API/UIと法的本文の公開運用は別途必要 |
+| [ADR-023](adr/023-analysis-history-from-matches.md) | 保存操作をなくし、本人の求人Match結果を分析履歴の元にする | 二重の状態管理をなくし、再分析の版を残す | 一覧の重複除去はMatch件数に応じて再評価する |
 
 ## 技術スパイクで検証・継続確認する項目
 

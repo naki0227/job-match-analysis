@@ -13,7 +13,7 @@
 2. 働き方の希望・仕事観の各軸を0〜100のスライダーで入力し、各軸の**重要度も別に**設定する。最低年収・リモート必須などの必須条件は別フォームにする。
 3. 企業・求人の公開URLを送信する。既存の評価があればそれを表示し、未解析・更新要なら共有解析ジョブを登録する。
 4. 結果待ちのユーザーは同一ジョブの進捗を確認する。解析完了後、共通の企業／求人情報と自分のプロフィールを突き合わせる。
-5. 軸別の一致／相違、必須条件への適合、情報不足、参照元URL・取得日時を表示する。保存済み求人を一覧・比較する。
+5. 軸別の一致／相違、必須条件への適合、情報不足、参照元URL・取得日時を表示する。本人のMatch結果から分析済み求人を一覧・比較する。
 
 ### MVPに含めないもの
 - 企業の自動巡回・無差別クロール、求人検索エンジン、Chrome拡張、求人応募自動化、AIによる履歴書採点。
@@ -132,8 +132,8 @@ companies / job_postings → evaluation_targets → evaluations
 source_document_versions N─M evaluations（evaluation_sources）
 evaluations 1─N evaluated_axis_values 1─N evaluation_evidence
 source_urls 1─N analysis_jobs（有効ジョブ一意）
-profiles N─M job_postings（user_saved_jobs）
 career_profile_versions + evaluations → match_results → match_axis_results
+match_results → evaluations → evaluation_targets → job_postings → companies（分析履歴）
 ```
 
 設計ルール:
@@ -188,7 +188,7 @@ POST /api/analyses {url}
 | `GET` | `/api/analyses/:id` | `queued/running/completed/failed`、評価ID。アクセス許可と公開範囲を確認 |
 | `GET` | `/api/jobs/:id` | 求人・出典・鮮度・共有評価 |
 | `POST` | `/api/matches` | 認可済みCareerProfile版×共有評価の個人結果 |
-| `GET` | `/api/me/saved-jobs?cursor=...` | 一括取得＋ページネーション |
+| `GET` | `/api/me/analysis-history?cursor=...` | 本人の分析済み求人を一括取得＋ページネーション（後続Issue） |
 
 - 共通エラー: `code`, `message`, `requestId`。内部詳細・個人情報・秘密鍵を返さない。
 - 解析要求・結果確定は冪等性を持たせ、再送と並行リクエストの統合テストを必須にする。

@@ -22,7 +22,7 @@
 | GET | /api/v1/analyses/:jobId | 共有jobの公開可能な状態と評価ID（権限は要レビュー） | 200 |
 | GET | /api/v1/jobs/:jobPostingId | 個別求人・根拠・取得日・評価版 | 200 |
 | POST | /api/v1/matches | 認可済みprofile版と共有evaluation版を比較 | 200 / 201 |
-| GET | /api/v1/me/saved-jobs | ブックマークのページネーション＋batch評価表示 | 200 |
+| GET | /api/v1/me/analysis-history | 本人の分析済み求人を最新Match順にページネーション（後続Issueの草案） | 200 |
 
 ### 診断プロフィール（Issue #25）
 

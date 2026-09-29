@@ -53,7 +53,9 @@ evaluation_log_a=$(mktemp)
 evaluation_log_b=$(mktemp)
 issue45_guard_log=$(mktemp)
 issue19_parallel_log=$(mktemp)
-trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b" "$issue45_guard_log" "$issue19_parallel_log"; cleanup' EXIT INT TERM
+issue20_claim_a=$(mktemp)
+issue20_claim_b=$(mktemp)
+trap 'rm -f "$profile_log_a" "$profile_log_b" "$evaluation_log_a" "$evaluation_log_b" "$issue45_guard_log" "$issue19_parallel_log" "$issue20_claim_a" "$issue20_claim_b"; cleanup' EXIT INT TERM
 set +e
 psql_cmd -v key=00000000-0000-0000-0000-000000001629 +  < supabase/tests/issue16_profile_concurrent_call.sql >"$profile_log_a" 2>&1 &
 profile_pid_a=$!
@@ -138,6 +140,27 @@ if [ "$(wc -l < "$issue19_parallel_log" | tr -d ' ')" != '100' ] \
   printf '%s\n' '100 concurrent analysis requests did not share one active job' >&2
   exit 1
 fi
+psql_cmd < supabase/migrations/20260929025040_analysis_job_lease_claim.sql
+psql_cmd < supabase/tests/issue20_job_lease.sql
+psql_cmd < supabase/tests/issue20_concurrency_fixture.sql
+psql_cmd -Atc "select job_id from public.claim_analysis_job(
+  '20000000-0000-4000-8000-000000000006', 60, 2)" > "$issue20_claim_a" &
+issue20_pid_a=$!
+psql_cmd -Atc "select job_id from public.claim_analysis_job(
+  '20000000-0000-4000-8000-000000000007', 60, 2)" > "$issue20_claim_b" &
+issue20_pid_b=$!
+wait "$issue20_pid_a"
+wait "$issue20_pid_b"
+if [ "$(cat "$issue20_claim_a" "$issue20_claim_b" | sed '/^$/d' | wc -l | tr -d ' ')" != '1' ] \
+  || [ "$(psql_cmd -Atc "select count(*) from public.analysis_jobs j
+    join public.source_urls s on s.id = j.source_url_id
+    where s.normalized_url = 'https://example.org/issue20-parallel'
+      and j.status = 'running' and j.attempts = 1")" != '1' ]; then
+  printf '%s\n' 'Concurrent claims did not assign one worker' >&2
+  exit 1
+fi
+psql_cmd < supabase/rollback/20260929_issue20_down.sql
+psql_cmd < supabase/tests/issue20_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue19_down.sql
 psql_cmd < supabase/tests/issue19_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue45_down.sql
@@ -157,4 +180,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17/#19/#25/#38/#45 migrations, integrity, RLS, atomicity, singleflight, pagination, history, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#19/#20/#25/#38/#45 migrations, integrity, RLS, atomicity, leases, singleflight, pagination, history, and rollback checks passed'

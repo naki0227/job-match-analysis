@@ -9,6 +9,18 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export const healthResponse: HealthResponse = { status: "ok" };
 
 export {
+  analysisJobIdSchema,
+  analysisJobResponseSchema,
+  analysisPostResponseSchema,
+  requestAnalysisSchema,
+} from "./analyses.js";
+export type {
+  AnalysisJobResponse,
+  AnalysisPostResponse,
+  RequestAnalysis,
+} from "./analyses.js";
+
+export {
   careerAxisKeys,
   careerProfilePayloadSchema,
   careerProfileResponseSchema,

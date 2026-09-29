@@ -10,6 +10,8 @@ export type SourceSection = {
   locator: string;
 };
 
+export type SourceFragment = SourceSection;
+
 export type ExtractedSourceDocument = {
   url: string;
   fetchedAt: string;
@@ -17,6 +19,7 @@ export type ExtractedSourceDocument = {
   contentHash: string;
   extractedText: string;
   sections: SourceSection[];
+  fragments: SourceFragment[];
   sufficient: boolean;
 };
 
@@ -104,6 +107,44 @@ function section(
   return text ? { scope, text, locator: locator(node) } : undefined;
 }
 
+function collectFragments(
+  scope: SourceSection["scope"],
+  root: Html.Element | undefined,
+): SourceFragment[] {
+  if (!root) return [];
+  const fragments: SourceFragment[] = [];
+  const visit = (node: Html.Node) => {
+    if (!isElement(node)) return;
+    if (
+      ["script", "style", "template", "nav", "footer", "noscript"].includes(
+        node.tagName,
+      ) ||
+      attribute(node, "hidden") !== undefined ||
+      attribute(node, "aria-hidden") === "true" ||
+      (scope === "job" &&
+        (attribute(node, "data-company") !== undefined ||
+          attribute(node, "itemtype")?.endsWith("/Organization")))
+    )
+      return;
+    if (
+      ["p", "h1", "h2", "h3", "h4", "li", "dt", "dd"].includes(node.tagName)
+    ) {
+      const text = visibleText(node, scope === "job")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (text) fragments.push({ scope, text, locator: locator(node) });
+      return;
+    }
+    for (const child of node.childNodes) visit(child);
+  };
+  visit(root);
+  return fragments.length
+    ? fragments
+    : [section(scope, root)].filter(
+        (item): item is SourceFragment => item !== undefined,
+      );
+}
+
 export function extractSourceDocument(
   html: string,
   url: string,
@@ -127,6 +168,10 @@ export function extractSourceDocument(
     section("job", jobNode),
     section("company", companyNode),
   ].filter((item): item is SourceSection => item !== undefined);
+  const fragments = [
+    ...collectFragments("job", jobNode),
+    ...collectFragments("company", companyNode),
+  ];
   const extractedText = sections
     .map((item) => `[${item.scope}]\n${item.text}`)
     .join("\n\n");
@@ -138,6 +183,7 @@ export function extractSourceDocument(
     contentHash: createHash("sha256").update(extractedText).digest("hex"),
     extractedText,
     sections,
+    fragments,
     sufficient: jobText.replace(/\s/g, "").length >= MIN_JOB_CHARACTERS,
   };
 }

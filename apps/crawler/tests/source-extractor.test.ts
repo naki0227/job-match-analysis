@@ -25,6 +25,12 @@ describe("source document extraction", () => {
     expect(document.sections[0]?.text).not.toContain("会社の文化");
     expect(document.sections[1]?.text).toBe("会社の文化");
     expect(document.sections[0]?.locator).toContain("article[data-job]");
+    expect(
+      document.fragments.some((item) => item.locator.startsWith("p:line-")),
+    ).toBe(true);
+    expect(
+      document.fragments.find((item) => item.scope === "company")?.text,
+    ).toBe("会社の文化");
     expect(document.contentHash).toMatch(/^[0-9a-f]{64}$/);
     expect(document.extractedText).toContain("[job]\n");
     expect(document.fetchedAt).toBe("2026-09-29T00:00:00.000Z");
@@ -81,5 +87,10 @@ describe("source document extraction", () => {
     );
     expect(document.sections[0]?.text).not.toContain("企業全体の制度");
     expect(document.sections[1]?.text).toBe("企業全体の制度");
+    expect(
+      document.fragments
+        .filter((item) => item.scope === "job")
+        .some((item) => item.text.includes("企業全体の制度")),
+    ).toBe(false);
   });
 });

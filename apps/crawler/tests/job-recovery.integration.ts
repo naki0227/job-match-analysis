@@ -127,7 +127,7 @@ async function runWorker(mode: "hold" | "recover"): Promise<void> {
           assert.equal(id, sourceId);
           return { url, targetId, scope: "job" };
         },
-        siteApproved: async (origin) => origin === "https://example.org",
+        siteAllowed: async (origin) => origin === "https://example.org",
         engine: createFakeDecisionEngine(),
         maxCandidates: 16,
         maxExcerptChars: 120,

@@ -29,7 +29,7 @@
 | [ADR-023](adr/023-analysis-history-from-matches.md) | 保存操作をなくし、本人の求人Match結果を分析履歴の元にする | 二重の状態管理をなくし、再分析の版を残す | 一覧の重複除去はMatch件数に応じて再評価する |
 | [ADR-024](adr/024-atomic-analysis-registration.md) | 正規化URL行ロックの1 RPCでcache確認と共有ジョブ参加を直列化する | 同時受付・完了直後の重複ジョブを抑える | 同一URLへの集中時は行ロック待ちを実測する |
 | [ADR-025](adr/025-analysis-job-leases.md) | SKIP LOCKEDのclaimとworker token/leaseで停止後のジョブを引き継ぐ | 多重workerでも1件ずつ所有し、旧tokenの確定を拒否する | lease長・試行上限の運用値と外部API予算は実測後に決める |
-| [ADR-026](adr/026-crawler-source-extraction.md) | 利用条件とrobots確認後、HTTP本文不足時だけブラウザで取得する | 費用と誤抽出を抑え、会社と求人を分離する | 実サイトの許可・頻度は運用前に確定が必要 |
+| [ADR-026](adr/026-crawler-source-extraction.md) | robots確認後、HTTP本文不足時だけブラウザで取得する。手動サイト承認の判断はADR-034で更新 | 費用と誤抽出を抑え、会社と求人を分離する | 取得頻度と実サイトでの抽出精度は運用前に確認 |
 | [ADR-027](adr/027-decision-engine-worker-boundary.md) | Jev通信をCrawler workerのDecisionEngine境界へ置く | API受付を短く保ち、leaseと外部評価を同じ処理にする | WorkerへのSecret注入と費用制御が必要 |
 | [ADR-028](adr/028-decision-engine-evidence-contract.md) | 出典候補ごとにJev Choiceで明示アンカーを判定し、低確度はunknownにする | Jev Scoreを希望値と混同せず、根拠IDを入力候補に限定する | 候補生成・個人情報除去・実ページでの較正が必要 |
 | [ADR-029](adr/029-public-evidence-selection.md) | 8軸の公開アンカーと版付き文候補を評価入力に使う | scope・出典位置・再取得時点を追跡する | 語の取りこぼし、個人情報除去、引用長の実ページ検証が必要 |
@@ -37,6 +37,7 @@
 | [ADR-031](adr/031-web-ui-structure.md) | Web画面は機能別に分け、解析ジョブの状態を純粋関数とTanStack Queryのポーリングで表示し、結果表示はWeb側view modelで先に検証する | 未定義のAPI契約を増やさず、cache hit・stale・失敗・timeoutを区別する | URLから画面を復元できず、Match API接続時に対応付けが必要 |
 | [ADR-032](adr/032-match-api.md) | 解析完了後にWebが本人のMatchをPOSTし、application層でdomain比較→1 RPCで保存する | 分析履歴の元を残し、所有者・snapshot一致をDBで保証する | 求人条件が未保存で必須条件は当面unknown、実データ確認はworker接続後 |
 | [ADR-033](adr/033-analysis-history-delivery.md) | 本人の解析依頼を共有jobと別表に原子的に記録し、再訪時に未反映評価をMatchへ変換する | 離脱後も分析済み企業へ反映し、共有jobに個人情報を持たせない | 初回反映の遅延・20件上限を実測で確認 |
+| [ADR-034](adr/034-public-crawl-eligibility.md) | 公開HTTPSページはrobots許可を取得条件とし、サイト別の手動承認を必須にしない | 任意の公開求人URLを扱えるようにする | 利用条件上の許諾までは保証しない。問題のあるサイトは遮断する |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -91,7 +92,7 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
     - Jev Score は rubric level に対する確率加重期待値であり、0〜100 のユーザー嗜好度・企業適合率とは直接対応しない。
     アプリ側で適合率へ変換する場合は、Jev Score とは別の明示的な正規化ルールを設計する。
 - Supabase無料枠におけるバックアップ実装と復元訓練、個人データ削除要求の実行経路、評価根拠の保持期間。抽出本文は取得から30日後に削除する方針だが、workerへの接続は未実装。
-- crawlerのサイト別利用規約の確認元・取得頻度、無料枠を超えないジョブ上限、ブラウザのネットワークレベルSSRF防御。アプリ側のURL/DNS/redirect境界はADR-021、利用条件未確認・robots取得不可時の保留と抽出方式はADR-026で定義済み。個別サイトの許可は未確定。
+- crawlerの取得頻度、無料枠を超えないジョブ上限、ブラウザのネットワークレベルSSRF防御。アプリ側のURL/DNS/redirect境界はADR-021、robots取得不可時の保留と抽出方式はADR-026、公開サイトの取得可否はADR-034で定義済み。
 - AWS等への移行条件、実際のSLO、service名（現状はjob-match-analysis仮称）。
 - 求人別と会社別の評価継承、出典抽出の引用長と二次利用規約。共有jobIdの状態閲覧範囲はADR-030で決定済み。
 - 未実装endpointの正式なAPI prefixとZod契約。診断プロフィールと共有解析は`/api/v1`と共有Zod契約で実装済み。

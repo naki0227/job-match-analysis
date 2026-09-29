@@ -18,7 +18,7 @@ export type AnalysisSource = {
 
 export type AnalysisProcessorDeps = {
   loadSource: (sourceUrlId: string) => Promise<AnalysisSource | null>;
-  siteApproved: (origin: string) => Promise<boolean>;
+  siteAllowed?: (origin: string) => Promise<boolean>;
   engine: DecisionEngine;
   maxCandidates: number;
   maxExcerptChars: number;
@@ -38,7 +38,7 @@ export async function processAnalysisJob(
   const fetched = await fetchSourceDocument({
     url: source.url,
     siteApproved: async (origin) => {
-      if (!(await deps.siteApproved(origin)))
+      if (deps.siteAllowed && !(await deps.siteAllowed(origin)))
         throw new PermanentAnalysisError();
       return true;
     },

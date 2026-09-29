@@ -26,7 +26,7 @@ describe("crawler cycle", () => {
       },
       processor: {
         loadSource: async () => null,
-        siteApproved: async () => false,
+        siteAllowed: async () => false,
         engine: {
           evaluate: async () => {
             throw new Error("unexpected");

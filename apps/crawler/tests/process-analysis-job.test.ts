@@ -31,7 +31,7 @@ function response(url: URL, body: string): FetchedResource {
 }
 
 describe("analysis job processor", () => {
-  it("checks robots and site terms, extracts a job document, then creates a persisted evaluation payload", async () => {
+  it("checks robots for a public site, extracts a job document, then creates a persisted evaluation payload", async () => {
     const visited: string[] = [];
     const send: RequestOnce = async (url) => {
       visited.push(url.pathname);
@@ -43,9 +43,6 @@ describe("analysis job processor", () => {
               <aside data-company><p>会社はフルリモートです。</p></aside></main>`,
           );
     };
-    const approved = vi.fn(
-      async (origin: string) => origin === "https://jobs.example",
-    );
     const renew = vi.fn(async () => undefined);
     const result = await processAnalysisJob(job, renew, {
       loadSource: async () => ({
@@ -53,7 +50,6 @@ describe("analysis job processor", () => {
         targetId,
         scope: "job",
       }),
-      siteApproved: approved,
       engine: createFakeDecisionEngine(),
       maxCandidates: 16,
       maxExcerptChars: 120,
@@ -62,7 +58,6 @@ describe("analysis job processor", () => {
       now: () => new Date("2026-09-30T00:00:00Z"),
     });
     expect(visited).toEqual(["/robots.txt", "/posting/1"]);
-    expect(approved).toHaveBeenCalledWith("https://jobs.example");
     expect(renew).toHaveBeenCalledTimes(2);
     expect(result.targetId).toBe(targetId);
     expect(result.documents).toHaveLength(1);
@@ -77,10 +72,10 @@ describe("analysis job processor", () => {
     expect(result.evaluation).toHaveProperty("evidence", []);
   });
 
-  it("fails closed before fetching when the source or site approval is missing", async () => {
+  it("fails closed before fetching when the source is missing or a site is explicitly blocked", async () => {
     const send = vi.fn<RequestOnce>();
     const base = {
-      siteApproved: async () => false,
+      siteAllowed: async () => false,
       engine: createFakeDecisionEngine(),
       maxCandidates: 8,
       maxExcerptChars: 120,
@@ -123,7 +118,7 @@ describe("analysis job processor", () => {
             targetId,
             scope: "job",
           }),
-          siteApproved: async () => true,
+          siteAllowed: async () => true,
           engine,
           maxCandidates: 8,
           maxExcerptChars: 120,

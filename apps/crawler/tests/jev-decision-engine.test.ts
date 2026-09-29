@@ -63,7 +63,7 @@ describe("Jev DecisionEngine adapter", () => {
     }).evaluate(input);
     expect(result).toMatchObject({
       rubricVersion: "rubric-v1",
-      evaluatorVersion: "jev-choice-v1",
+      evaluatorVersion: "jev-choice-v1+axis-keywords-v1",
       modelVersion: "jev-test-v1",
     });
     expect(result.decisions).toEqual([

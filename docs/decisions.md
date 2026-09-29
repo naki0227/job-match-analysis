@@ -32,6 +32,7 @@
 | [ADR-026](adr/026-crawler-source-extraction.md) | 利用条件とrobots確認後、HTTP本文不足時だけブラウザで取得する | 費用と誤抽出を抑え、会社と求人を分離する | 実サイトの許可・頻度は運用前に確定が必要 |
 | [ADR-027](adr/027-decision-engine-worker-boundary.md) | Jev通信をCrawler workerのDecisionEngine境界へ置く | API受付を短く保ち、leaseと外部評価を同じ処理にする | WorkerへのSecret注入と費用制御が必要 |
 | [ADR-028](adr/028-decision-engine-evidence-contract.md) | 出典候補ごとにJev Choiceで明示アンカーを判定し、低確度はunknownにする | Jev Scoreを希望値と混同せず、根拠IDを入力候補に限定する | 候補生成・個人情報除去・実ページでの較正が必要 |
+| [ADR-029](adr/029-public-evidence-selection.md) | 8軸の公開アンカーと版付き文候補を評価入力に使う | scope・出典位置・再取得時点を追跡する | 語の取りこぼし、個人情報除去、引用長の実ページ検証が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -82,7 +83,7 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
 ## 明示的に未確定
 
 - [8軸の仕様](assessment-axes.md)に関する求人の地名から都道府県コードへの正規化とAPIでの `unknown` の表現。
-- 実8軸ルーブリック版の確定、score→表示値の変換・総合点を出す妥当性。評価器境界と暫定の`jev-choice-v1`はADR-028に記録した。
+- 実ページでの8軸ルーブリック較正、score→表示値の変換・総合点を出す妥当性。最初の公開アンカー`public-anchors-v1`と候補選択`axis-keywords-v1`はADR-029、評価器境界はADR-028に記録した。
     - Jev Score は rubric level に対する確率加重期待値であり、0〜100 のユーザー嗜好度・企業適合率とは直接対応しない。
     アプリ側で適合率へ変換する場合は、Jev Score とは別の明示的な正規化ルールを設計する。
 - Supabase無料枠におけるバックアップ実装と復元訓練、個人データ削除要求の実行経路、評価根拠の保持期間。抽出本文は取得から30日後に削除する方針だが、workerへの接続は未実装。

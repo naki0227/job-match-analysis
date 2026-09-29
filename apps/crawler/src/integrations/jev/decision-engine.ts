@@ -6,6 +6,7 @@ import {
   validateDecisionInput,
   type DecisionEngine,
 } from "../../decision-engine.js";
+import { CANDIDATE_SELECTOR_VERSION } from "../../evidence-candidates.js";
 import { callJev, type JevRequest, type JevResponse } from "./client.js";
 import {
   JevApiError,
@@ -14,7 +15,7 @@ import {
   JevTimeoutError,
 } from "./error.js";
 
-export const JEV_EVALUATOR_VERSION = "jev-choice-v1";
+export const JEV_EVALUATOR_VERSION = `jev-choice-v1+${CANDIDATE_SELECTOR_VERSION}`;
 const MIN_CONFIDENCE = 0.8;
 
 function redactSensitiveText(text: string): string {

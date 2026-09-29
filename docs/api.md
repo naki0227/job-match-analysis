@@ -80,7 +80,7 @@ sequenceDiagram
 
 入力: 公開SourceDocumentの引用可能な抜粋、評価軸ルーブリック、モデル／評価器版。出力: 軸ごとの観測値（またはunknown/conflicting）、確率や生応答のメタデータ、根拠参照ID。JevのScoreがユーザーの0..100と互換だとは**仮定しない**。初期スパイクでAPIの実際のschema・レスポンス・コスト・分布を検証し、変換方法を仕様化する。
 
-Issue #22のworker側ポートは`axisCatalogVersion`、`rubricVersion`、`scope`、軸別の0/50/100アンカー、`id`/`documentIndex`/`locator`付き公開抜粋候補を受け取る。結果は`evaluatorVersion`/実`modelVersion`と各軸の`known`（0/50/100）、`unknown`、`conflicting`、入力候補に存在する根拠IDを返す。候補なし・低確度・`none`は`unknown`。429/timeout等は一時エラーとして再試行し、型外Choiceは提供者エラーとする。Jevには候補の短い本文だけを未信頼データとして渡し、プロフィール・認証情報を含めない。[ADR-028](adr/028-decision-engine-evidence-contract.md)を参照。候補生成、DB保存と版別再利用、実ページでの較正は接続前である。
+Issue #22のworker側ポートは`axisCatalogVersion`、`rubricVersion`、`scope`、軸別の0/50/100アンカー、`id`/`documentIndex`/`locator`付き公開抜粋候補を受け取る。結果は`evaluatorVersion`/実`modelVersion`と各軸の`known`（0/50/100）、`unknown`、`conflicting`、入力候補に存在する根拠IDを返す。候補なし・低確度・`none`は`unknown`。429/timeout等は一時エラーとして再試行し、型外Choiceは提供者エラーとする。Jevには候補の短い本文だけを未信頼データとして渡し、プロフィール・認証情報を含めない。[ADR-028](adr/028-decision-engine-evidence-contract.md)を参照。公開8軸アンカーと文単位の候補生成、再取得時点を含むsource set hashは[ADR-029](adr/029-public-evidence-selection.md)に記録した。DB保存と版別再利用、実ページでの較正は接続前である。
 
 ## APIセキュリティ・取得制約
 

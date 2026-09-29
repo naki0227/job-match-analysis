@@ -58,13 +58,13 @@ jobs:
         run: pnpm exec oxlint packages/domain/src packages/domain/tests
 
       - name: Typecheck Domain
-        run: pnpm --filter domain typecheck
+        run: pnpm --filter @job-match/domain typecheck
 
       - name: Test Domain
-        run: pnpm --filter domain test
+        run: pnpm --filter @job-match/domain test
 
       - name: Build Domain
-        run: pnpm --filter domain build
+        run: pnpm --filter @job-match/domain build
 
   api:
     runs-on: ubuntu-24.04

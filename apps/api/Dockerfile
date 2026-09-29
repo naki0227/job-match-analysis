@@ -9,11 +9,19 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/application/package.json ./packages/application/
 
 RUN pnpm install --frozen-lockfile --filter api...
 
 COPY packages/contracts/ ./packages/contracts/
 RUN pnpm --filter @job-match/contracts build
+
+COPY packages/domain/ ./packages/domain/
+RUN pnpm --filter @job-match/domain build
+
+COPY packages/application/ ./packages/application/
+RUN pnpm --filter @job-match/application build
 
 COPY apps/api/ ./apps/api/
 

@@ -222,9 +222,15 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.8)
+      '@job-match/application':
+        specifier: workspace:*
+        version: link:../../packages/application
       '@job-match/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@job-match/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@supabase/supabase-js':
         specifier: 2.117.2
         version: 2.117.2

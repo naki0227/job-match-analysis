@@ -20,9 +20,16 @@ test("home submission moves to the analysis screen and shows progress", async ()
       }),
   );
   vi.stubGlobal("fetch", fetcher);
-  render(<AuthenticatedApp getAccessToken={async () => "token"} />, {
-    wrapper: createQueryWrapper(),
-  });
+  render(
+    <AuthenticatedApp
+      getAccessToken={async () => "token"}
+      email="sample@example.com"
+      onSignOut={async () => {}}
+    />,
+    {
+      wrapper: createQueryWrapper(),
+    },
+  );
 
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
@@ -45,9 +52,16 @@ test("home submission moves to the analysis screen and shows progress", async ()
 test("invalid URL is flagged without calling the API", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
-  render(<AuthenticatedApp getAccessToken={async () => "token"} />, {
-    wrapper: createQueryWrapper(),
-  });
+  render(
+    <AuthenticatedApp
+      getAccessToken={async () => "token"}
+      email="sample@example.com"
+      onSignOut={async () => {}}
+    />,
+    {
+      wrapper: createQueryWrapper(),
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "求人分析" }));
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "jobs.example.com" },
@@ -81,9 +95,16 @@ test("a cache hit shows the personal match report", async () => {
         }),
   );
   vi.stubGlobal("fetch", fetcher);
-  render(<AuthenticatedApp getAccessToken={async () => "token"} />, {
-    wrapper: createQueryWrapper(),
-  });
+  render(
+    <AuthenticatedApp
+      getAccessToken={async () => "token"}
+      email="sample@example.com"
+      onSignOut={async () => {}}
+    />,
+    {
+      wrapper: createQueryWrapper(),
+    },
+  );
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
   });

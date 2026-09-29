@@ -83,28 +83,6 @@
   background: var(--blue);
 }
 
-.facts {
-  margin: 0;
-  border-top: 1px solid var(--line);
-}
-
-.facts div {
-  display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px 2px;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
-}
-
-.facts dt {
-  color: var(--muted);
-}
-
-.facts dd {
-  margin: 0;
-}
-
 .url-text {
   overflow-wrap: anywhere;
 }

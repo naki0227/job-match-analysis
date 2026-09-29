@@ -44,3 +44,15 @@ test("profile initialization does not expose server details on failure", async (
     "Profile initialization failed",
   );
 });
+
+test("sign-out reports failures without details", async () => {
+  const { signOut } = await import("../src/features/auth/auth");
+  await expect(
+    signOut({ signOut: async () => ({ error: null }) }),
+  ).resolves.toBeUndefined();
+  await expect(
+    signOut({
+      signOut: async () => ({ error: new Error("refresh token revoked") }),
+    } as never),
+  ).rejects.toThrow("Sign out failed");
+});

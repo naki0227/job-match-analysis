@@ -9,12 +9,17 @@ import { CareerProfileWizard } from "./features/career-profile/CareerProfileWiza
 import { HistoryScreen } from "./features/history/HistoryScreen";
 import { useAnalysisHistory } from "./features/history/useAnalysisHistory";
 import { InsightsScreen } from "./features/insights/InsightsScreen";
+import { SettingsScreen } from "./features/settings/SettingsScreen";
 import { MatchDetailScreen } from "./features/result/MatchDetailScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 
-type Props = { getAccessToken: () => Promise<string> };
+type Props = {
+  getAccessToken: () => Promise<string>;
+  email: string | null;
+  onSignOut: () => Promise<void>;
+};
 
-export function AuthenticatedApp({ getAccessToken }: Props) {
+export function AuthenticatedApp({ getAccessToken, email, onSignOut }: Props) {
   const [screen, setScreen] = useState<Screen>("home");
   const analysis = useAnalysisRequest({ getAccessToken });
   const toast = useToast();
@@ -33,7 +38,11 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
 
   return (
     <AccessTokenProvider getAccessToken={getAccessToken}>
-      <AppHeader current={screen} onNavigate={setScreen} />
+      <AppHeader
+        current={screen}
+        onNavigate={setScreen}
+        initial={(email?.[0] ?? "?").toUpperCase()}
+      />
       <main className="shell">
         {screen === "home" && (
           <HomeScreen
@@ -60,6 +69,13 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
         )}
         {screen === "insights" && (
           <InsightsScreen onEditProfile={() => setScreen("profile")} />
+        )}
+        {screen === "settings" && (
+          <SettingsScreen
+            email={email}
+            onEditProfile={() => setScreen("profile")}
+            onSignOut={onSignOut}
+          />
         )}
         {screen === "profile" && (
           <CareerProfileWizard

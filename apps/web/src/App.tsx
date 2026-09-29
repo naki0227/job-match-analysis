@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import { healthResponseSchema } from "@job-match/contracts";
+import { useQueryClient } from "@tanstack/react-query";
 import { AuthenticatedApp } from "./AuthenticatedApp";
 import {
   getCurrentAccessToken,
   getSupabaseClient,
   initializeOwnProfile,
+  signOut,
   startGoogleSignIn,
 } from "./features/auth/auth";
 import { SignInScreen } from "./features/auth/SignInScreen";
 import "./App.css";
 
 function App() {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<string>("loading");
   const [authStatus, setAuthStatus] = useState<
     "checking" | "signed_out" | "signed_in" | "error"
   >("checking");
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkHealth() {
@@ -46,7 +50,9 @@ function App() {
           return;
         }
         await initializeOwnProfile(data.session.access_token);
-        if (active) setAuthStatus("signed_in");
+        if (!active) return;
+        setEmail(data.session.user.email ?? null);
+        setAuthStatus("signed_in");
       } catch {
         if (active) setAuthStatus("error");
       }
@@ -65,6 +71,13 @@ function App() {
     }
   }
 
+  async function handleSignOut() {
+    await signOut(getSupabaseClient().auth);
+    queryClient.clear();
+    setEmail(null);
+    setAuthStatus("signed_out");
+  }
+
   return (
     <div className="app">
       {authStatus === "checking" && (
@@ -79,7 +92,11 @@ function App() {
         />
       )}
       {authStatus === "signed_in" && (
-        <AuthenticatedApp getAccessToken={getCurrentAccessToken} />
+        <AuthenticatedApp
+          getAccessToken={getCurrentAccessToken}
+          email={email}
+          onSignOut={handleSignOut}
+        />
       )}
       <footer className="api-status">API Status: {status}</footer>
     </div>

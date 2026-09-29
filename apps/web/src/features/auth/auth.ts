@@ -40,3 +40,10 @@ export async function getCurrentAccessToken(): Promise<string> {
   if (error || !data.session) throw new Error("Authentication required");
   return data.session.access_token;
 }
+
+export async function signOut(
+  auth: Pick<SupabaseClient["auth"], "signOut">,
+): Promise<void> {
+  const { error } = await auth.signOut();
+  if (error) throw new Error("Sign out failed");
+}

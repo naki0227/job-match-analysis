@@ -35,6 +35,7 @@
 | [ADR-029](adr/029-public-evidence-selection.md) | 8軸の公開アンカーと版付き文候補を評価入力に使う | scope・出典位置・再取得時点を追跡する | 語の取りこぼし、個人情報除去、引用長の実ページ検証が必要 |
 | [ADR-030](adr/030-analysis-api-contract.md) | Google認証後に共有解析をPOST/GETし、ジョブの公開状態だけを返す | 同期的な外部評価を避け、プロフィールと共有状態を分ける | 認証ユーザーは既知jobIdの共有状態を読める。運用上の量制限が必要 |
 | [ADR-031](adr/031-web-ui-structure.md) | Web画面は機能別に分け、解析ジョブの状態を純粋関数とTanStack Queryのポーリングで表示し、結果表示はWeb側view modelで先に検証する | 未定義のAPI契約を増やさず、cache hit・stale・失敗・timeoutを区別する | URLから画面を復元できず、Match API接続時に対応付けが必要 |
+| [ADR-032](adr/032-match-api.md) | 解析完了後にWebが本人のMatchをPOSTし、application層でdomain比較→1 RPCで保存する | 分析履歴の元を残し、所有者・snapshot一致をDBで保証する | 求人条件が未保存で必須条件は当面unknown、実データ確認はworker接続後 |
 
 ## 技術スパイクで検証・継続確認する項目
 

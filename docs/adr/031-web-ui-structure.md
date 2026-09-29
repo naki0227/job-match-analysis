@@ -18,7 +18,7 @@ Issue #26でログイン後の画面を`apps/web/mock/job_match_release_mock.htm
 - 解析状態は純粋関数`analysis-state.ts`で`ready`（cache hit / job完了）、`stale`（旧評価＋更新ジョブ）、`waiting`（queued/running）、`failed`、`timeout`、`error`に分ける。`useAnalysisRequest`はTanStack Queryの`useMutation`で受付し、`useQuery`の`refetchInterval`で2秒から最大10秒間隔に共有ジョブを読む。503・通信断は期限まで再試行し、180秒で`timeout`にする。timeoutは共有ジョブの失敗とは表示しない。QueryClientは暗黙の再試行・フォーカス時再取得を無効にし、各hookが規則を持つ。
 - stale時は旧評価の取得日時を示したまま更新ジョブを追い、更新が失敗しても旧評価を消さない。
 - 結果表示`MatchReport`はdomainの`MatchResult`に対応するWeb側view modelを受け取り、求人固有と会社全体（参考）を別セクションにし、根拠の引用・出典URL・取得日時、根拠なし、重要度0、版不一致、必須条件を表示する。総合％や採否・適性の表現は使わない。出典URLはhttp(s)だけをリンクにする。
-- 完了した解析画面には、比較結果APIの接続後に軸別比較を表示すると明示し、架空の結果を出さない。
+- 完了した解析画面（cache hit・job完了・stale）では、ADR-032のMatch APIで本人の比較を取得して`MatchReport`を表示する。結果は状態表示のlive regionの外に置く。プロフィール未保存なら希望条件画面へ誘導する。
 - マスコットは装飾画像（`alt=""`）とし、状態の意味は文章で伝える。フォントはモックと同じGoogle Fonts（Zen Kaku Gothic New / Zen Maru Gothic、`display=swap`）を読み込み、取得できない場合は端末の日本語フォントへフォールバックする。閲覧時にGoogleへIPアドレス等が送られるため、プライバシーポリシーに記載する。
 
 ## メリット・デメリット
@@ -27,4 +27,4 @@ Issue #26でログイン後の画面を`apps/web/mock/job_match_release_mock.htm
 
 ## 見直し条件
 
-結果詳細・分析履歴など、URLで開き直す画面が増えた時点でルーターの導入を再検討する。診断フォームの読込・保存は現状の手動fetchのままで、TanStack Queryへの移行は別コミットで検討する。Match APIの契約が決まったら`packages/contracts`に移し、view modelへの変換とテストを追加する。
+結果詳細・分析履歴など、URLで開き直す画面が増えた時点でルーターの導入を再検討する。診断フォームの読込・保存は現状の手動fetchのままで、TanStack Queryへの移行は別コミットで検討する。Match APIの契約は`packages/contracts`へ移し、Webは契約型を直接表示する（ADR-032）。

@@ -121,7 +121,7 @@ sequenceDiagram
 2. 解析受付: fresh評価／活動中job／URL作成を競合に耐えるDB関数で処理。
 3. job claim: `claim_analysis_job`がSKIP LOCKED + status更新 + lease token発行を1操作にする。期限切れは`reap_analysis_jobs`でqueuedまたはfailedへ移し、旧tokenと期限切れleaseによる完了を拒否する。実行中にDB TXを開きっぱなしにしない。[ADR-025](adr/025-analysis-job-leases.md)。
 4. job 完了: commit_analysis_evaluation RPCで正しいworker_tokenを持つrunning jobだけ文書・評価・根拠・完了処理を一度に確定。対象行ロックと評価自然キーで重複を直列化し、内容が同じ場合のみ別jobでも評価を再利用する。完了済みの同じjob/token再送は保存済みIDを返す。
-5. 個人Match保存: 結果 + 軸明細を1TXで保存。現プロフィールと古いプロフィール版の混同を防ぐ。
+5. 個人Match保存: `commit_match_result`が本人のcompletedプロフィール版・求人評価・軸snapshotと保存済み値の一致を検査し、Match・軸・必須条件を1操作で保存する。一意制約で再送・同時実行を1行にまとめる。読取は`read_evaluation_for_match`（評価・根拠・最新会社評価）と`read_match_result`（本人のMatchのみ）。いずれもservice_role専用、[rollback](../supabase/rollback/20260929_match_result_down.sql)は関数だけを削除する。[ADR-032](adr/032-match-api.md)。
 
 **Supabase JSの複数HTTP呼び出しは単一Transactionではない。** Issue #16の2関数はservice_role専用のSECURITY INVOKER RPCとし、ROLLBACK・同時実行・権限の統合テストで検証する。設計理由は[ADR-017](adr/017-atomic-profile-and-evaluation-commits.md)。
 

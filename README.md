@@ -12,15 +12,15 @@ Node.js 24、pnpm 11、DB統合テスト用のDockerを用意する。ルート�
 |---|---|
 | `pnpm format:check` | Prettier |
 | `pnpm lint` | TypeScriptコードのlint |
-| `pnpm typecheck` | contracts/domain/API/Webの型検査 |
-| `pnpm test` | contracts/domain/API/Webのunit test |
-| `pnpm build` | contracts/domain/API/Webのbuild |
+| `pnpm typecheck` | contracts/domain/application/Crawler/API/Webの型検査 |
+| `pnpm test` | contracts/domain/application/Crawler/API/Webのunit test |
+| `pnpm build` | contracts/domain/application/Crawler/API/Webのbuild |
 | `pnpm test:db` | Docker上のPostgreSQL migration・制約・RLS・rollback |
 | `pnpm test:auth` | ローカルSupabase AuthとAPIの統合確認 |
 | `pnpm test:e2e` | ログイン済みfixtureを使うPlaywrightの診断保存・再読込テスト（ローカルChromeが必要） |
 | `pnpm precommit` | format・lint・typecheck・test・buildを順に実行 |
 
-依存方向はWeb/API → `packages/contracts`、後続のユースケース層 → `packages/domain` と `packages/contracts`。純粋なdomainはZod、HTTP、DBへ依存しない。`packages/application` はユースケース実装が必要なIssueで作る。共有契約を変更したら、API/Webをbuildする前に `pnpm --filter @job-match/contracts build` を実行する。rootのtypecheck/buildとCI/Dockerはこの順序を含む。
+依存方向はWeb → `packages/contracts`、API → `packages/application` → `packages/domain`（`@job-match/domain`）と`packages/contracts`。純粋なdomainはZod、HTTP、DBへ依存しない。共有パッケージを変更したら、API/Webをbuildする前に contracts → domain → application の順にbuildする。rootのtypecheck/buildとCI/Dockerはこの順序を含む。
 
 コンテナのビルド確認は、ルートから `docker build -f apps/api/Dockerfile -t job-match-api:local .` と `docker build -f apps/web/Dockerfile -t job-match-web:local .` を実行する。
 

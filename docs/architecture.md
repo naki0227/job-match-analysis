@@ -140,3 +140,5 @@ docs
 Issue #24ではWeb/API共通のhealth契約を `packages/contracts` に実装した。現行の依存はWeb/API → contractsで、domainは純粋関数のまま保つ。`packages/application` はユースケース実装時に追加する。[ADR-019](adr/019-shared-web-api-contracts.md)。
 
 Issue #26のWebは`src/features`（auth、career-profile、analysis、result）単位に分け、`apps/web/mock`のモックを見た目の基準にする。画面切替はReact state、共有ジョブの受付・ポーリングはTanStack Queryで実装する。[ADR-031](adr/031-web-ui-structure.md)。
+
+`packages/application`はMatch API（ADR-032）で追加した。API → application → domain/contractsの依存で、Supabase実装はAPIのrepositoryがportを満たす。domainパッケージはNode.js組込みモジュールとの衝突を避けるため`@job-match/domain`とした。

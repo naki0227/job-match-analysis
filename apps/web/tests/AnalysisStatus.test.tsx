@@ -61,7 +61,7 @@ test("stale evaluation warns and offers a recheck after refresh failure", () => 
     refresh: "failed",
   });
   expect(screen.getByText("前回の解析結果があります")).toBeInTheDocument();
-  expect(screen.getByText(/古い情報のまま/)).toBeInTheDocument();
+  expect(screen.getByText(/取得日時の時点の情報/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "最新情報を再確認" }));
   expect(onRetry).toHaveBeenCalledWith(url);
 });

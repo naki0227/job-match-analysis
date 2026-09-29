@@ -20,9 +20,9 @@ const errorMessages = {
 function refreshMessage(refresh: RefreshStatus): string {
   switch (refresh) {
     case "failed":
-      return "最新情報の確認に失敗しました。以下は古い情報のままです。";
+      return "最新情報の確認に失敗しました。取得日時の時点の情報であることに注意してください。";
     case "timeout":
-      return "最新情報の確認に時間がかかっています。以下は古い情報のままです。";
+      return "最新情報の確認に時間がかかっています。取得日時の時点の情報であることに注意してください。";
     default:
       return "求人内容が変わっている可能性があるため、最新の公開情報を確認しています。";
   }

@@ -36,6 +36,7 @@ Node.js 24、pnpm 11、DB統合テスト用のDockerを用意する。ルート�
 - [MatchEngineの判定規則](docs/matching.md)
 - [開発運用・Issueの進め方](docs/development.md)
 - [Googleログインと個人データ権限](docs/auth.md)
+- [UIモック](apps/web/mock/README.md)（Web画面の見た目の基準。マスコット素材は`apps/web/src/assets/mascot/`）
 
 **実装方針:** コードは開発者が手書きする。ここにある図には実装済み部分と設計案があり、実測・技術スパイクにより更新する。課題はGitHub Issuesの受け入れ条件を単位に進める。
 

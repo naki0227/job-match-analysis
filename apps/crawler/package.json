@@ -6,7 +6,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "worker": "node dist/worker-main.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

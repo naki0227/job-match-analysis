@@ -7,7 +7,7 @@
 | 静的 | 200 | 11,064 B | 10 | 688 ms | 10 | 1,756 ms | 5件（HTML、CSS 3、font 1） |
 | JS描画 | 200 | 5,808 B | 0 | 296 ms | 10 | 1,824 ms | 6件（HTML、CSS 3、JS 1、font 1） |
 
-単発の開発環境測定であり、性能保証値ではない。Playwrightの`networkidle`までを計測し、ブラウザのrequestイベントでサブリソースも数えた。HTMLのバイト数はHTTPレスポンス本文のUTF-8サイズ。ローカルfixtureの自動テストは `apps/web/e2e/crawler-spike.e2e.ts` にある。
+単発の開発環境測定であり、性能保証値ではない。Playwrightの`networkidle`までを計測し、ブラウザのrequestイベントでサブリソースも数えた。HTMLのバイト数はHTTPレスポンス本文のUTF-8サイズ。当時のローカルfixtureとスパイクテストはcommit `56655e5` に残す。現行のブラウザ通信境界の自動テストは `apps/crawler/tests/browser-boundary.test.ts` で実行し、HTTP→ブラウザの本実装は#21でテストする。WebのPlaywright E2EはUI導線だけを扱う。
 
 ## 本文不足と上限
 

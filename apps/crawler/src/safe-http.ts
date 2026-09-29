@@ -43,7 +43,7 @@ export function createPinnedLookup(
   };
 }
 
-type RequestOnce = (
+export type RequestOnce = (
   url: URL,
   resolve: ResolveAddresses,
   signal: AbortSignal,
@@ -126,6 +126,7 @@ export async function fetchPublic(
   input: string,
   resolve: ResolveAddresses = systemResolver,
   send: RequestOnce = requestOnce,
+  authorize?: (url: URL) => Promise<void>,
 ): Promise<FetchedResource> {
   let url = parsePublicUrl(input);
   const signal = AbortSignal.timeout(FETCH_LIMITS.timeoutMs);
@@ -134,6 +135,7 @@ export async function fetchPublic(
     redirects <= FETCH_LIMITS.maxRedirects;
     redirects += 1
   ) {
+    await authorize?.(url);
     const result = await fetchPublicOnce(url.href, signal, resolve, send);
     const location = result.headers.location;
     if (result.status < 300 || result.status > 399 || !location) return result;

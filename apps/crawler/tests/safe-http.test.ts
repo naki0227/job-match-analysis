@@ -109,4 +109,23 @@ describe("safe HTTP boundary", () => {
     expect(response.url).toBe("https://example.com/jobs");
     expect(response.status).toBe(200);
   });
+
+  it("checks site authorization before each redirect target", async () => {
+    const visited: string[] = [];
+    const send = async (url: URL) => {
+      visited.push(url.href);
+      return result(url, 302, { location: "https://other.example/jobs" });
+    };
+    await expect(
+      fetchPublic(
+        "https://example.com/jobs",
+        async () => ["8.8.8.8"],
+        send,
+        async (url) => {
+          if (url.hostname === "other.example") throw new Error("terms denied");
+        },
+      ),
+    ).rejects.toThrow("terms denied");
+    expect(visited).toEqual(["https://example.com/jobs"]);
+  });
 });

@@ -250,6 +250,9 @@ importers:
       '@supabase/supabase-js':
         specifier: 2.117.2
         version: 2.117.2
+      parse5:
+        specifier: 8.0.1
+        version: 8.0.1
       playwright:
         specifier: 1.63.0
         version: 1.63.0

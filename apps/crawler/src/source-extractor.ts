@@ -1,0 +1,141 @@
+import { createHash } from "node:crypto";
+import { parse, type DefaultTreeAdapterTypes as Html } from "parse5";
+
+export const EXTRACTOR_VERSION = "html-v1";
+export const MIN_JOB_CHARACTERS = 100;
+
+export type SourceSection = {
+  scope: "company" | "job";
+  text: string;
+  locator: string;
+};
+
+export type ExtractedSourceDocument = {
+  url: string;
+  fetchedAt: string;
+  extractorVersion: string;
+  contentHash: string;
+  extractedText: string;
+  sections: SourceSection[];
+  sufficient: boolean;
+};
+
+export function evaluationDocumentPayload(
+  sourceUrlId: string,
+  document: ExtractedSourceDocument,
+): {
+  sourceUrlId: string;
+  contentHash: string;
+  fetchedAt: string;
+  extractorVersion: string;
+  extractedText: string;
+} {
+  return {
+    sourceUrlId,
+    contentHash: document.contentHash,
+    fetchedAt: document.fetchedAt,
+    extractorVersion: document.extractorVersion,
+    extractedText: document.extractedText,
+  };
+}
+
+function isElement(node: Html.Node): node is Html.Element {
+  return "tagName" in node;
+}
+
+function attribute(node: Html.Element, name: string): string | undefined {
+  return node.attrs.find((item) => item.name === name)?.value;
+}
+
+function collect(
+  node: Html.Node,
+  test: (element: Html.Element) => boolean,
+): Html.Element | undefined {
+  if (isElement(node) && test(node)) return node;
+  if ("childNodes" in node) {
+    for (const child of node.childNodes) {
+      const result = collect(child, test);
+      if (result) return result;
+    }
+  }
+  return undefined;
+}
+
+function visibleText(node: Html.Node, omitCompany: boolean): string {
+  if ("value" in node) return node.value;
+  if (isElement(node)) {
+    if (
+      ["script", "style", "template", "nav", "footer", "noscript"].includes(
+        node.tagName,
+      ) ||
+      attribute(node, "hidden") !== undefined ||
+      attribute(node, "aria-hidden") === "true" ||
+      (omitCompany && attribute(node, "data-company") !== undefined)
+    )
+      return "";
+  }
+  if (!("childNodes" in node)) return "";
+  return node.childNodes
+    .map((child) => visibleText(child, omitCompany))
+    .join(" ");
+}
+
+function locator(node: Html.Element): string {
+  const marker =
+    attribute(node, "data-job") !== undefined
+      ? "[data-job]"
+      : attribute(node, "data-company") !== undefined
+        ? "[data-company]"
+        : "";
+  const line = node.sourceCodeLocation?.startLine;
+  return `${node.tagName}${marker}${line ? `:line-${line}` : ""}`;
+}
+
+function section(
+  scope: SourceSection["scope"],
+  node: Html.Element | undefined,
+): SourceSection | undefined {
+  if (!node) return undefined;
+  const text = visibleText(node, scope === "job")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text ? { scope, text, locator: locator(node) } : undefined;
+}
+
+export function extractSourceDocument(
+  html: string,
+  url: string,
+  fetchedAt: Date,
+): ExtractedSourceDocument {
+  const root = parse(html, { sourceCodeLocationInfo: true });
+  const jobNode =
+    collect(root, (node) => attribute(node, "data-job") !== undefined) ??
+    collect(
+      root,
+      (node) => attribute(node, "itemtype")?.endsWith("/JobPosting") ?? false,
+    ) ??
+    collect(root, (node) => node.tagName === "main");
+  const companyNode =
+    collect(root, (node) => attribute(node, "data-company") !== undefined) ??
+    collect(
+      root,
+      (node) => attribute(node, "itemtype")?.endsWith("/Organization") ?? false,
+    );
+  const sections = [
+    section("job", jobNode),
+    section("company", companyNode),
+  ].filter((item): item is SourceSection => item !== undefined);
+  const extractedText = sections
+    .map((item) => `[${item.scope}]\n${item.text}`)
+    .join("\n\n");
+  const jobText = sections.find((item) => item.scope === "job")?.text ?? "";
+  return {
+    url,
+    fetchedAt: fetchedAt.toISOString(),
+    extractorVersion: EXTRACTOR_VERSION,
+    contentHash: createHash("sha256").update(extractedText).digest("hex"),
+    extractedText,
+    sections,
+    sufficient: jobText.replace(/\s/g, "").length >= MIN_JOB_CHARACTERS,
+  };
+}

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { sampleReport } from "../tests/fixtures/match-report";
-import { signInWithFixture } from "./session-fixture";
+import { savedProfile, signInWithFixture } from "./session-fixture";
 
 const jobId = "3f0c7c1e-8d2b-4a52-9c36-2f7f2f0c9a11";
 const evaluationId = sampleReport.job.evaluationId;
@@ -32,6 +32,13 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
     });
   });
 
+  await page.route("**/api/v1/me/career-profile", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(savedProfile),
+    }),
+  );
   const matchRequests: unknown[] = [];
   await page.route("**/api/v1/matches", async (route) => {
     matchRequests.push(route.request().postDataJSON());

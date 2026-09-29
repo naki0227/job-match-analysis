@@ -31,7 +31,7 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "見直す" }).click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await page.getByRole("button", { name: "Backend Engineer" }).click();
   await page.getByRole("button", { name: "次へ" }).click();
   for (let index = 0; index < 8; index += 1) {

@@ -461,3 +461,23 @@
     align-items: center;
   }
 }
+
+.checklist {
+  margin-top: 22px;
+}
+
+.checkline {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.checkline input {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--blue);
+}

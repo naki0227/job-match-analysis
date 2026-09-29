@@ -75,7 +75,10 @@ test("invalid URL is flagged without calling the API", async () => {
     "aria-invalid",
     "true",
   );
-  expect(fetcher).not.toHaveBeenCalled();
+  expect(fetcher).not.toHaveBeenCalledWith(
+    "/api/v1/analyses",
+    expect.anything(),
+  );
 });
 
 test("a cache hit shows the personal match report", async () => {
@@ -114,4 +117,32 @@ test("a cache hit shows the personal match report", async () => {
     await screen.findByRole("heading", { name: "サンプルテック株式会社" }),
   ).toBeInTheDocument();
   expect(fetcher).toHaveBeenCalledWith("/api/v1/matches", expect.anything());
+});
+
+test("a user without a profile sees onboarding first and can skip it", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(JSON.stringify({ code: "not_found" }), { status: 404 }),
+    ),
+  );
+  render(
+    <AuthenticatedApp
+      getAccessToken={async () => "token"}
+      email="sample@example.com"
+      onSignOut={async () => {}}
+    />,
+    { wrapper: createQueryWrapper() },
+  );
+  expect(
+    await screen.findByRole("heading", { name: "まずは、自分の軸から。" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "あとで" }));
+  expect(screen.getByText(/未入力です/)).toBeInTheDocument();
+  expect(screen.getByRole("note")).toHaveTextContent("Issue #27");
+  fireEvent.click(screen.getByRole("button", { name: "入力する" }));
+  expect(
+    await screen.findByRole("heading", { name: "どんな仕事を見てる？" }),
+  ).toBeInTheDocument();
 });

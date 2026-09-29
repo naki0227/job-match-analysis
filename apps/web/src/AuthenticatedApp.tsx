@@ -6,11 +6,13 @@ import { AnalyzeScreen } from "./features/analysis/AnalyzeScreen";
 import { useAnalysisRequest } from "./features/analysis/useAnalysisRequest";
 import { AccessTokenProvider } from "./features/auth/access-token";
 import { CareerProfileWizard } from "./features/career-profile/CareerProfileWizard";
+import { useCareerProfile } from "./features/career-profile/useCareerProfile";
 import { HistoryScreen } from "./features/history/HistoryScreen";
 import { useAnalysisHistory } from "./features/history/useAnalysisHistory";
 import { InsightsScreen } from "./features/insights/InsightsScreen";
-import { SettingsScreen } from "./features/settings/SettingsScreen";
+import { OnboardingIntro } from "./features/onboarding/OnboardingIntro";
 import { MatchDetailScreen } from "./features/result/MatchDetailScreen";
+import { SettingsScreen } from "./features/settings/SettingsScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 
 type Props = {
@@ -19,25 +21,50 @@ type Props = {
   onSignOut: () => Promise<void>;
 };
 
-export function AuthenticatedApp({ getAccessToken, email, onSignOut }: Props) {
-  const [screen, setScreen] = useState<Screen>("home");
-  const analysis = useAnalysisRequest({ getAccessToken });
-  const toast = useToast();
-  const history = useAnalysisHistory();
-  const [matchResultId, setMatchResultId] = useState<string | null>(null);
+export function AuthenticatedApp(props: Props) {
+  return (
+    <AccessTokenProvider getAccessToken={props.getAccessToken}>
+      <Screens {...props} />
+    </AccessTokenProvider>
+  );
+}
 
-  function openMatch(id: string) {
-    setMatchResultId(id);
-    setScreen("match");
-  }
+function Screens({ getAccessToken, email, onSignOut }: Props) {
+  const [screen, setScreen] = useState<Screen>("home");
+  const [matchResultId, setMatchResultId] = useState<string | null>(null);
+  const [onboardingSkipped, setOnboardingSkipped] = useState(false);
+  const analysis = useAnalysisRequest({ getAccessToken });
+  const history = useAnalysisHistory();
+  const profile = useCareerProfile();
+  const toast = useToast();
+  const profileVersion = profile.isSuccess
+    ? (profile.data?.profileVersion ?? null)
+    : undefined;
+  const editProfile = () => setScreen("profile");
 
   function analyze(url: string) {
     setScreen("analyze");
     analysis.submit(url);
   }
 
+  function openMatch(id: string) {
+    setMatchResultId(id);
+    setScreen("match");
+  }
+
+  if (profileVersion === null && !onboardingSkipped && screen === "home") {
+    return (
+      <main className="shell">
+        <OnboardingIntro
+          onStart={editProfile}
+          onSkip={() => setOnboardingSkipped(true)}
+        />
+      </main>
+    );
+  }
+
   return (
-    <AccessTokenProvider getAccessToken={getAccessToken}>
+    <>
       <AppHeader
         current={screen}
         onNavigate={setScreen}
@@ -46,8 +73,12 @@ export function AuthenticatedApp({ getAccessToken, email, onSignOut }: Props) {
       <main className="shell">
         {screen === "home" && (
           <HomeScreen
+            profileVersion={profileVersion}
+            history={history}
             onAnalyze={analyze}
-            onEditProfile={() => setScreen("profile")}
+            onEditProfile={editProfile}
+            onShowHistory={() => setScreen("history")}
+            onOpenMatch={openMatch}
           />
         )}
         {screen === "analyze" && (
@@ -55,7 +86,7 @@ export function AuthenticatedApp({ getAccessToken, email, onSignOut }: Props) {
             state={analysis.state}
             onSubmit={analyze}
             getAccessToken={getAccessToken}
-            onEditProfile={() => setScreen("profile")}
+            onEditProfile={editProfile}
           />
         )}
         {screen === "history" && (
@@ -68,12 +99,12 @@ export function AuthenticatedApp({ getAccessToken, email, onSignOut }: Props) {
           />
         )}
         {screen === "insights" && (
-          <InsightsScreen onEditProfile={() => setScreen("profile")} />
+          <InsightsScreen onEditProfile={editProfile} />
         )}
         {screen === "settings" && (
           <SettingsScreen
             email={email}
-            onEditProfile={() => setScreen("profile")}
+            onEditProfile={editProfile}
             onSignOut={onSignOut}
           />
         )}
@@ -87,6 +118,6 @@ export function AuthenticatedApp({ getAccessToken, email, onSignOut }: Props) {
         )}
       </main>
       <Toast message={toast.message} />
-    </AccessTokenProvider>
+    </>
   );
 }

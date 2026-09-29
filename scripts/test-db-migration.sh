@@ -159,6 +159,7 @@ if [ "$(cat "$issue20_claim_a" "$issue20_claim_b" | sed '/^$/d' | wc -l | tr -d 
   printf '%s\n' 'Concurrent claims did not assign one worker' >&2
   exit 1
 fi
+psql_cmd < supabase/tests/issue22_evaluation_versions.sql
 psql_cmd < supabase/rollback/20260929_issue20_down.sql
 psql_cmd < supabase/tests/issue20_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue19_down.sql
@@ -180,4 +181,4 @@ if [ "$remaining" != 0 ]; then
   exit 1
 fi
 
-printf '%s\n' 'Issues #14/#15/#16/#17/#19/#20/#25/#38/#45 migrations, integrity, RLS, atomicity, leases, singleflight, pagination, history, and rollback checks passed'
+printf '%s\n' 'Issues #14/#15/#16/#17/#19/#20/#22/#25/#38/#45 migrations, integrity, RLS, atomicity, leases, versioned evaluation reuse, singleflight, pagination, history, and rollback checks passed'

@@ -14,12 +14,17 @@ Issue #26でログイン後の画面を`apps/web/mock/job_match_release_mock.htm
 
 2を採用する。ただし2026年09月29日のレビューでサーバー状態の管理にTanStack Queryを導入した（設計書の`apps/web: UI + TanStack Query`に合わせ、結果詳細・分析履歴のキャッシュでも使うため）。ルーターは引き続き見送る。
 
-- `src/features/<機能>`に画面・hook・APIクライアントを置き、共通の見た目は`src/components`、全体の色と文字は`src/index.css`のトークンに置く。ホーム・求人分析・希望条件の3画面を`AuthenticatedApp`のstateで切り替える。
+- `src/features/<機能>`に画面・hook・APIクライアントを置き、共通の見た目は`src/components`、全体の色と文字は`src/index.css`のトークンに置く。モックの全画面（ホーム、求人分析、分析済み企業、比較結果の詳細、インサイト、設定、希望条件のステップ入力、オンボーディング、共有カード）を`AuthenticatedApp`のstateで切り替える。ヘッダーはモックと同じ4項目＋設定アバター。
 - 解析状態は純粋関数`analysis-state.ts`で`ready`（cache hit / job完了）、`stale`（旧評価＋更新ジョブ）、`waiting`（queued/running）、`failed`、`timeout`、`error`に分ける。`useAnalysisRequest`はTanStack Queryの`useMutation`で受付し、`useQuery`の`refetchInterval`で2秒から最大10秒間隔に共有ジョブを読む。503・通信断は期限まで再試行し、180秒で`timeout`にする。timeoutは共有ジョブの失敗とは表示しない。QueryClientは暗黙の再試行・フォーカス時再取得を無効にし、各hookが規則を持つ。
 - stale時は旧評価の取得日時を示したまま更新ジョブを追い、更新が失敗しても旧評価を消さない。
 - 結果表示`MatchReport`はdomainの`MatchResult`に対応するWeb側view modelを受け取り、求人固有と会社全体（参考）を別セクションにし、根拠の引用・出典URL・取得日時、根拠なし、重要度0、版不一致、必須条件を表示する。総合％や採否・適性の表現は使わない。出典URLはhttp(s)だけをリンクにする。
 - 完了した解析画面（cache hit・job完了・stale）では、ADR-032のMatch APIで本人の比較を取得して`MatchReport`を表示する。結果は状態表示のlive regionの外に置く。プロフィール未保存なら希望条件画面へ誘導する。
 - マスコットは装飾画像（`alt=""`）とし、状態の意味は文章で伝える。フォントはモックと同じGoogle Fonts（Zen Kaku Gothic New / Zen Maru Gothic、`display=swap`）を読み込み、取得できない場合は端末の日本語フォントへフォールバックする。閲覧時にGoogleへIPアドレス等が送られるため、プライバシーポリシーに記載する。
+
+- APIがない機能（分析履歴一覧#27、他ユーザーとの比較#40/#41、任意プロフィール・同意履歴#38、公開ページ#39、通知、データの書き出し）は、画面を作ったうえで`PendingFeature`で未接続と明示し、実アプリでサンプルデータを表示しない。記録できない利用規約の確認画面は実フローに入れない。
+- 見た目の確認用に、`vite dev`でだけ開ける`/#ui-preview`を置き、架空のサンプルデータで全画面を表示する。本番buildには含めない（dynamic importを`import.meta.env.DEV`で分岐）。
+- 希望条件は1問ずつのステップ入力に変更した。重視度はモックの5段階（0/25/50/75/100）で選び、既存の段階外の値は選び直すまで保持する。読込・保存はTanStack Queryで行い、保存時に比較結果のキャッシュを無効化する。
+- 共有カードは企業名・職種・近い/相違/不明の件数・近い軸名だけを含み、希望値・年収・勤務地・アカウント情報を含めない。画像はブラウザ内のcanvasで作り、Xには本文だけを渡す。
 
 ## メリット・デメリット
 
@@ -27,4 +32,4 @@ Issue #26でログイン後の画面を`apps/web/mock/job_match_release_mock.htm
 
 ## 見直し条件
 
-結果詳細・分析履歴など、URLで開き直す画面が増えた時点でルーターの導入を再検討する。診断フォームの読込・保存は現状の手動fetchのままで、TanStack Queryへの移行は別コミットで検討する。Match APIの契約は`packages/contracts`へ移し、Webは契約型を直接表示する（ADR-032）。
+結果詳細・分析履歴など、URLで開き直す画面が増えた時点でルーターの導入を再検討する。APIが公開されたら、各`PendingFeature`をTanStack Queryの取得に置き換える。Match APIの契約は`packages/contracts`へ移し、Webは契約型を直接表示する（ADR-032）。

@@ -8,6 +8,7 @@ import { AccessTokenProvider } from "./features/auth/access-token";
 import { CareerProfileWizard } from "./features/career-profile/CareerProfileWizard";
 import { HistoryScreen } from "./features/history/HistoryScreen";
 import { useAnalysisHistory } from "./features/history/useAnalysisHistory";
+import { InsightsScreen } from "./features/insights/InsightsScreen";
 import { MatchDetailScreen } from "./features/result/MatchDetailScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 
@@ -56,6 +57,9 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
             matchResultId={matchResultId}
             onBack={() => setScreen("history")}
           />
+        )}
+        {screen === "insights" && (
+          <InsightsScreen onEditProfile={() => setScreen("profile")} />
         )}
         {screen === "profile" && (
           <CareerProfileWizard

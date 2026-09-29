@@ -1,9 +1,11 @@
-export type Screen = "home" | "analyze" | "history" | "match" | "profile";
+export type Screen =
+  "home" | "analyze" | "history" | "match" | "insights" | "profile";
 
 const items: ReadonlyArray<readonly [Screen, string]> = [
   ["home", "ホーム"],
   ["analyze", "求人分析"],
   ["history", "分析履歴"],
+  ["insights", "インサイト"],
   ["profile", "希望条件"],
 ];
 

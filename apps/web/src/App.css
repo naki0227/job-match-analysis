@@ -310,6 +310,16 @@
   }
 }
 
+.empty {
+  padding: 34px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.section {
+  padding-top: 28px;
+}
+
 .pending-feature {
   margin-top: 16px;
   padding: 16px;

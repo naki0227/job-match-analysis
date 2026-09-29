@@ -11,6 +11,7 @@ import {
   loadCareerProfile,
   saveCareerProfile,
 } from "./career-profile-api";
+import "./career-profile.css";
 
 type AxisKey = (typeof careerAxisKeys)[number];
 type Props = { getAccessToken: () => Promise<string> };

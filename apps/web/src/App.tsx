@@ -6,6 +6,7 @@ import {
   initializeOwnProfile,
   startGoogleSignIn,
 } from "./features/auth/auth";
+import { SignInScreen } from "./features/auth/SignInScreen";
 import { CareerProfileForm } from "./features/career-profile/CareerProfileForm";
 import "./App.css";
 
@@ -65,20 +66,25 @@ function App() {
   }
 
   return (
-    <main>
-      <p>API Status: {status}</p>
-      {authStatus === "signed_out" && (
-        <button type="button" onClick={() => void handleGoogleSignIn()}>
-          Googleでログイン
-        </button>
+    <div className="app">
+      {authStatus === "checking" && (
+        <p className="api-status" role="status">
+          読み込み中です。
+        </p>
+      )}
+      {(authStatus === "signed_out" || authStatus === "error") && (
+        <SignInScreen
+          failed={authStatus === "error"}
+          onSignIn={() => void handleGoogleSignIn()}
+        />
       )}
       {authStatus === "signed_in" && (
-        <CareerProfileForm getAccessToken={getCurrentAccessToken} />
+        <main className="shell">
+          <CareerProfileForm getAccessToken={getCurrentAccessToken} />
+        </main>
       )}
-      {authStatus === "error" && (
-        <p role="alert">認証を完了できませんでした。</p>
-      )}
-    </main>
+      <footer className="api-status">API Status: {status}</footer>
+    </div>
   );
 }
 

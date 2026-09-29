@@ -1,0 +1,171 @@
+import { randomUUID } from "node:crypto";
+import {
+  analysisJobIdSchema,
+  requestAnalysisSchema,
+  type AnalysisPostResponse,
+  type AnalysisJobResponse,
+} from "@job-match/contracts";
+import { Hono } from "hono";
+import { normalizeAnalysisUrl } from "./analysis-url.js";
+import { authenticate } from "./auth/authenticate.js";
+import type { ProfileBootstrapDeps } from "./auth/profile-bootstrap.js";
+import {
+  createSupabaseAnalysisJobRepository,
+  type AnalysisJob,
+} from "./repositories/analysis-jobs.js";
+import {
+  createSupabaseAnalysisRequestRepository,
+  type AnalysisRequestResult,
+} from "./repositories/analysis-requests.js";
+
+export type AnalysisRoutePolicy = {
+  analyzerVersion: string;
+  freshnessSeconds: number;
+  now: () => Date;
+};
+
+export function createAnalysisRoutePolicy(): AnalysisRoutePolicy {
+  const analyzerVersion = process.env.ANALYZER_VERSION;
+  const freshnessSeconds = Number(process.env.ANALYSIS_FRESHNESS_SECONDS);
+  if (
+    !analyzerVersion?.trim() ||
+    !Number.isSafeInteger(freshnessSeconds) ||
+    freshnessSeconds <= 0
+  ) {
+    throw new Error("Analysis policy is not configured");
+  }
+  return { analyzerVersion, freshnessSeconds, now: () => new Date() };
+}
+
+type RequestStore = {
+  request: (input: {
+    rawUrl: string;
+    normalizedUrl: string;
+    analyzerVersion: string;
+    freshAfter: string;
+  }) => Promise<AnalysisRequestResult>;
+};
+type JobStore = { get: (jobId: string) => Promise<AnalysisJob | null> };
+
+export function createAnalysisRoutes(
+  authDeps: () => ProfileBootstrapDeps,
+  requestDeps: () => RequestStore = createSupabaseAnalysisRequestRepository,
+  jobDeps: () => JobStore = createSupabaseAnalysisJobRepository,
+  policyDeps: () => AnalysisRoutePolicy = createAnalysisRoutePolicy,
+) {
+  const app = new Hono();
+
+  app.post("/v1/analyses", async (c) => {
+    const requestId = randomUUID();
+    c.header("X-Request-ID", requestId);
+    const fail = (
+      code: string,
+      message: string,
+      status: 400 | 401 | 403 | 503,
+    ) => c.json({ code, message, requestId }, status);
+    try {
+      const auth = await authenticate(c.req.header("Authorization"), authDeps);
+      if (auth.status === "unauthorized")
+        return fail("unauthorized", "Authentication required", 401);
+      if (auth.status === "forbidden")
+        return fail("google_required", "Google login required", 403);
+      if (auth.status !== "ok")
+        return fail("auth_unavailable", "Authentication unavailable", 503);
+      const parsed = requestAnalysisSchema.safeParse(await c.req.json());
+      if (!parsed.success)
+        return fail("invalid_request", "Invalid analysis request", 400);
+      let normalizedUrl: string;
+      try {
+        normalizedUrl = normalizeAnalysisUrl(parsed.data.url);
+      } catch {
+        return fail("invalid_url", "Invalid public URL", 400);
+      }
+      const policy = policyDeps();
+      if (
+        !policy.analyzerVersion.trim() ||
+        !Number.isSafeInteger(policy.freshnessSeconds) ||
+        policy.freshnessSeconds <= 0
+      )
+        return fail("service_unavailable", "Service unavailable", 503);
+      const freshAfter = new Date(
+        policy.now().getTime() - policy.freshnessSeconds * 1_000,
+      ).toISOString();
+      const result = await requestDeps().request({
+        rawUrl: parsed.data.url,
+        normalizedUrl,
+        analyzerVersion: policy.analyzerVersion,
+        freshAfter,
+      });
+      if (
+        result.status === "fresh" &&
+        result.evaluationId &&
+        result.sourceFetchedAt
+      ) {
+        const body: AnalysisPostResponse = {
+          status: "completed",
+          evaluationId: result.evaluationId,
+          sourceFetchedAt: result.sourceFetchedAt,
+        };
+        return c.json(body, 200);
+      }
+      if (
+        result.status === "stale" &&
+        result.evaluationId &&
+        result.sourceFetchedAt &&
+        result.jobId
+      ) {
+        const body: AnalysisPostResponse = {
+          status: "stale",
+          evaluationId: result.evaluationId,
+          sourceFetchedAt: result.sourceFetchedAt,
+          refreshJobId: result.jobId,
+        };
+        return c.json(body, 200);
+      }
+      if (result.status === "queued" && result.jobId) {
+        const body: AnalysisPostResponse = {
+          status: "pending",
+          jobId: result.jobId,
+        };
+        return c.json(body, 202);
+      }
+      return fail("storage_unavailable", "Analysis unavailable", 503);
+    } catch {
+      return fail("service_unavailable", "Service unavailable", 503);
+    }
+  });
+
+  app.get("/v1/analyses/:jobId", async (c) => {
+    const requestId = randomUUID();
+    c.header("X-Request-ID", requestId);
+    const fail = (
+      code: string,
+      message: string,
+      status: 400 | 401 | 403 | 404 | 503,
+    ) => c.json({ code, message, requestId }, status);
+    try {
+      const auth = await authenticate(c.req.header("Authorization"), authDeps);
+      if (auth.status === "unauthorized")
+        return fail("unauthorized", "Authentication required", 401);
+      if (auth.status === "forbidden")
+        return fail("google_required", "Google login required", 403);
+      if (auth.status !== "ok")
+        return fail("auth_unavailable", "Authentication unavailable", 503);
+      const jobId = c.req.param("jobId");
+      if (!analysisJobIdSchema.safeParse(jobId).success) {
+        return fail("invalid_job_id", "Invalid job ID", 400);
+      }
+      const job = await jobDeps().get(jobId);
+      if (!job) return fail("not_found", "Analysis job not found", 404);
+      const body: AnalysisJobResponse =
+        job.status === "completed"
+          ? { status: "completed", jobId, evaluationId: job.evaluationId }
+          : { status: job.status, jobId };
+      return c.json(body, 200);
+    } catch {
+      return fail("service_unavailable", "Service unavailable", 503);
+    }
+  });
+
+  return app;
+}

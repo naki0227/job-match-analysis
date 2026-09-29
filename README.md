@@ -4,7 +4,7 @@
 
 ## 開発環境
 
-Node.js 24、pnpm 11、DB統合テスト用のDockerを用意する。ルートで `pnpm install --frozen-lockfile` を実行する。ローカルのGoogleログインを試す場合は `apps/api/.env.example` と `apps/web/.env.example` を各ディレクトリの `.env.local` にコピーし、[Auth設定](docs/auth.md)に従ってSupabaseの値を入れる。secret keyはAPI側だけに置く。
+Node.js 24、pnpm 11、DB統合テスト用のDockerを用意する。ルートで `pnpm install --frozen-lockfile` を実行する。ローカルのGoogleログインを試す場合は `apps/api/.env.example` と `apps/web/.env.example` を各ディレクトリの `.env.local` にコピーし、[Auth設定](docs/auth.md)に従ってSupabaseの値を入れる。secret keyはAPI側だけに置く。共有解析POSTを使うときはAPI側の`ANALYZER_VERSION`と`ANALYSIS_FRESHNESS_SECONDS`も設定する。鮮度期間の値は運用上の判断として空欄のまま提供する。
 
 2つのターミナルで `pnpm --filter api dev` と `pnpm --filter web dev` を実行する。Webの `http://localhost:5173` は `/api/health` をAPIの `http://localhost:3000/health` に転送する。
 

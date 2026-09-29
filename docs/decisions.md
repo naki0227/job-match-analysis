@@ -33,6 +33,7 @@
 | [ADR-027](adr/027-decision-engine-worker-boundary.md) | Jev通信をCrawler workerのDecisionEngine境界へ置く | API受付を短く保ち、leaseと外部評価を同じ処理にする | WorkerへのSecret注入と費用制御が必要 |
 | [ADR-028](adr/028-decision-engine-evidence-contract.md) | 出典候補ごとにJev Choiceで明示アンカーを判定し、低確度はunknownにする | Jev Scoreを希望値と混同せず、根拠IDを入力候補に限定する | 候補生成・個人情報除去・実ページでの較正が必要 |
 | [ADR-029](adr/029-public-evidence-selection.md) | 8軸の公開アンカーと版付き文候補を評価入力に使う | scope・出典位置・再取得時点を追跡する | 語の取りこぼし、個人情報除去、引用長の実ページ検証が必要 |
+| [ADR-030](adr/030-analysis-api-contract.md) | Google認証後に共有解析をPOST/GETし、ジョブの公開状態だけを返す | 同期的な外部評価を避け、プロフィールと共有状態を分ける | 認証ユーザーは既知jobIdの共有状態を読める。運用上の量制限が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 
@@ -89,7 +90,7 @@ Scoreはrubric levelに対する確率加重期待値であり、小数値を取
 - Supabase無料枠におけるバックアップ実装と復元訓練、個人データ削除要求の実行経路、評価根拠の保持期間。抽出本文は取得から30日後に削除する方針だが、workerへの接続は未実装。
 - crawlerのサイト別利用規約の確認元・取得頻度、無料枠を超えないジョブ上限、ブラウザのネットワークレベルSSRF防御。アプリ側のURL/DNS/redirect境界はADR-021、利用条件未確認・robots取得不可時の保留と抽出方式はADR-026で定義済み。個別サイトの許可は未確定。
 - AWS等への移行条件、実際のSLO、service名（現状はjob-match-analysis仮称）。
-- jobId閲覧権限、求人別と会社別の評価継承、出典抽出の引用長と二次利用規約。
-- 未実装endpointの正式なAPI prefixとZod契約。診断プロフィールは`/api/v1`と共有Zod契約で実装済み。
+- 求人別と会社別の評価継承、出典抽出の引用長と二次利用規約。共有jobIdの状態閲覧範囲はADR-030で決定済み。
+- 未実装endpointの正式なAPI prefixとZod契約。診断プロフィールと共有解析は`/api/v1`と共有Zod契約で実装済み。
 
 未確定項目を確定事項としてコードに埋め込まない。各Issueの実験・レビュー結果をここにADRとして追記する。

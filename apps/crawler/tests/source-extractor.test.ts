@@ -72,4 +72,14 @@ describe("source document extraction", () => {
     expect(document.sections.map((item) => item.scope)).toEqual(["company"]);
     expect(document.sufficient).toBe(false);
   });
+
+  it("keeps nested Organization markup out of job evidence", () => {
+    const document = extractSourceDocument(
+      `<main data-job><p>${jobText}</p><aside itemtype="https://schema.org/Organization">企業全体の制度</aside></main>`,
+      "https://jobs.example/1",
+      new Date(),
+    );
+    expect(document.sections[0]?.text).not.toContain("企業全体の制度");
+    expect(document.sections[1]?.text).toBe("企業全体の制度");
+  });
 });

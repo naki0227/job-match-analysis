@@ -70,7 +70,9 @@ function visibleText(node: Html.Node, omitCompany: boolean): string {
       ) ||
       attribute(node, "hidden") !== undefined ||
       attribute(node, "aria-hidden") === "true" ||
-      (omitCompany && attribute(node, "data-company") !== undefined)
+      (omitCompany &&
+        (attribute(node, "data-company") !== undefined ||
+          attribute(node, "itemtype")?.endsWith("/Organization")))
     )
       return "";
   }

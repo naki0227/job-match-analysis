@@ -10,7 +10,7 @@ import {
   type CareerProfileResponse,
 } from "@job-match/contracts";
 import { afterEach, expect, test, vi } from "vitest";
-import { CareerProfileForm } from "../src/CareerProfileForm";
+import { CareerProfileForm } from "../src/features/career-profile/CareerProfileForm";
 
 const firstVersionId = "992e2552-0752-4d63-98d9-4d94f1bc2e18";
 const secondVersionId = "916098d3-3873-4323-b0de-b20bef5dcedb";

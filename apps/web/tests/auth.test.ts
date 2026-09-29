@@ -1,5 +1,8 @@
 import { expect, test, vi } from "vitest";
-import { initializeOwnProfile, startGoogleSignIn } from "../src/auth";
+import {
+  initializeOwnProfile,
+  startGoogleSignIn,
+} from "../src/features/auth/auth";
 
 test("Google sign-in uses the selected redirect origin", async () => {
   const signInWithOAuth = vi.fn().mockResolvedValue({ error: null });

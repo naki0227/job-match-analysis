@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import App from "../src/App";
 
-vi.mock("../src/auth", () => ({
+vi.mock("../src/features/auth/auth", () => ({
   getSupabaseClient: () => ({
     auth: {
       getSession: async () => ({ data: { session: null }, error: null }),

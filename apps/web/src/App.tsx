@@ -5,8 +5,8 @@ import {
   getSupabaseClient,
   initializeOwnProfile,
   startGoogleSignIn,
-} from "./auth";
-import { CareerProfileForm } from "./CareerProfileForm";
+} from "./features/auth/auth";
+import { CareerProfileForm } from "./features/career-profile/CareerProfileForm";
 import "./App.css";
 
 function App() {

@@ -23,3 +23,9 @@
 - robots取得が5xxまたは失敗した場合は取得を保留する。RFC 9309のunreachable時に完全拒否として扱う考え方に合わせる。取得ペース、引用・保存範囲、サイト別の利用条件は本番投入前に確定する。
 
 参照: [Scraping Sandbox](https://sites.toscrape.com/)、[Playwright Network](https://playwright.dev/docs/network)、[RFC 9309](https://www.rfc-editor.org/rfc/rfc9309.html)。
+
+## #21 実装への反映
+
+`apps/crawler/src/fetch-source-document.ts`は、HTTP本文が100非空白文字に満たない場合だけ既存の安全なPlaywright境界を1回使う。本文抽出は`source-extractor.ts`の`html-v1`で求人と明示された会社領域を区別し、正規化本文のSHA-256、取得日時、DOM位置を返す。`crawl-policy.ts`は利用条件の確認済み判定とrobotsを両方要求し、redirectとブラウザ要求にも適用する。判断の理由と制約は[ADR-026](adr/026-crawler-source-extraction.md)を参照。
+
+この段階ではfixtureだけで検証する。実サイトの利用条件・取得頻度は未確定で、評価との原子的なDB保存と30日後の本文削除処理は後続のworker結合時に確認する。

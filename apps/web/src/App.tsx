@@ -37,31 +37,54 @@ function App() {
 
   useEffect(() => {
     let active = true;
-    async function restoreSession() {
-      try {
-        const { data, error } = await getSupabaseClient().auth.getSession();
-        if (!active) return;
-        if (error) {
-          setAuthStatus("error");
-          return;
-        }
-        if (!data.session) {
-          setAuthStatus("signed_out");
-          return;
-        }
-        await initializeOwnProfile(data.session.access_token);
-        if (!active) return;
-        setEmail(data.session.user.email ?? null);
-        setAuthStatus("signed_in");
-      } catch {
+    let currentUserId: string | null = null;
+    let generation = 0;
+    let unsubscribe = () => {};
+    try {
+      const { data } = getSupabaseClient().auth.onAuthStateChange(
+        (event, session) => {
+          if (
+            event !== "INITIAL_SESSION" &&
+            session?.user.id === currentUserId
+          ) {
+            return;
+          }
+          currentUserId = session?.user.id ?? null;
+          const ownGeneration = ++generation;
+          queryClient.clear();
+          setEmail(null);
+          if (!session) {
+            setAuthStatus("signed_out");
+            return;
+          }
+          setAuthStatus("checking");
+          // Supabase auth callbacks must stay synchronous; bootstrap afterwards.
+          setTimeout(() => {
+            if (!active || generation !== ownGeneration) return;
+            void initializeOwnProfile(session.access_token)
+              .then(() => {
+                if (!active || generation !== ownGeneration) return;
+                setEmail(session.user.email ?? null);
+                setAuthStatus("signed_in");
+              })
+              .catch(() => {
+                if (active && generation === ownGeneration)
+                  setAuthStatus("error");
+              });
+          }, 0);
+        },
+      );
+      unsubscribe = () => data.subscription.unsubscribe();
+    } catch {
+      queueMicrotask(() => {
         if (active) setAuthStatus("error");
-      }
+      });
     }
-    void restoreSession();
     return () => {
       active = false;
+      unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   async function handleGoogleSignIn() {
     try {

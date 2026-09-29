@@ -66,6 +66,39 @@ jobs:
       - name: Build Domain
         run: pnpm --filter @job-match/domain build
 
+  application:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts and domain
+        run: pnpm --filter @job-match/contracts build && pnpm --filter @job-match/domain build
+
+      - name: Lint Application
+        run: pnpm exec oxlint packages/application/src packages/application/tests
+
+      - name: Typecheck Application
+        run: pnpm --filter @job-match/application typecheck
+
+      - name: Test Application
+        run: pnpm --filter @job-match/application test
+
+      - name: Build Application
+        run: pnpm --filter @job-match/application build
+
   api:
     runs-on: ubuntu-24.04
     steps:

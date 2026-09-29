@@ -4,28 +4,12 @@ import {
   type CommitCareerProfileRequest,
 } from "@job-match/contracts";
 import { Hono } from "hono";
+import { authenticate } from "./auth/authenticate.js";
 import type { ProfileBootstrapDeps } from "./auth/profile-bootstrap.js";
 import {
   createSupabaseCareerProfileStore,
   type CareerProfileStore,
 } from "./repositories/career-profiles.js";
-
-type Authentication =
-  | { status: "ok"; userId: string; accessToken: string }
-  | { status: "unauthorized" | "forbidden" | "unavailable" };
-
-async function authenticate(
-  authorization: string | undefined,
-  deps: () => ProfileBootstrapDeps,
-): Promise<Authentication> {
-  const token = /^Bearer ([^\s]+)$/.exec(authorization ?? "")?.[1];
-  if (!token) return { status: "unauthorized" };
-  const result = await deps().verifyToken(token);
-  if (result.status === "invalid") return { status: "unauthorized" };
-  if (result.status === "unavailable") return { status: "unavailable" };
-  if (!result.user.hasGoogleIdentity) return { status: "forbidden" };
-  return { status: "ok", userId: result.user.id, accessToken: token };
-}
 
 export function createCareerProfileRoutes(
   authDeps: () => ProfileBootstrapDeps,

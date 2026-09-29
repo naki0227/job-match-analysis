@@ -93,6 +93,7 @@ erDiagram
 
 - URL正規化は fragment・追跡パラメータなど安全なものだけを除去。求人ID等の識別に関わるqueryは残す。DBでは source_urls.normalized_url にUNIQUE。
 - 活動中ジョブを原則1つに集約: UNIQUE(source_url_id, analyzer_version) WHERE status IN ('queued', 'running')。完了時の競合にはトランザクション内でfresh評価と活動中jobを再確認する。
+- Issue #19の`request_analysis`は正規化URL行をロックしてcache判定とジョブ参加/作成を1操作で行う。freshは評価に用いた全出典文書の最古の取得時刻で判定し、境界時刻は呼び出し元が渡す。raw URLは初回登録時の値を保持する。[ADR-024](adr/024-atomic-analysis-registration.md)。
 - マッチ結果の user_id と career_profile_versions.user_id の一致は **DBでも** 担保する。例えば career_profile_versionsにUNIQUE(id,user_id)、match_resultsに複合FK(profile_version_id,user_id)を使用する。アプリ側認可だけに依存しない。
 - evaluation_evidenceは存在する軸評価にだけ紐付ける複合FK、さらに根拠文書がevaluation_sourcesに含まれることをDBで担保する複合FKを検討。
 - 軸の版が食い違う値を比較しない。異なる版間は明示的な移行／対応表を設けるか「比較不可」。軸ルーブリック変更は既存行更新ではなく新versionを追加。

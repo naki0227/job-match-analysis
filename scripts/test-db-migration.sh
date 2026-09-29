@@ -159,6 +159,8 @@ if [ "$(cat "$issue20_claim_a" "$issue20_claim_b" | sed '/^$/d' | wc -l | tr -d 
   printf '%s\n' 'Concurrent claims did not assign one worker' >&2
   exit 1
 fi
+psql_cmd < supabase/migrations/20260930010000_resolve_job_evaluation_target.sql
+psql_cmd < supabase/tests/issue22_target_resolution.sql
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx ../crawler/tests/job-recovery.integration.ts
 psql_cmd < supabase/tests/issue22_evaluation_versions.sql
 psql_cmd < supabase/migrations/20260929093000_match_result_rpc.sql
@@ -175,6 +177,7 @@ psql_cmd < supabase/rollback/20260929131358_analysis_history_page_v2.sql
 psql_cmd < supabase/tests/issue27_analysis_history_rollback.sql
 psql_cmd < supabase/rollback/20260929_match_result_down.sql
 psql_cmd < supabase/tests/match_result_rollback.sql
+psql_cmd < supabase/rollback/20260930010000_resolve_job_evaluation_target.sql
 psql_cmd < supabase/rollback/20260929_issue20_down.sql
 psql_cmd < supabase/tests/issue20_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue19_down.sql

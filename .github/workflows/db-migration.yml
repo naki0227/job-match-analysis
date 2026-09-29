@@ -10,6 +10,20 @@ on:
       - "supabase/rollback/**"
       - "scripts/test-db-migration.sh"
       - "scripts/test-db-restore.sh"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/db-migration.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "supabase/rollback/**"
+      - "scripts/test-db-migration.sh"
+      - "scripts/test-db-restore.sh"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - ".github/workflows/db-migration.yml"
 
 permissions:

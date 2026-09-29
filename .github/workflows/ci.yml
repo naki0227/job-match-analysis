@@ -66,39 +66,6 @@ jobs:
       - name: Build Domain
         run: pnpm --filter domain build
 
-  web:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build shared contracts
-        run: pnpm --filter @job-match/contracts build
-
-      - name: Lint Web
-        run: pnpm exec oxlint apps/web/src apps/web/tests apps/web/e2e apps/web/playwright.config.ts
-
-      - name: Test Web
-        run: pnpm --filter web test
-
-      - name: Test Web E2E
-        run: pnpm test:e2e
-
-      - name: Build Web
-        run: pnpm --filter web build
-
   api:
     runs-on: ubuntu-24.04
     steps:

@@ -47,3 +47,9 @@ M7はプロダクトのMVPローカル完成を阻害しない独立ストリー
 Issueで背景と受け入れ条件を確認 → 相談して実装手順を理解 → 開発者が手書き → tests → PRで差分レビュー → 本人が修正・merge → Issueを閉じる。
 
 CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約順守・個人情報の扱いはCI greenだけでは証明されない。
+
+## CIの実行範囲
+
+- 通常CIは全push/PRでcontracts、domain、api、crawler、format、Docker image buildを確認する。Crawlerのブラウザ通信境界はcrawlerのテストで検証する。
+- Web CIは `apps/web/**`、`packages/contracts/**`、root package設定・lockfile、Web workflowの変更時に実行し、lint、unit test、UI導線のPlaywright、buildを確認する。Web Dockerfileも `apps/web/**` に含む。
+- DB migration CIはmigration・rollback・DBテスト・検証スクリプト・root package設定の変更時に実行し、migrationとダミーデータ別DB復元を確認する。

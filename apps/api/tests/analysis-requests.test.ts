@@ -77,4 +77,14 @@ test("不正な入力とDB応答を拒否し、内部エラーを公開しない
     throw new Error("internal database detail");
   });
   await assert.rejects(failing.request(input), AnalysisRequestError);
+  const missingDate = createAnalysisRequestRepository(async () => [
+    {
+      request_status: "fresh",
+      source_url_id: sourceUrlId,
+      job_id: null,
+      evaluation_id: evaluationId,
+      source_fetched_at: null,
+    },
+  ]);
+  await assert.rejects(missingDate.request(input), AnalysisRequestError);
 });

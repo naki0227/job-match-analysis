@@ -65,9 +65,13 @@ export function createAnalysisRequestRepository(read: ReadAnalysisRequest) {
       if (
         !result ||
         (result.request_status === "fresh" &&
-          (result.job_id !== null || result.evaluation_id === null)) ||
+          (result.job_id !== null ||
+            result.evaluation_id === null ||
+            result.source_fetched_at === null)) ||
         (result.request_status === "stale" &&
-          (result.job_id === null || result.evaluation_id === null)) ||
+          (result.job_id === null ||
+            result.evaluation_id === null ||
+            result.source_fetched_at === null)) ||
         (result.request_status === "queued" &&
           (result.job_id === null || result.evaluation_id !== null))
       ) {

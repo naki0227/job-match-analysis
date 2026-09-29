@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { historyItems } from "../src/dev/fixtures";
 import { sampleReport } from "../tests/fixtures/match-report";
 import { savedProfile, signInWithFixture } from "./session-fixture";
 
@@ -48,6 +49,24 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
       body: JSON.stringify(sampleReport),
     });
   });
+  await page.route("**/api/v1/me/analysis-history?**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: matchRequests.length
+          ? [
+              {
+                ...historyItems[0],
+                matchResultId: sampleReport.matchResultId,
+                jobEvaluationId: evaluationId,
+              },
+            ]
+          : [],
+        nextCursor: null,
+      }),
+    }),
+  );
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page
@@ -70,4 +89,10 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
   ).toBeVisible();
   expect(posted).toEqual([{ url: "https://jobs.example.com/posting/1" }]);
   expect(matchRequests).toEqual([{ evaluationId }]);
+  await page.getByRole("button", { name: "分析履歴" }).click();
+  await expect(
+    page.getByRole("list", { name: "分析済み企業の一覧" }).getByRole("button", {
+      name: /サンプルテック株式会社/,
+    }),
+  ).toBeVisible();
 });

@@ -6,9 +6,10 @@ import { promisify } from "node:util";
 import {
   consumeOneAnalysisJob,
   type AnalysisJobStore,
-  type AnalysisWork,
 } from "../src/job-consumer.js";
-import { PUBLIC_AXIS_RUBRICS } from "../src/assessment-rubric.js";
+import { createFakeDecisionEngine } from "../src/fake-decision-engine.js";
+import { processAnalysisJob } from "../src/process-analysis-job.js";
+import type { FetchedResource, RequestOnce } from "../src/safe-http.js";
 
 const execFileAsync = promisify(execFile);
 const container = process.env.JOB_MATCH_DB_CONTAINER;
@@ -18,6 +19,7 @@ const sourceId = "20000000-0000-4000-8000-000000000020";
 const companyId = "20000000-0000-4000-8000-000000000021";
 const targetId = "20000000-0000-4000-8000-000000000022";
 const jobId = "20000000-0000-4000-8000-000000000023";
+const postingId = "20000000-0000-4000-8000-000000000024";
 const url = "https://example.org/issue20-process-recovery";
 
 async function query(statement: string): Promise<string> {
@@ -52,31 +54,20 @@ function json(value: unknown): string {
   return `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
 }
 
-const work: AnalysisWork = {
-  targetId,
-  documents: [
-    {
-      sourceUrlId: sourceId,
-      contentHash: "issue20-process-recovery-content",
-      fetchedAt: "2026-09-29T00:00:00Z",
-      extractorVersion: "html-v1",
-      extractedText: "[job] Process recovery fixture",
-    },
-  ],
-  evaluation: {
-    axisCatalogVersion: 1,
-    sourceSetHash: "issue20-process-recovery-source",
-    rubricVersion: "public-anchors-v1",
-    evaluatorVersion: "fake-choice-v1",
-    modelVersion: "fake",
-    axisValues: PUBLIC_AXIS_RUBRICS.map(({ axisKey }) => ({
-      axisKey,
-      axisVersion: 1,
-      observationStatus: "unknown",
-      anchorValue: null,
-    })),
-    evidence: [],
-  },
+const jobText = "週2日在宅勤務が可能な公開求人です。".repeat(8);
+const send: RequestOnce = async (requestedUrl) => {
+  const robots = requestedUrl.pathname === "/robots.txt";
+  const body = robots
+    ? "User-agent: *\nAllow: /"
+    : `<main data-job><h1>公開求人</h1><p>${jobText}</p>
+        <aside data-company><p>会社全体ではフルリモートです。</p></aside></main>`;
+  const response: FetchedResource = {
+    url: requestedUrl.href,
+    status: 200,
+    headers: { "content-type": robots ? "text/plain" : "text/html" },
+    body: Buffer.from(body),
+  };
+  return response;
 };
 
 const store: AnalysisJobStore = {
@@ -124,14 +115,26 @@ async function runWorker(mode: "hold" | "recover"): Promise<void> {
     store,
     leaseSeconds: mode === "hold" ? 1 : 10,
     maxAttempts: 2,
-    process: async (job) => {
+    process: async (job, renew) => {
       assert.equal(job.jobId, jobId);
       if (mode === "hold") {
         process.stdout.write("CLAIMED\n");
         await new Promise<never>(() => undefined);
       }
       assert.equal(job.attempts, 2);
-      return work;
+      return processAnalysisJob(job, renew, {
+        loadSource: async (id) => {
+          assert.equal(id, sourceId);
+          return { url, targetId, scope: "job" };
+        },
+        siteApproved: async (origin) => origin === "https://example.org",
+        engine: createFakeDecisionEngine(),
+        maxCandidates: 16,
+        maxExcerptChars: 120,
+        resolve: async () => ["8.8.8.8"],
+        send,
+        now: () => new Date("2026-09-30T00:00:00Z"),
+      });
     },
   });
   if (mode === "recover") {
@@ -166,8 +169,11 @@ async function main(): Promise<void> {
     values ('${sourceId}', '${url}', '${url}');
     insert into public.companies(id, name)
     values ('${companyId}', 'Issue 20 Process Recovery');
-    insert into public.evaluation_targets(id, target_type, company_id)
-    values ('${targetId}', 'company', '${companyId}');
+    insert into public.job_postings(id, company_id, source_url_id, title)
+    values ('${postingId}', '${companyId}', '${sourceId}', '公開求人');
+    insert into public.evaluation_targets(
+      id, target_type, company_id, job_posting_id)
+    values ('${targetId}', 'job', '${companyId}', '${postingId}');
     insert into public.analysis_jobs(id, source_url_id, analyzer_version, status)
     values ('${jobId}', '${sourceId}', 'issue20-process-v1', 'queued')`);
 
@@ -195,6 +201,20 @@ async function main(): Promise<void> {
       join public.analysis_jobs j on j.evaluation_id = e.id
       where j.id = '${jobId}'`),
     "1",
+  );
+  assert.equal(
+    await query(`select count(*) from public.source_document_versions
+      where source_url_id = '${sourceId}'
+        and extractor_version = 'html-v1'
+        and extracted_text like '%[job]%'
+        and extracted_text like '%[company]%'`),
+    "1",
+  );
+  assert.equal(
+    await query(`select count(*) from public.evaluated_axis_values a
+      join public.analysis_jobs j on j.evaluation_id = a.evaluation_id
+      where j.id = '${jobId}'`),
+    "8",
   );
   process.stdout.write("killed worker was reclaimed and completed once\n");
 }

@@ -1,8 +1,9 @@
-export type Screen = "home" | "analyze" | "profile";
+export type Screen = "home" | "analyze" | "history" | "match" | "profile";
 
 const items: ReadonlyArray<readonly [Screen, string]> = [
   ["home", "ホーム"],
   ["analyze", "求人分析"],
+  ["history", "分析履歴"],
   ["profile", "希望条件"],
 ];
 
@@ -28,7 +29,12 @@ export function AppHeader({ current, onNavigate }: Props) {
             <button
               key={screen}
               type="button"
-              aria-current={current === screen ? "page" : undefined}
+              aria-current={
+                current === screen ||
+                (current === "match" && screen === "history")
+                  ? "page"
+                  : undefined
+              }
               onClick={() => onNavigate(screen)}
             >
               {label}

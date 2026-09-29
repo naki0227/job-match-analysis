@@ -58,3 +58,29 @@ export async function requestMatch(
     throw new MatchApiError("unavailable");
   }
 }
+
+/** Reads one of the caller's stored matches; other users' matches are 404. */
+export async function readStoredMatch(
+  accessToken: string,
+  matchResultId: string,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<MatchReport> {
+  let response: Response;
+  try {
+    response = await fetcher(
+      `/api/v1/me/matches/${encodeURIComponent(matchResultId)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, signal },
+    );
+  } catch {
+    throw new MatchApiError("unavailable");
+  }
+  if (!response.ok) throw new MatchApiError(classify(response.status));
+  try {
+    const report = matchReportSchema.parse(await response.json());
+    if (report.matchResultId !== matchResultId) throw new Error("mismatch");
+    return report;
+  } catch {
+    throw new MatchApiError("unavailable");
+  }
+}

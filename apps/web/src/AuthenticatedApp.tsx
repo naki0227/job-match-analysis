@@ -6,6 +6,9 @@ import { AnalyzeScreen } from "./features/analysis/AnalyzeScreen";
 import { useAnalysisRequest } from "./features/analysis/useAnalysisRequest";
 import { AccessTokenProvider } from "./features/auth/access-token";
 import { CareerProfileWizard } from "./features/career-profile/CareerProfileWizard";
+import { HistoryScreen } from "./features/history/HistoryScreen";
+import { useAnalysisHistory } from "./features/history/useAnalysisHistory";
+import { MatchDetailScreen } from "./features/result/MatchDetailScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 
 type Props = { getAccessToken: () => Promise<string> };
@@ -14,6 +17,13 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
   const [screen, setScreen] = useState<Screen>("home");
   const analysis = useAnalysisRequest({ getAccessToken });
   const toast = useToast();
+  const history = useAnalysisHistory();
+  const [matchResultId, setMatchResultId] = useState<string | null>(null);
+
+  function openMatch(id: string) {
+    setMatchResultId(id);
+    setScreen("match");
+  }
 
   function analyze(url: string) {
     setScreen("analyze");
@@ -36,6 +46,15 @@ export function AuthenticatedApp({ getAccessToken }: Props) {
             onSubmit={analyze}
             getAccessToken={getAccessToken}
             onEditProfile={() => setScreen("profile")}
+          />
+        )}
+        {screen === "history" && (
+          <HistoryScreen history={history} onOpen={openMatch} />
+        )}
+        {screen === "match" && matchResultId && (
+          <MatchDetailScreen
+            matchResultId={matchResultId}
+            onBack={() => setScreen("history")}
           />
         )}
         {screen === "profile" && (

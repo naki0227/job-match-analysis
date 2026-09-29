@@ -59,7 +59,8 @@
 
 .nav {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   gap: 4px;
   margin-top: 8px;
 }

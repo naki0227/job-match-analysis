@@ -188,7 +188,7 @@ POST /api/analyses {url}
 | `GET` | `/api/analyses/:id` | `queued/running/completed/failed`、評価ID。アクセス許可と公開範囲を確認 |
 | `GET` | `/api/jobs/:id` | 求人・出典・鮮度・共有評価 |
 | `POST` | `/api/matches` | 認可済みCareerProfile版×共有評価の個人結果 |
-| `GET` | `/api/me/analysis-history?cursor=...` | 本人の分析済み求人を一括取得＋ページネーション（後続Issue） |
+| `GET` | `/api/v1/me/analysis-history?cursor=...` | 本人の分析済み求人を希望職種・判定で絞り込み、指定順のcursorで一括取得（Issue #27） |
 
 - 共通エラー: `code`, `message`, `requestId`。内部詳細・個人情報・秘密鍵を返さない。
 - 解析要求・結果確定は冪等性を持たせ、再送と並行リクエストの統合テストを必須にする。

@@ -7,6 +7,7 @@ import { SignInScreen } from "../features/auth/SignInScreen";
 import { CareerProfileWizard } from "../features/career-profile/CareerProfileWizard";
 import { careerProfileQueryKey } from "../features/career-profile/useCareerProfile";
 import { HistoryScreen } from "../features/history/HistoryScreen";
+import { defaultHistoryFilter } from "../features/history/history-model";
 import { InsightsScreen } from "../features/insights/InsightsScreen";
 import { LegalConsent } from "../features/onboarding/LegalConsent";
 import { OnboardingIntro } from "../features/onboarding/OnboardingIntro";
@@ -25,6 +26,13 @@ const url = "https://jobs.example.com/sample-tech/backend";
 const jobId = "5d8f0a41-6b0e-4d8e-9f3a-1c2b3d4e5f60";
 const evaluationId = sampleReport.job.evaluationId;
 const noop = () => {};
+const previewHistory = {
+  status: "ready" as const,
+  items: historyItems,
+  hasMore: false,
+  loadingMore: false,
+  loadMore: noop,
+};
 
 function previewClient() {
   const client = createQueryClient();
@@ -65,7 +73,7 @@ const screens: Record<string, () => ReactNode> = {
   ホーム: () => (
     <HomeScreen
       profileVersion={2}
-      history={{ status: "ready", items: historyItems }}
+      history={previewHistory}
       onAnalyze={noop}
       onEditProfile={noop}
       onShowHistory={noop}
@@ -88,7 +96,9 @@ const screens: Record<string, () => ReactNode> = {
   ),
   分析済み企業: () => (
     <HistoryScreen
-      history={{ status: "ready", items: historyItems }}
+      history={previewHistory}
+      filter={defaultHistoryFilter}
+      onFilterChange={noop}
       onOpen={noop}
     />
   ),

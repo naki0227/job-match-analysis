@@ -8,6 +8,10 @@ import { AccessTokenProvider } from "./features/auth/access-token";
 import { CareerProfileWizard } from "./features/career-profile/CareerProfileWizard";
 import { useCareerProfile } from "./features/career-profile/useCareerProfile";
 import { HistoryScreen } from "./features/history/HistoryScreen";
+import {
+  defaultHistoryFilter,
+  type HistoryFilter,
+} from "./features/history/history-model";
 import { useAnalysisHistory } from "./features/history/useAnalysisHistory";
 import { InsightsScreen } from "./features/insights/InsightsScreen";
 import { OnboardingIntro } from "./features/onboarding/OnboardingIntro";
@@ -33,8 +37,15 @@ function Screens({ getAccessToken, email, onSignOut }: Props) {
   const [screen, setScreen] = useState<Screen>("home");
   const [matchResultId, setMatchResultId] = useState<string | null>(null);
   const [onboardingSkipped, setOnboardingSkipped] = useState(false);
+  const [historyFilter, setHistoryFilter] =
+    useState<HistoryFilter>(defaultHistoryFilter);
   const analysis = useAnalysisRequest({ getAccessToken });
-  const history = useAnalysisHistory();
+  const recentHistory = useAnalysisHistory(
+    defaultHistoryFilter,
+    screen === "home",
+    3,
+  );
+  const history = useAnalysisHistory(historyFilter, screen === "history");
   const profile = useCareerProfile();
   const toast = useToast();
   const profileVersion = profile.isSuccess
@@ -74,7 +85,7 @@ function Screens({ getAccessToken, email, onSignOut }: Props) {
         {screen === "home" && (
           <HomeScreen
             profileVersion={profileVersion}
-            history={history}
+            history={recentHistory}
             onAnalyze={analyze}
             onEditProfile={editProfile}
             onShowHistory={() => setScreen("history")}
@@ -90,7 +101,12 @@ function Screens({ getAccessToken, email, onSignOut }: Props) {
           />
         )}
         {screen === "history" && (
-          <HistoryScreen history={history} onOpen={openMatch} />
+          <HistoryScreen
+            history={history}
+            filter={historyFilter}
+            onFilterChange={setHistoryFilter}
+            onOpen={openMatch}
+          />
         )}
         {screen === "match" && matchResultId && (
           <MatchDetailScreen

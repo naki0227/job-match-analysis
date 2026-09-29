@@ -53,10 +53,28 @@
   margin: 17px 0 5px;
 }
 
+.filterbar label {
+  align-self: center;
+}
+
+.filterbar .input {
+  flex: 1 1 190px;
+  min-width: 0;
+}
+
+.version-pair {
+  overflow-wrap: anywhere;
+}
+
 .filter-grid {
   display: grid;
   gap: 9px;
   margin: 13px 0;
+}
+
+.filter-grid label {
+  display: grid;
+  gap: 5px;
 }
 
 @media (min-width: 760px) {

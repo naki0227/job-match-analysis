@@ -1,10 +1,5 @@
 import { Mascot } from "../components/Mascot";
-import { PendingFeature } from "../components/PendingFeature";
 import { AnalyzeForm } from "../features/analysis/AnalyzeForm";
-import {
-  filterHistory,
-  defaultHistoryFilter,
-} from "../features/history/history-model";
 import { HistoryRow } from "../features/history/HistoryList";
 import type { AnalysisHistoryState } from "../features/history/useAnalysisHistory";
 import "../features/analysis/analysis.css";
@@ -25,15 +20,18 @@ function RecentAnalyses({
   onShowHistory,
   onOpenMatch,
 }: Pick<Props, "history" | "onShowHistory" | "onOpenMatch">) {
-  if (history.status !== "ready") {
+  if (history.status === "loading")
+    return <p role="status">最近の分析を読み込み中です。</p>;
+  if (history.status === "error")
     return (
-      <PendingFeature
-        title="最近の分析はまだ表示できません"
-        reason="分析履歴の一覧APIの接続待ちです（Issue #27）。"
-      />
+      <p role="alert">
+        最近の分析を取得できませんでした。
+        <button type="button" onClick={history.retry}>
+          再試行
+        </button>
+      </p>
     );
-  }
-  const recent = filterHistory(history.items, defaultHistoryFilter).slice(0, 3);
+  const recent = history.items.slice(0, 3);
   if (recent.length === 0) {
     return <p className="meta">まだ分析した求人はありません。</p>;
   }

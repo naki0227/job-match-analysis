@@ -85,6 +85,7 @@ erDiagram
 | evaluated_axis_values | (evaluation_id, axis_key) | 0/50/100アンカー、unknown等の状態、軸カタログ版の複合FK |
 | evaluation_evidence | id | (evaluation_id, axis_key)と(evaluation_id, source_document_version_id)への複合FK、根拠抜粋・位置 |
 | analysis_jobs | id | source_url_id、analyzer_version、status、attempts、lease_until、worker_token |
+| user_analysis_requests | (user_id, source_url_id) | 本人の共有解析依頼。job_idまたは既存評価ID、再訪時のMatch反映に使う |
 | match_results | id | user_id / career_profile_version_id / evaluation_id / algorithm_version |
 | match_axis_results | (match_result_id, axis_key) | 当時の希望値・評価値・一致状態と算出理由のsnapshot |
 | match_constraint_results | (match_result_id, kind) | 必須条件の状態と理由のsnapshot |
@@ -100,7 +101,7 @@ erDiagram
 - 個人テーブルのSELECTポリシーは auth.uid() と所有者の一致、子テーブルは親へのEXISTSで判定する。クライアントに書込権限は付けない。service-role/secret keyはサーバーのみで保持し、APIでGoogle identityと本人IDを確認する。SECURITY DEFINER関数は追加していない。
 - 共有企業データの更新はサーバー権限だけ。外部ページ本文の生データをクライアントに無制限に配布しない。重要な値は出典・取得日を表示。
 - FKで関連行を自動削除すると過去評価や他人の保存履歴まで消える可能性があるため、共有側にCASCADEを機械的に使わない。個人データの消去要求には削除経路を用意する。
-- N+1を避ける: Issue #45の`list_analysis_history_page`は本人の求人Match結果から求人ごとの最新1件を選び、求人・会社・そのMatchで使った求人評価と最新の会社評価を1回のRPCで返す。Match日時+IDのkeyset cursorと最大100件の上限を使う。過去のMatch行は詳細表示用に保持する。[ADR-023](adr/023-analysis-history-from-matches.md)。
+- N+1を避ける: Issue #27の`list_analysis_history_page_v2`は本人の求人Match結果から求人ごとの最新1件を選び、希望職種・判定をページ取得前に絞り込み、指定順のkeyset cursorで求人・会社・評価・鮮度を1回のRPCで返す。最大100件、過去のMatch行は詳細表示用に保持する。[ADR-033](adr/033-analysis-history-delivery.md)。
 
 ## 原子的操作（トランザクション境界）
 
@@ -122,6 +123,7 @@ sequenceDiagram
 3. job claim: `claim_analysis_job`がSKIP LOCKED + status更新 + lease token発行を1操作にする。期限切れは`reap_analysis_jobs`でqueuedまたはfailedへ移し、旧tokenと期限切れleaseによる完了を拒否する。実行中にDB TXを開きっぱなしにしない。[ADR-025](adr/025-analysis-job-leases.md)。
 4. job 完了: commit_analysis_evaluation RPCで正しいworker_tokenを持つrunning jobだけ文書・評価・根拠・完了処理を一度に確定。対象行ロックと評価自然キーで重複を直列化し、内容が同じ場合のみ別jobでも評価を再利用する。完了済みの同じjob/token再送は保存済みIDを返す。
 5. 個人Match保存: `commit_match_result`が本人のcompletedプロフィール版・求人評価・軸snapshotと保存済み値の一致を検査し、Match・軸・必須条件を1操作で保存する。一意制約で再送・同時実行を1行にまとめる。読取は`read_evaluation_for_match`（評価・根拠・最新会社評価）と`read_match_result`（本人のMatchのみ）。いずれもservice_role専用、[rollback](../supabase/rollback/20260929_match_result_down.sql)は関数だけを削除する。[ADR-032](adr/032-match-api.md)。
+6. 個人の解析依頼: `request_personal_analysis`が共有受付と`user_analysis_requests`登録を同一DB操作で行う。先頭の履歴取得では`list_unmatched_analysis_evaluations`で本人の完了済み評価を探し、applicationの`createMatch`で反映する。共有jobの状態には本人情報を追加しない。[ADR-033](adr/033-analysis-history-delivery.md)。
 
 **Supabase JSの複数HTTP呼び出しは単一Transactionではない。** Issue #16の2関数はservice_role専用のSECURITY INVOKER RPCとし、ROLLBACK・同時実行・権限の統合テストで検証する。設計理由は[ADR-017](adr/017-atomic-profile-and-evaluation-commits.md)。
 

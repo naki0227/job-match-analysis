@@ -19,6 +19,7 @@ export type AnalysisRequestResult = {
 };
 
 export type ReadAnalysisRequest = (args: {
+  p_user_id: string;
   p_raw_url: string;
   p_normalized_url: string;
   p_analyzer_version: string;
@@ -35,12 +36,14 @@ export class AnalysisRequestError extends Error {
 export function createAnalysisRequestRepository(read: ReadAnalysisRequest) {
   return {
     async request(input: {
+      userId: string;
       rawUrl: string;
       normalizedUrl: string;
       analyzerVersion: string;
       freshAfter: string;
     }): Promise<AnalysisRequestResult> {
       if (
+        !uuid.safeParse(input.userId).success ||
         !input.rawUrl ||
         !input.normalizedUrl.startsWith("https://") ||
         !input.analyzerVersion.trim() ||
@@ -51,6 +54,7 @@ export function createAnalysisRequestRepository(read: ReadAnalysisRequest) {
       let raw: unknown;
       try {
         raw = await read({
+          p_user_id: input.userId,
           p_raw_url: input.rawUrl,
           p_normalized_url: input.normalizedUrl,
           p_analyzer_version: input.analyzerVersion,
@@ -96,7 +100,7 @@ export function createSupabaseAnalysisRequestRepository() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   return createAnalysisRequestRepository(async (args) => {
-    const { data, error } = await client.rpc("request_analysis", args);
+    const { data, error } = await client.rpc("request_personal_analysis", args);
     if (error) throw new AnalysisRequestError();
     return data;
   });

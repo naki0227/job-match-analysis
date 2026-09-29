@@ -11,6 +11,7 @@ const jobId = randomUUID();
 const evaluationId = randomUUID();
 const freshAfter = "2026-09-29T00:00:00Z";
 const input = {
+  userId: randomUUID(),
   rawUrl: "https://example.org/jobs/123?utm_source=mail",
   normalizedUrl: "https://example.org/jobs/123",
   analyzerVersion: "v1",
@@ -21,6 +22,7 @@ test("受付を1 RPCで行い、rawとnormalized URLを分けて渡す", async (
   let calls = 0;
   const repository = createAnalysisRequestRepository(async (args) => {
     calls += 1;
+    assert.equal(args.p_user_id, input.userId);
     assert.equal(args.p_raw_url, input.rawUrl);
     assert.equal(args.p_normalized_url, input.normalizedUrl);
     assert.equal(args.p_fresh_after, freshAfter);

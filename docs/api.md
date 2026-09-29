@@ -23,7 +23,7 @@
 | GET | /api/v1/jobs/:jobPostingId | 個別求人・根拠・取得日・評価版 | 200 |
 | POST | /api/v1/matches | 本人の最新プロフィール版と求人評価を比較して保存。body `{evaluationId}` | 200 / 201 / 400 / 401 / 403 / 404 / 409 / 422 / 503 |
 | GET | /api/v1/me/matches/:matchResultId | 本人の保存済みMatch（求人はsnapshot、会社は最新評価で再計算） | 200 / 400 / 401 / 403 / 404 / 503 |
-| GET | /api/v1/me/analysis-history | 本人の分析済み求人を最新Match順にページネーション（後続Issueの草案） | 200 |
+| GET | /api/v1/me/analysis-history | 本人の分析済み求人を絞り込み・keysetページネーション | 200 / 400 / 401 / 403 / 503 |
 
 ### 診断プロフィール（Issue #25）
 
@@ -35,7 +35,7 @@ GET 200とPUT 200/201のJSONは`{profileVersionId, profileVersion, profile}`。G
 
 ### 共有解析の受付とポーリング（Issue #23）
 
-公開経路は`/api/v1/analyses`、Hono内部は`/v1/analyses`。POST JSONは`{url}`だけを受け、Google認証が必要。fragmentと既知の`utm_source`/`utm_medium`/`utm_campaign`/`utm_term`/`utm_content`だけを除去したURLを1回の`request_analysis` RPCへ渡す。APIは明らかな内部宛URLを拒否し、Crawlerが取得時にDNSとredirectを再検査する。
+公開経路は`/api/v1/analyses`、Hono内部は`/v1/analyses`。POST JSONは`{url}`だけを受け、Google認証が必要。fragmentと既知の`utm_source`/`utm_medium`/`utm_campaign`/`utm_term`/`utm_content`だけを除去したURLを1回の`request_personal_analysis` RPCへ渡す。このRPCは共有`request_analysis`を実行し、本人の依頼を同じDB操作で記録する。APIは明らかな内部宛URLを拒否し、Crawlerが取得時にDNSとredirectを再検査する。
 
 POSTの応答は`fresh`評価なら200 `{status:"completed",evaluationId,sourceFetchedAt}`、古い評価があれば200 `{status:"stale",evaluationId,sourceFetchedAt,refreshJobId}`、未評価・処理中なら202 `{status:"pending",jobId}`。GET `/api/v1/analyses/:jobId` は200で`{status:"queued"|"running"|"failed",jobId}`または`{status:"completed",jobId,evaluationId}`。存在しないjobIdは404。認証ユーザーは共有状態を読めるが、本人情報・Match・worker tokenは含めない。エラーは診断プロフィールと同じ`{code,message,requestId}`。共有Zod契約と[ADR-030](adr/030-analysis-api-contract.md)を参照。解析版と鮮度期間は実行設定が必須で、値は運用で決める。
 
@@ -44,6 +44,10 @@ POSTの応答は`fresh`評価なら200 `{status:"completed",evaluationId,sourceF
 公開経路は`/api/v1/matches`と`/api/v1/me/matches/:matchResultId`、Hono内部は`/v1/...`。POST bodyは`{evaluationId}`だけで、Google認証が必要。APIは検証済みの本人IDと本人JWTで最新の確定プロフィール版を読み、`packages/application`の`createMatch`がdomainの`matchCareerProfile`で比較し、`commit_match_result` RPCで保存する。新規は201、同じプロフィール版・評価・アルゴリズム版の既存Matchは200。プロフィール未保存409、評価なし404、会社評価・軸版不一致422。
 
 応答は`matchReportSchema`: `matchResultId`、`createdAt`、`profileVersion`、`algorithmVersion`、`companyName`、`jobTitle`、`job`/`company`（`comparable`なら8軸それぞれの`status`・希望値・重要度・評価アンカー`observed`・根拠`{quote, sourceUrl, fetchedAt}`、または`incompatible`）、`hardConstraints`（3件、`status`と任意の`reason`）。総合点は返さない。求人条件の保存先が未実装のため、必須条件は現在`unknown(missing_information)`か`not_required`になる。
+
+### 分析済み企業（Issue #27）
+
+`GET /api/v1/me/analysis-history`はGoogle認証が必要。queryは`limit`（1..100、既定20）、`cursor`、`role`（希望職種の完全一致）、`judgement`（`all`/`mostly_close`/`has_different`/`has_unknown`）、`sort`（`recent`/`close`/`fewest_unknown`）。レスポンスは`{items,nextCursor}`。求人ごとの最新Match、当時のプロフィール版・求人評価版、最新会社評価版、軸別の近い/相違/不明件数、求人条件の鮮度警告を返す。`cursor`は絞り込み・並び順に紐付け、異なる条件では400。本人の依頼で完了した未保存評価は、先頭ページ取得時に本人の最新プロフィールでMatchへ反映してから一覧を読む。プロフィール未保存・版不一致の評価はMatchにできず、一覧へ含めない。共有ジョブのGETには依頼者情報を返さない。[ADR-033](adr/033-analysis-history-delivery.md)。
 
 ## 共有解析ジョブ状態
 

@@ -39,6 +39,7 @@ export function createAnalysisRoutePolicy(): AnalysisRoutePolicy {
 
 type RequestStore = {
   request: (input: {
+    userId: string;
     rawUrl: string;
     normalizedUrl: string;
     analyzerVersion: string;
@@ -91,6 +92,7 @@ export function createAnalysisRoutes(
         policy.now().getTime() - policy.freshnessSeconds * 1_000,
       ).toISOString();
       const result = await requestDeps().request({
+        userId: auth.userId,
         rawUrl: parsed.data.url,
         normalizedUrl,
         analyzerVersion: policy.analyzerVersion,

@@ -21,6 +21,19 @@ export type {
 } from "./analyses.js";
 
 export {
+  analysisHistoryItemSchema,
+  analysisHistoryPageSchema,
+  analysisHistoryQuerySchema,
+  historyJudgementSchema,
+  historySortSchema,
+} from "./analysis-history.js";
+export type {
+  AnalysisHistoryItem,
+  AnalysisHistoryPage,
+  AnalysisHistoryQuery,
+} from "./analysis-history.js";
+
+export {
   careerAxisKeys,
   careerProfilePayloadSchema,
   careerProfileResponseSchema,

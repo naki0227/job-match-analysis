@@ -140,7 +140,9 @@ test("a user without a profile sees onboarding first and can skip it", async () 
   ).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "あとで" }));
   expect(screen.getByText(/未入力です/)).toBeInTheDocument();
-  expect(screen.getByRole("note")).toHaveTextContent("Issue #27");
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "最近の分析を取得できませんでした",
+  );
   fireEvent.click(screen.getByRole("button", { name: "入力する" }));
   expect(
     await screen.findByRole("heading", { name: "どんな仕事を見てる？" }),

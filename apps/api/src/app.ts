@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { healthResponse } from "@job-match/contracts";
 import { Hono } from "hono";
 import { createAnalysisRoutes } from "./analysis-routes.js";
+import { createAnalysisHistoryRoutes } from "./analysis-history-routes.js";
 import {
   createSupabaseProfileBootstrapDeps,
   type ProfileBootstrapDeps,
@@ -56,6 +57,7 @@ export function createApp(
 
   app.route("/", createCareerProfileRoutes(deps, careerStoreDeps));
   app.route("/", createAnalysisRoutes(deps));
+  app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));
 
   return app;

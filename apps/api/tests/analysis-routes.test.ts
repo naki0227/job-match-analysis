@@ -41,6 +41,7 @@ function auth(
 function routes(args: {
   authStatus?: "ok" | "invalid" | "unavailable" | "non-google";
   request?: (input: {
+    userId: string;
     rawUrl: string;
     normalizedUrl: string;
     analyzerVersion: string;
@@ -108,6 +109,7 @@ test("same normalized URL from two callers shares the repository job", async () 
   const calls: string[] = [];
   const app = routes({
     request: async (input) => {
+      assert.equal(input.userId, userId);
       calls.push(input.normalizedUrl);
       assert.equal(input.analyzerVersion, "analysis-v1");
       assert.equal(input.freshAfter, "2026-09-29T01:00:00.000Z");

@@ -14,6 +14,8 @@
 
 1を採用する。
 
+Issue #27で、Webが完了画面まで到達しない場合の補完経路を[ADR-033](033-analysis-history-delivery.md)に追加した。通常のPOSTと再訪時の補完はいずれも同じ`createMatch`ユースケースを使う。
+
 - `packages/application`を新設し、`createMatch`/`readMatch`ユースケースとport（本人プロフィール、共有評価、Match保存）を置く。比較はdomainの`matchCareerProfile`、HTTP形状は`packages/contracts`の`matchReportSchema`。API routeは認証・入力検証・ユースケース呼び出し・状態コードだけを担う。
 - `POST /api/v1/matches {evaluationId}`: 本人の最新確定プロフィール版と求人評価を比較し、新規は201、同じ（プロフィール版・評価・アルゴリズム版）の既存Matchは200で返す。プロフィール未保存409、評価なし404、会社評価または軸版不一致422。クライアントからuserIdやプロフィールは受け取らない。
 - `GET /api/v1/me/matches/:matchResultId`: 本人のMatchだけを返し、他人・不在は404。求人の軸結果は保存時のsnapshot、会社全体は最新の会社評価と保存済み希望値から再計算する（ADR-023と同じく会社評価は保存しない）。

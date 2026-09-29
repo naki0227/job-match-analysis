@@ -16,6 +16,8 @@ Issue #27の画面は保存・お気に入り操作ではなく「分析済み�
 
 `list_analysis_history_page`は検証済み本人IDを受け取るservice_role専用の`SECURITY INVOKER` RPC。求人ごとの最新Matchを選んだ後、Match日時とIDのkeyset cursorで最大100件（次ページ判定のためDBは`limit+1`件）を返す。表示する求人評価は**そのMatchが参照した評価版**、会社評価は取得時点の最新共有版とする。API repositoryは1ページを1 RPCで読み、DB応答を検証する。HTTP公開、フィルタ、詳細画面はIssue #27で扱う。
 
+Issue #27では[ADR-033](033-analysis-history-delivery.md)に従い、絞り込みと並び順を追加した`list_analysis_history_page_v2`を公開した。共有job完了後にWebが離脱していた場合も、本人の受付記録から再訪時にMatchを作る。
+
 旧テーブルに行があればmigrationを停止する。旧ブックマークは分析済みと同義ではないため自動変換しない。空であることを確認できた環境にのみ新migrationを適用し、旧表・RPCを削除する。既存migrationは履歴として残す。rollbackは旧表・RPCを空で再作成し、旧行の復旧には事前バックアップが必要。
 
 ## メリット・デメリット

@@ -162,6 +162,14 @@ fi
 psql_cmd < supabase/tests/issue22_evaluation_versions.sql
 psql_cmd < supabase/migrations/20260929093000_match_result_rpc.sql
 psql_cmd < supabase/tests/match_result_rpc.sql
+psql_cmd < supabase/migrations/20260929131358_analysis_history_page_v2.sql
+psql_cmd < supabase/tests/issue27_analysis_history_page.sql
+psql_cmd < supabase/migrations/20260929133857_personal_analysis_interest.sql
+psql_cmd < supabase/tests/issue27_personal_analysis_interest.sql
+psql_cmd < supabase/rollback/20260929133857_personal_analysis_interest.sql
+psql_cmd < supabase/tests/issue27_personal_analysis_rollback.sql
+psql_cmd < supabase/rollback/20260929131358_analysis_history_page_v2.sql
+psql_cmd < supabase/tests/issue27_analysis_history_rollback.sql
 psql_cmd < supabase/rollback/20260929_match_result_down.sql
 psql_cmd < supabase/tests/match_result_rollback.sql
 psql_cmd < supabase/rollback/20260929_issue20_down.sql

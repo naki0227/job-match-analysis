@@ -65,4 +65,11 @@ export async function signInWithFixture(page: Page): Promise<void> {
   await page.route("**/api/v1/me/profile", (route) =>
     route.fulfill({ status: 204 }),
   );
+  await page.route("**/api/v1/me/analysis-history?**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], nextCursor: null }),
+    }),
+  );
 }

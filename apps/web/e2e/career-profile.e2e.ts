@@ -1,44 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { signInWithFixture } from "./session-fixture";
 
 const versionId = "b5e4309c-5947-4d75-a47d-94b34187ad20";
-const userId = "7fac714a-165e-44e9-a39a-7d65cd63767e";
 
 test("ログイン済みfixtureで入力・保存・再読込を確認する", async ({ page }) => {
-  const expiresAt = Math.floor(Date.now() / 1000) + 3600;
-  await page.addInitScript(
-    ({ session }) => {
-      localStorage.setItem("sb-e2e-auth-token", JSON.stringify(session));
-    },
-    {
-      session: {
-        access_token: "fixture.access.token",
-        refresh_token: "fixture-refresh-token",
-        token_type: "bearer",
-        expires_in: 3600,
-        expires_at: expiresAt,
-        user: {
-          id: userId,
-          aud: "authenticated",
-          role: "authenticated",
-          app_metadata: { provider: "google", providers: ["google"] },
-          user_metadata: {},
-          created_at: "2026-01-01T00:00:00Z",
-        },
-      },
-    },
-  );
+  await signInWithFixture(page);
 
   let saved: Record<string, unknown> | null = null;
-  await page.route("**/api/health", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: '{"status":"ok"}',
-    }),
-  );
-  await page.route("**/api/v1/me/profile", (route) =>
-    route.fulfill({ status: 204 }),
-  );
   await page.route("**/api/v1/me/career-profile", async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({
@@ -63,6 +31,7 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
   });
 
   await page.goto("/");
+  await page.getByRole("button", { name: "希望条件" }).click();
   await page.getByRole("textbox", { name: "希望職種" }).fill("エンジニア");
   for (let index = 0; index < 8; index += 1) {
     await page.getByRole("button", { name: "回答する" }).first().click();
@@ -85,6 +54,7 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
   await expect(page.getByRole("status")).toContainText("第1版を保存しました。");
 
   await page.reload();
+  await page.getByRole("button", { name: "希望条件" }).click();
   await expect(page.getByRole("textbox", { name: "希望職種" })).toHaveValue(
     "エンジニア",
   );

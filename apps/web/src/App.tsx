@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { healthResponseSchema } from "@job-match/contracts";
+import { AuthenticatedApp } from "./AuthenticatedApp";
 import {
   getCurrentAccessToken,
   getSupabaseClient,
@@ -7,7 +8,6 @@ import {
   startGoogleSignIn,
 } from "./features/auth/auth";
 import { SignInScreen } from "./features/auth/SignInScreen";
-import { CareerProfileForm } from "./features/career-profile/CareerProfileForm";
 import "./App.css";
 
 function App() {
@@ -79,9 +79,7 @@ function App() {
         />
       )}
       {authStatus === "signed_in" && (
-        <main className="shell">
-          <CareerProfileForm getAccessToken={getCurrentAccessToken} />
-        </main>
+        <AuthenticatedApp getAccessToken={getCurrentAccessToken} />
       )}
       <footer className="api-status">API Status: {status}</footer>
     </div>

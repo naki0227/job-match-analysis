@@ -31,3 +31,24 @@ export type {
   CareerProfileResponse,
   CommitCareerProfileRequest,
 } from "./career-profile.js";
+
+export {
+  createMatchRequestSchema,
+  matchAxisResultSchema,
+  matchAxisStatuses,
+  matchConstraintKinds,
+  matchConstraintReasons,
+  matchConstraintResultSchema,
+  matchConstraintStatuses,
+  matchEvidenceSchema,
+  matchReportSchema,
+  matchTargetResultSchema,
+} from "./matches.js";
+export type {
+  CreateMatchRequest,
+  MatchAxisResult,
+  MatchConstraintResult,
+  MatchEvidence,
+  MatchReport,
+  MatchTargetResult,
+} from "./matches.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, beforeEach, mock, test } from "node:test";
+import { afterEach, beforeEach, it, vi } from "vitest";
 
 import { callJev } from "../src/integrations/jev/client.js";
 import {
@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  mock.restoreAll();
+  vi.restoreAllMocks();
 
   if (originalApiKey === undefined) {
     delete process.env.JEV_API_KEY;
@@ -37,8 +37,8 @@ afterEach(() => {
   }
 });
 
-test("正常なNoulレスポンスを返す", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("正常なNoulレスポンスを返す", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return Response.json({
       model: "jev-test",
       answers: {
@@ -67,8 +67,8 @@ test("正常なNoulレスポンスを返す", async () => {
   assert.equal(result.usage.output_tokens, 20);
 });
 
-test("Choiceレスポンスを正しくparseする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("Choiceレスポンスを正しくparseする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return Response.json({
       model: "jev-test",
       answers: {
@@ -102,8 +102,8 @@ test("Choiceレスポンスを正しくparseする", async () => {
   }
 });
 
-test("Scoreレスポンスを正しくparseする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("Scoreレスポンスを正しくparseする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return Response.json({
       model: "jev-test",
       answers: {
@@ -142,8 +142,8 @@ test("Scoreレスポンスを正しくparseする", async () => {
   }
 });
 
-test("usageがnullでも正常レスポンスとして扱う", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("usageがnullでも正常レスポンスとして扱う", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return Response.json({
       model: "jev-test",
       answers: {
@@ -165,8 +165,8 @@ test("usageがnullでも正常レスポンスとして扱う", async () => {
   assert.equal(result.usage.output_tokens, null);
 });
 
-test("Scoreのlegendにobjectやarrayが含まれていても正常に扱う", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("Scoreのlegendにobjectやarrayが含まれていても正常に扱う", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return Response.json({
       model: "jev-test",
       answers: {
@@ -201,22 +201,22 @@ test("Scoreのlegendにobjectやarrayが含まれていても正常に扱う", a
   assert.equal(result.answers.customer_involvement?.type, "score");
 });
 
-test("JEV_API_KEYが未設定の場合はエラーをthrowする", async () => {
+it("JEV_API_KEYが未設定の場合はエラーをthrowする", async () => {
   delete process.env.JEV_API_KEY;
 
   await assert.rejects(() => callJev(request), /JEV_API_KEY is not set/);
 });
 
-test("429の場合はJevRateLimitErrorをthrowする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("429の場合はJevRateLimitErrorをthrowする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return new Response(null, { status: 429 });
   });
 
   await assert.rejects(() => callJev(request), JevRateLimitError);
 });
 
-test("HTTPエラーの場合はstatusを持ったJevApiErrorをthrowする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("HTTPエラーの場合はstatusを持ったJevApiErrorをthrowする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return new Response(null, { status: 500 });
   });
 
@@ -231,8 +231,8 @@ test("HTTPエラーの場合はstatusを持ったJevApiErrorをthrowする", asy
   );
 });
 
-test("timeoutの場合はJevTimeoutErrorをthrowする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("timeoutの場合はJevTimeoutErrorをthrowする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     throw new DOMException(
       "The operation was aborted due to timeout",
       "TimeoutError",
@@ -242,16 +242,16 @@ test("timeoutの場合はJevTimeoutErrorをthrowする", async () => {
   await assert.rejects(() => callJev(request), JevTimeoutError);
 });
 
-test("通信失敗の場合はJevNetworkErrorをthrowする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("通信失敗の場合はJevNetworkErrorをthrowする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     throw new TypeError("fetch failed");
   });
 
   await assert.rejects(() => callJev(request), JevNetworkError);
 });
 
-test("JSONとして不正なレスポンスの場合はJevInvalidResponseErrorをthrowする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("JSONとして不正なレスポンスの場合はJevInvalidResponseErrorをthrowする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return new Response("not-json", {
       status: 200,
       headers: {
@@ -263,8 +263,8 @@ test("JSONとして不正なレスポンスの場合はJevInvalidResponseError�
   await assert.rejects(() => callJev(request), JevInvalidResponseError);
 });
 
-test("JSONがJevのレスポンス契約に違反する場合はJevInvalidResponseErrorをthrowする", async () => {
-  mock.method(globalThis, "fetch", async () => {
+it("JSONがJevのレスポンス契約に違反する場合はJevInvalidResponseErrorをthrowする", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     return Response.json({
       model: "jev-test",
       answers: {

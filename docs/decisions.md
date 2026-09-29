@@ -12,7 +12,7 @@
 | ADR-006 | Terraformはクラスタ外、Argo CDはK8s内 | 同じリソースの二重管理を防ぐ | bootstrapとsecret管理が必要 |
 | ADR-007 | バッチで複数評価を取得 | DB N+1抑制 | join条件・Indexの検証が必要 |
 | ADR-008 | 採用適性の断定をしない | 本人向けの比較・意思決定支援に限定 | 結果表示の表現／根拠の設計が必要 |
-| ADR-009 | Jev APIはAPIサーバーから直接HTTPで呼び出し、Zodでレスポンス契約を検証する | TypeScriptから利用可能で、実APIによるNoul / Choice / Scoreの入出力を確認できた。外部APIの契約違反をアプリ内部へ漏らさない | Jev固有のschema・error mapping・timeout/429処理を保守する必要がある |
+| ADR-009 | Jev APIの直接HTTP/Zod契約を検証。呼び出し元の配置はADR-027で更新 | 実APIによるNoul / Choice / Scoreの入出力を確認した | Jev固有のschema・error mapping・timeout/429処理を保守する必要がある |
 | [ADR-010](adr/010-assessment-axes.md) | MVPの就業価値観は8軸で定義する | 本人の希望を分けて表し、各軸を公開資料の根拠で確認する | 入力負担と `unknown` が増える |
 | [ADR-011](adr/011-importance-and-hard-constraints.md) | 重要度0は比較から除外し、必須条件は個別求人の明示情報で判定する | 未回答と区別し、根拠のない推定を避ける | 判定不能の `unknown` が増える |
 | [ADR-012](adr/012-domain-identifiers.md) | CareerProfileは固定の8軸ID・共通カタログ版と2桁の都道府県コードを使う | 版混在と表記揺れをドメイン境界で拒否する | 軸変更時は全体を新版にし、市区町村・海外は別途拡張が必要 |
@@ -29,6 +29,8 @@
 | [ADR-023](adr/023-analysis-history-from-matches.md) | 保存操作をなくし、本人の求人Match結果を分析履歴の元にする | 二重の状態管理をなくし、再分析の版を残す | 一覧の重複除去はMatch件数に応じて再評価する |
 | [ADR-024](adr/024-atomic-analysis-registration.md) | 正規化URL行ロックの1 RPCでcache確認と共有ジョブ参加を直列化する | 同時受付・完了直後の重複ジョブを抑える | 同一URLへの集中時は行ロック待ちを実測する |
 | [ADR-025](adr/025-analysis-job-leases.md) | SKIP LOCKEDのclaimとworker token/leaseで停止後のジョブを引き継ぐ | 多重workerでも1件ずつ所有し、旧tokenの確定を拒否する | lease長・試行上限の運用値と外部API予算は実測後に決める |
+| [ADR-026](adr/026-crawler-source-extraction.md) | 利用条件とrobots確認後、HTTP本文不足時だけブラウザで取得する | 費用と誤抽出を抑え、会社と求人を分離する | 実サイトの許可・頻度は運用前に確定が必要 |
+| [ADR-027](adr/027-decision-engine-worker-boundary.md) | Jev通信をCrawler workerのDecisionEngine境界へ置く | API受付を短く保ち、leaseと外部評価を同じ処理にする | WorkerへのSecret注入と費用制御が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 

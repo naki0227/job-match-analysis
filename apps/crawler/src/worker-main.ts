@@ -13,7 +13,7 @@ import {
   parseJevBudgetSetting,
 } from "./jev-budget.js";
 import { createSupabaseSourceRetentionStore } from "./source-retention.js";
-import { runWorkerLoop } from "./worker-loop.js";
+import { runUntilIdle, runWorkerLoop } from "./worker-loop.js";
 
 const configSchema = z.object({
   SUPABASE_URL: z.url(),
@@ -27,6 +27,9 @@ const configSchema = z.object({
   CRAWLER_MAX_EXCERPT_CHARS: z.coerce.number().int().positive(),
   CRAWLER_POLL_INTERVAL_MS: z.coerce.number().int().positive(),
   /** Jev evidence candidates per UTC day, or "unlimited" (Issue #42). */
+  /** loop: long-running worker. drain: exit once the queue is idle (ADR-040). */
+  CRAWLER_RUN_MODE: z.enum(["loop", "drain"]).default("loop"),
+  CRAWLER_DRAIN_MAX_JOBS: z.coerce.number().int().min(1).max(1000).optional(),
   CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: z.string().transform((value, context) => {
     try {
       return parseJevBudgetSetting(value);
@@ -39,7 +42,11 @@ const configSchema = z.object({
 
 export function parseWorkerConfig(env: NodeJS.ProcessEnv) {
   const result = configSchema.safeParse(env);
-  if (!result.success)
+  if (
+    !result.success ||
+    (result.data.CRAWLER_RUN_MODE === "drain" &&
+      result.data.CRAWLER_DRAIN_MAX_JOBS === undefined)
+  )
     throw new Error("Crawler worker configuration is invalid");
   return result.data;
 }
@@ -79,29 +86,42 @@ async function main(): Promise<void> {
     ),
     crawlerMetrics,
   );
-  try {
-    await runWorkerLoop({
-      signal: controller.signal,
-      pollIntervalMs: config.CRAWLER_POLL_INTERVAL_MS,
-      onError: (name) =>
-        process.stderr.write(`Crawler cycle failed: ${name}\n`),
-      cycle: () =>
-        runCrawlerCycle({
-          jobStore,
-          retentionStore,
-          leaseSeconds: config.CRAWLER_LEASE_SECONDS,
-          maxAttempts: config.CRAWLER_MAX_ATTEMPTS,
-          retentionBatchSize: config.CRAWLER_RETENTION_BATCH_SIZE,
-          processor: {
-            loadSource: sourceStore.loadSource,
-            resolveJobTarget: sourceStore.resolveJobTarget,
-            engine,
-            browser,
-            maxCandidates: config.CRAWLER_MAX_CANDIDATES,
-            maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
-          },
-        }),
+  const cycle = () =>
+    runCrawlerCycle({
+      jobStore,
+      retentionStore,
+      leaseSeconds: config.CRAWLER_LEASE_SECONDS,
+      maxAttempts: config.CRAWLER_MAX_ATTEMPTS,
+      retentionBatchSize: config.CRAWLER_RETENTION_BATCH_SIZE,
+      processor: {
+        loadSource: sourceStore.loadSource,
+        resolveJobTarget: sourceStore.resolveJobTarget,
+        engine,
+        browser,
+        maxCandidates: config.CRAWLER_MAX_CANDIDATES,
+        maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
+      },
     });
+  try {
+    if (config.CRAWLER_RUN_MODE === "drain") {
+      const outcome = await runUntilIdle({
+        cycle,
+        maxJobs: config.CRAWLER_DRAIN_MAX_JOBS ?? 1,
+        signal: controller.signal,
+      });
+      process.stdout.write(
+        `Crawler drain finished: ${outcome.status} after ${outcome.processed} jobs\n`,
+      );
+      if (outcome.status === "error") process.exitCode = 1;
+    } else {
+      await runWorkerLoop({
+        signal: controller.signal,
+        pollIntervalMs: config.CRAWLER_POLL_INTERVAL_MS,
+        onError: (name) =>
+          process.stderr.write(`Crawler cycle failed: ${name}\n`),
+        cycle,
+      });
+    }
   } finally {
     await browser.close();
   }

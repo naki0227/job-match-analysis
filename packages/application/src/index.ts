@@ -14,3 +14,14 @@ export {
   toCareerProfileVersion,
 } from "./match-use-cases.js";
 export type { CreateMatchResult, ReadMatchResult } from "./match-use-cases.js";
+export {
+  createShare,
+  readActiveShare,
+  readPublicShare,
+  revokeShare,
+} from "./share-use-cases.js";
+export type {
+  CreateShareResult,
+  CreatedShare,
+  SharePorts,
+} from "./share-use-cases.js";

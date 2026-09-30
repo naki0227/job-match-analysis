@@ -125,7 +125,7 @@ function profileFromSnapshot(match: StoredMatch): CareerProfileVersion {
  * the company part is compared with the latest company evaluation.
  */
 export async function readMatch(
-  ports: MatchPorts,
+  ports: Pick<MatchPorts, "readMatch" | "readEvaluation">,
   input: { userId: string; matchResultId: string },
 ): Promise<ReadMatchResult> {
   const match = await ports.readMatch(input.userId, input.matchResultId);

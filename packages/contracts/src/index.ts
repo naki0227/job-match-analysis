@@ -85,3 +85,16 @@ export { deleteAccountRequestSchema } from "./account.js";
 export type { DeleteAccountRequest } from "./account.js";
 
 export { axisDisplayNames, axisStatusDisplayLabels } from "./labels.js";
+
+export {
+  employmentPreferenceSchema,
+  jobCandidateSchema,
+  jobSearchRequestSchema,
+  jobSearchResponseSchema,
+} from "./job-resolver.js";
+export type {
+  EmploymentPreference,
+  JobCandidateView,
+  JobSearchRequest,
+  JobSearchResponse,
+} from "./job-resolver.js";

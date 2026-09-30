@@ -64,6 +64,7 @@ describe("evaluation persistence payload", () => {
       axisVersion: 1,
       observationStatus: "known",
       anchorValue: 50,
+      evaluationMethod: "jev",
     });
     expect(payload.evaluation.axisValues[1]?.observationStatus).toBe("unknown");
     expect(payload.evaluation.evidence).toEqual([

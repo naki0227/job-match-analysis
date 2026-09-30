@@ -60,7 +60,8 @@ const send: RequestOnce = async (requestedUrl) => {
         "@type": "JobPosting",
         title: "公開求人",
         hiringOrganization: { name: "Issue 20 Process Recovery" },
-      })}</script><main data-job><h1>公開求人</h1><p>${jobText}</p>
+      })}</script><main data-job><h1>公開求人</h1>
+        <p>年収500万円〜800万円</p><p>週2日出社</p><p>${jobText}</p>
         <aside data-company><p>会社全体ではフルリモートです。</p></aside></main>`;
   const response: FetchedResource = {
     url: requestedUrl.href,
@@ -105,7 +106,7 @@ const store: AnalysisJobStore = {
     );
   },
   async complete(id, token, result) {
-    return query(`select public.commit_analysis_evaluation(
+    return query(`select public.commit_analysis_evaluation_v2(
       '${uuid(id)}', '${uuid(token)}', '${uuid(result.targetId)}',
       ${json(result.documents)}, ${json(result.evaluation)})`);
   },
@@ -218,6 +219,20 @@ async function main(): Promise<void> {
       join public.analysis_jobs j on j.evaluation_id = a.evaluation_id
       where j.id = '${jobId}'`),
     "8",
+  );
+  assert.equal(
+    await query(`select count(*) from public.evaluated_axis_values a
+      join public.analysis_jobs j on j.evaluation_id = a.evaluation_id
+      where j.id = '${jobId}' and a.axis_key = 'work_location'
+        and a.evaluation_method = 'rule' and a.anchor_value = 50`),
+    "1",
+  );
+  assert.equal(
+    await query(`select count(*) from public.evaluation_job_facts f
+      join public.analysis_jobs j on j.evaluation_id = f.evaluation_id
+      where j.id = '${jobId}' and f.kind = 'salary'
+        and f.payload ->> 'status' = 'known'`),
+    "1",
   );
   assert.equal(
     await query(`select count(*) from public.analysis_jobs j

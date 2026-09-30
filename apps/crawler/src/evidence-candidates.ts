@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { AxisRubric, EvidenceCandidate } from "./decision-engine.js";
 import type { ExtractedSourceDocument } from "./source-extractor.js";
 
-export const CANDIDATE_SELECTOR_VERSION = "axis-keywords-v1";
+export const CANDIDATE_SELECTOR_VERSION = "axis-keywords-v2";
 
 const axisTerms: Readonly<Record<string, RegExp>> = {
   work_location: /リモート|在宅|出社|出勤|勤務地|remote|on.?site|hybrid/i,
@@ -34,6 +34,15 @@ function hasContactOrSecret(text: string): boolean {
   );
 }
 
+function shortExplicitFact(axisKey: string, excerpt: string): boolean {
+  return (
+    axisKey === "work_location" &&
+    /週\s*[0-5]\s*日出社|出社必須|原則出社|出社不要|完全在宅|フルリモート/u.test(
+      excerpt,
+    )
+  );
+}
+
 export function selectEvidenceCandidates(args: {
   documents: readonly ExtractedSourceDocument[];
   scope: "company" | "job";
@@ -60,7 +69,8 @@ export function selectEvidenceCandidates(args: {
             sentences(fragment.text).forEach((excerpt, sentenceIndex) => {
               if (
                 excerpt.length > args.maxExcerptChars ||
-                excerpt.replace(/\s/g, "").length < 6 ||
+                (excerpt.replace(/\s/g, "").length < 6 &&
+                  !shortExplicitFact(rubric.axisKey, excerpt)) ||
                 hasContactOrSecret(excerpt) ||
                 !term.test(excerpt)
               )

@@ -4,6 +4,7 @@ import {
   type DecisionEngineOutput,
 } from "./decision-engine.js";
 import { sourceSetHash } from "./evaluation-input.js";
+import type { ParsedJobFacts } from "./deterministic-parser.js";
 import {
   evaluationDocumentPayload,
   type ExtractedSourceDocument,
@@ -21,6 +22,8 @@ export function buildEvaluationPayload(args: {
   documents: readonly ExtractedSourceDocument[];
   input: DecisionEngineInput;
   output: DecisionEngineOutput;
+  methods?: ReadonlyMap<string, "deterministic" | "rule" | "jev">;
+  facts?: ParsedJobFacts;
 }) {
   const { sourceUrlIds, documents, input, output } = args;
   validateDecisionInput(input);
@@ -60,6 +63,7 @@ export function buildEvaluationPayload(args: {
       axisVersion: input.axisCatalogVersion,
       observationStatus: decision.status,
       anchorValue: decision.anchorValue,
+      evaluationMethod: args.methods?.get(rubric.axisKey) ?? "jev",
     });
     for (const id of new Set(decision.evidenceIds)) {
       const candidate = candidates.get(id);
@@ -91,6 +95,7 @@ export function buildEvaluationPayload(args: {
       modelVersion: output.modelVersion,
       axisValues,
       evidence,
+      jobFacts: args.facts ?? null,
     },
   };
 }

@@ -83,7 +83,7 @@ export function createAnalysisJobStore(client: RpcClient): AnalysisJobStore {
       return data;
     },
     async complete(jobId, workerToken, work: AnalysisWork) {
-      const data = await call("commit_analysis_evaluation", {
+      const data = await call("commit_analysis_evaluation_v2", {
         p_job_id: jobId,
         p_worker_token: workerToken,
         p_target_id: work.targetId,

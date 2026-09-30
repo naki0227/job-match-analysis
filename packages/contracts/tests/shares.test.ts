@@ -5,6 +5,7 @@ import {
   matchShareSchema,
   sharedMatchSchema,
   shareTokenSchema,
+  summarizeSharedMatch,
   toSharedMatch,
 } from "../src/shares.js";
 
@@ -101,5 +102,15 @@ describe("share contracts", () => {
         projection: toSharedMatch(report),
       }).success,
     ).toBe(true);
+  });
+
+  it("summarizes counts without turning unknown states into numbers", () => {
+    const summary = summarizeSharedMatch(toSharedMatch(report));
+    expect(summary).toEqual({
+      close: 6,
+      different: 0,
+      unknown: 2,
+      closeAxes: ["work_location", "autonomy", "collaboration"],
+    });
   });
 });

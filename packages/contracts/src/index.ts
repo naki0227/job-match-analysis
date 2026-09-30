@@ -74,3 +74,6 @@ export {
   toSharedMatch,
 } from "./shares.js";
 export type { MatchShare, PublicShare, SharedMatch } from "./shares.js";
+
+export { deleteAccountRequestSchema } from "./account.js";
+export type { DeleteAccountRequest } from "./account.js";

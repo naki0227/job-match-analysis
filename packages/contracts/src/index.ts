@@ -65,3 +65,12 @@ export type {
   MatchReport,
   MatchTargetResult,
 } from "./matches.js";
+
+export {
+  matchShareSchema,
+  publicShareSchema,
+  shareTokenSchema,
+  sharedMatchSchema,
+  toSharedMatch,
+} from "./shares.js";
+export type { MatchShare, PublicShare, SharedMatch } from "./shares.js";

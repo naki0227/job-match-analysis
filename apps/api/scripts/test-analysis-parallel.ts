@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { createAnalysisRoutes } from "../src/analysis-routes.js";
+import { createAnalysisJobRepository } from "../src/repositories/analysis-jobs.js";
 import { createAnalysisRequestRepository } from "../src/repositories/analysis-requests.js";
+import {
+  analysisJobIdSchema,
+  analysisJobResponseSchema,
+} from "@job-match/contracts";
 
 const execFileAsync = promisify(execFile);
 const container = process.env.JOB_MATCH_DB_CONTAINER;
@@ -66,6 +71,13 @@ const repository = createAnalysisRequestRepository(async (args) => {
   );
   return [JSON.parse(value) as unknown];
 });
+const jobs = createAnalysisJobRepository(async (jobId) => {
+  const id = analysisJobIdSchema.parse(jobId);
+  const row = await query(`select row_to_json(j)::text from (
+    select status, evaluation_id from public.analysis_jobs where id = '${id}'
+  ) j`);
+  return row ? (JSON.parse(row) as unknown) : null;
+});
 
 const routes = createAnalysisRoutes(
   () => ({
@@ -79,7 +91,7 @@ const routes = createAnalysisRoutes(
     ensureProfile: async () => true,
   }),
   () => repository,
-  () => ({ get: async () => null }),
+  () => jobs,
   () => ({
     analyzerVersion: "issue19-http-v1",
     freshnessSeconds: 3600,
@@ -108,6 +120,7 @@ const jobIds = new Set(
   }),
 );
 assert.equal(jobIds.size, 1);
+const sharedJobId = analysisJobIdSchema.parse([...jobIds][0]);
 assert.equal(
   await query(`select count(*) from public.analysis_jobs j
     join public.source_urls s on s.id = j.source_url_id
@@ -121,5 +134,39 @@ assert.equal(
     join public.source_urls s on s.id = r.source_url_id
     where s.normalized_url = '${normalizedUrl}'`),
   "2",
+);
+for (const token of ["user-a", "user-b"]) {
+  const response = await routes.request(`/v1/analyses/${sharedJobId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(analysisJobResponseSchema.parse(await response.json()), {
+    status: "queued",
+    jobId: sharedJobId,
+  });
+}
+await query(`update public.analysis_jobs set status = 'failed'
+  where id = '${sharedJobId}' and status = 'queued'`);
+const failedResponse = await routes.request(`/v1/analyses/${sharedJobId}`, {
+  headers: { Authorization: "Bearer user-b" },
+});
+assert.equal(failedResponse.status, 200);
+assert.deepEqual(analysisJobResponseSchema.parse(await failedResponse.json()), {
+  status: "failed",
+  jobId: sharedJobId,
+});
+assert.equal((await routes.request(`/v1/analyses/${sharedJobId}`)).status, 401);
+assert.equal(
+  (
+    await routes.request("/v1/analyses", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer user-a",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url: "https://127.0.0.1/private" }),
+    })
+  ).status,
+  400,
 );
 process.stdout.write("100 concurrent HTTP analysis requests shared one job\n");

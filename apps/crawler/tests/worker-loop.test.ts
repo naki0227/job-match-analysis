@@ -19,6 +19,7 @@ describe("worker runtime", () => {
         CRAWLER_MAX_CANDIDATES: "16",
         CRAWLER_MAX_EXCERPT_CHARS: "120",
         CRAWLER_POLL_INTERVAL_MS: "1000",
+        CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: "500",
       }).CRAWLER_LEASE_SECONDS,
     ).toBe(60);
   });

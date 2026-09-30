@@ -5,6 +5,10 @@ import { createSupabaseAnalysisSourceStore } from "./analysis-source-store.js";
 import { runCrawlerCycle } from "./crawler-cycle.js";
 import { createJevDecisionEngine } from "./integrations/jev/decision-engine.js";
 import { createSupabaseAnalysisJobStore } from "./job-store.js";
+import {
+  createBudgetedDecisionEngine,
+  createSupabaseJevBudget,
+} from "./jev-budget.js";
 import { createSupabaseSourceRetentionStore } from "./source-retention.js";
 import { runWorkerLoop } from "./worker-loop.js";
 
@@ -19,6 +23,8 @@ const configSchema = z.object({
   CRAWLER_MAX_CANDIDATES: z.coerce.number().int().positive(),
   CRAWLER_MAX_EXCERPT_CHARS: z.coerce.number().int().positive(),
   CRAWLER_POLL_INTERVAL_MS: z.coerce.number().int().positive(),
+  /** Evidence candidates sent to Jev per UTC day, service-wide (Issue #42). */
+  CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: z.coerce.number().int().positive(),
 });
 
 export function parseWorkerConfig(env: NodeJS.ProcessEnv) {
@@ -49,10 +55,17 @@ async function main(): Promise<void> {
     config.SUPABASE_URL,
     config.SUPABASE_SECRET_KEY,
   );
-  const engine = createJevDecisionEngine({
-    maxCandidates: config.CRAWLER_MAX_CANDIDATES,
-    maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
-  });
+  const engine = createBudgetedDecisionEngine(
+    createJevDecisionEngine({
+      maxCandidates: config.CRAWLER_MAX_CANDIDATES,
+      maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
+    }),
+    createSupabaseJevBudget(
+      config.SUPABASE_URL,
+      config.SUPABASE_SECRET_KEY,
+      config.CRAWLER_JEV_DAILY_CANDIDATE_BUDGET,
+    ),
+  );
   try {
     await runWorkerLoop({
       signal: controller.signal,

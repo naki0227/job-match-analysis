@@ -58,6 +58,8 @@ export async function evaluateSource(args: {
         modelVersion: "not-called",
         decisions: unknownDecisions(fallback),
       };
+  // Budget exhaustion also returns "not-called"; those axes are not Jev results.
+  const jevCalled = engineOutput.modelVersion !== "not-called";
   const decisions = new Map([
     ...rule.map((decision) => [decision.axisKey, decision] as const),
     ...engineOutput.decisions.map(
@@ -81,7 +83,8 @@ export async function evaluateSource(args: {
             rubric.axisKey,
             resolved.has(rubric.axisKey)
               ? "rule"
-              : fallback.candidates.some(
+              : jevCalled &&
+                  fallback.candidates.some(
                     (item) => item.axisKey === rubric.axisKey,
                   )
                 ? "jev"

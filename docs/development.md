@@ -58,6 +58,6 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 
 `pnpm --filter crawler build`の後、`pnpm --filter crawler worker`で共有ジョブを処理する。workerは各周期で取得から30日を過ぎた`source_document_versions.extracted_text`を最大指定件数だけNULLにし、次に共有ジョブを1件claimする。終了時はSIGINT/SIGTERMでブラウザを閉じる。
 
-起動前に`SUPABASE_URL`、`SUPABASE_SECRET_KEY`、`JEV_API_KEY`、`CRAWLER_BROWSER_EXECUTABLE`をサーバー側環境変数に設定する。`CRAWLER_LEASE_SECONDS`、`CRAWLER_MAX_ATTEMPTS`、`CRAWLER_RETENTION_BATCH_SIZE`、`CRAWLER_MAX_CANDIDATES`、`CRAWLER_MAX_EXCERPT_CHARS`、`CRAWLER_POLL_INTERVAL_MS`も必須。費用と実行環境に応じた値を運用者が指定する。ブラウザへ秘密鍵を渡さない。
+起動前に`SUPABASE_URL`、`SUPABASE_SECRET_KEY`、`JEV_API_KEY`、`CRAWLER_BROWSER_EXECUTABLE`をサーバー側環境変数に設定する。`CRAWLER_LEASE_SECONDS`、`CRAWLER_MAX_ATTEMPTS`、`CRAWLER_RETENTION_BATCH_SIZE`、`CRAWLER_MAX_CANDIDATES`、`CRAWLER_MAX_EXCERPT_CHARS`、`CRAWLER_POLL_INTERVAL_MS`、Jevへ送る根拠候補の1日（UTC）あたりの全体上限`CRAWLER_JEV_DAILY_CANDIDATE_BUDGET`も必須。上限到達後は新規のJev呼び出しを止め、未解決の軸を`unknown`として保存する（評価器版に`jev-budget-exhausted`を含む）。費用と実行環境に応じた値を運用者が指定する。ブラウザへ秘密鍵を渡さない。
 
 新規URLは単一の`JobPosting` JSON-LDに求人名と雇用主名がある場合だけ評価対象を作る。構造化メタデータのないページや複数求人の一覧は、誤った企業へ結びつけずジョブを失敗として確定する。robots・公開URL・SSRFの取得境界はADR-021/026/034に従う。

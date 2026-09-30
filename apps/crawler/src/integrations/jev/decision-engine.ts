@@ -95,6 +95,7 @@ export function createJevDecisionEngine(args: {
         };
       }
       let response: JevResponse;
+      const started = performance.now();
       try {
         response = await call({
           state: JSON.stringify({
@@ -114,6 +115,7 @@ export function createJevDecisionEngine(args: {
           inputTokens: null,
           outputTokens: null,
           outcome: transient ? "transient_error" : "provider_error",
+          durationMs: performance.now() - started,
         });
         if (transient) throw new DecisionEngineTransientError();
         throw new DecisionEngineProviderError();
@@ -123,6 +125,7 @@ export function createJevDecisionEngine(args: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
         outcome: "success",
+        durationMs: performance.now() - started,
       });
       const accepted = new Map<string, 0 | 50 | 100>();
       for (const item of usable) {

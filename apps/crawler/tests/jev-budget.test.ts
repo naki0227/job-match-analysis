@@ -1,3 +1,4 @@
+import { noopCrawlerMetrics } from "../src/crawler-metrics.js";
 import { describe, expect, it, vi } from "vitest";
 import {
   DecisionEngineTransientError,
@@ -145,7 +146,7 @@ describe("Jev daily budget", () => {
     const evaluate = vi.spyOn(inner, "evaluate");
     const exhausted = vi.fn();
     const engine = createBudgetedDecisionEngine(inner, unlimitedJevBudget, {
-      jevCall: vi.fn(),
+      ...noopCrawlerMetrics,
       jevBudgetExhausted: exhausted,
     });
     for (let call = 0; call < 3; call += 1) await engine.evaluate(input);
@@ -163,7 +164,7 @@ describe("Jev daily budget", () => {
     await createBudgetedDecisionEngine(
       createFakeDecisionEngine(),
       { reserve: async () => false },
-      { jevCall: vi.fn(), jevBudgetExhausted: exhausted },
+      { ...noopCrawlerMetrics, jevBudgetExhausted: exhausted },
     ).evaluate(input);
     expect(exhausted).toHaveBeenCalledWith({ candidates: 2 });
   });

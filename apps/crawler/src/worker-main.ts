@@ -13,6 +13,7 @@ import {
   parseJevBudgetSetting,
 } from "./jev-budget.js";
 import { createSupabaseSourceRetentionStore } from "./source-retention.js";
+import { startTelemetry } from "./telemetry/sdk.js";
 import { runUntilIdle, runWorkerLoop } from "./worker-loop.js";
 
 const configSchema = z.object({
@@ -26,10 +27,10 @@ const configSchema = z.object({
   CRAWLER_MAX_CANDIDATES: z.coerce.number().int().positive(),
   CRAWLER_MAX_EXCERPT_CHARS: z.coerce.number().int().positive(),
   CRAWLER_POLL_INTERVAL_MS: z.coerce.number().int().positive(),
-  /** Jev evidence candidates per UTC day, or "unlimited" (Issue #42). */
   /** loop: long-running worker. drain: exit once the queue is idle (ADR-040). */
   CRAWLER_RUN_MODE: z.enum(["loop", "drain"]).default("loop"),
   CRAWLER_DRAIN_MAX_JOBS: z.coerce.number().int().min(1).max(1000).optional(),
+  /** Jev evidence candidates per UTC day, or "unlimited" (Issue #42). */
   CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: z.string().transform((value, context) => {
     try {
       return parseJevBudgetSetting(value);
@@ -53,6 +54,8 @@ export function parseWorkerConfig(env: NodeJS.ProcessEnv) {
 
 async function main(): Promise<void> {
   const config = parseWorkerConfig(process.env);
+  // Before any instrument is created; see telemetry/sdk.ts.
+  const telemetry = startTelemetry("job-match-crawler");
   const browser = await chromium.launch({
     executablePath: config.CRAWLER_BROWSER_EXECUTABLE,
     headless: true,
@@ -73,6 +76,7 @@ async function main(): Promise<void> {
     config.SUPABASE_SECRET_KEY,
   );
   const crawlerMetrics = safeCrawlerMetrics(createOtelCrawlerMetrics());
+  crawlerMetrics.jevBudgetMode(config.CRAWLER_JEV_DAILY_CANDIDATE_BUDGET.mode);
   const engine = createBudgetedDecisionEngine(
     createJevDecisionEngine({
       maxCandidates: config.CRAWLER_MAX_CANDIDATES,
@@ -93,6 +97,7 @@ async function main(): Promise<void> {
       leaseSeconds: config.CRAWLER_LEASE_SECONDS,
       maxAttempts: config.CRAWLER_MAX_ATTEMPTS,
       retentionBatchSize: config.CRAWLER_RETENTION_BATCH_SIZE,
+      metrics: crawlerMetrics,
       processor: {
         loadSource: sourceStore.loadSource,
         resolveJobTarget: sourceStore.resolveJobTarget,
@@ -124,6 +129,8 @@ async function main(): Promise<void> {
     }
   } finally {
     await browser.close();
+    // Drain runs exit right after this; flush so the run is observable.
+    await telemetry.shutdown();
   }
 }
 

@@ -6,19 +6,29 @@
  */
 export type JevCallOutcome = "success" | "transient_error" | "provider_error";
 
+export type JobOutcome =
+  "completed" | "retry_pending" | "failed" | "lease_lost" | "error";
+
 export type CrawlerMetrics = {
   jevCall: (event: {
     candidates: number;
     inputTokens: number | null;
     outputTokens: number | null;
     outcome: JevCallOutcome;
+    durationMs: number;
   }) => void;
   jevBudgetExhausted: (event: { candidates: number }) => void;
+  /** Recorded once per process so dashboards always show the active mode. */
+  jevBudgetMode: (mode: "finite" | "unlimited") => void;
+  /** One claimed analysis job, from claim to its final state. */
+  analysisJob: (event: { outcome: JobOutcome; durationMs: number }) => void;
 };
 
 export const noopCrawlerMetrics: CrawlerMetrics = {
   jevCall: () => {},
   jevBudgetExhausted: () => {},
+  jevBudgetMode: () => {},
+  analysisJob: () => {},
 };
 
 /** Telemetry failures must never stop evaluation. */
@@ -35,5 +45,7 @@ export function safeCrawlerMetrics(inner: CrawlerMetrics): CrawlerMetrics {
   return {
     jevCall: guard(inner.jevCall),
     jevBudgetExhausted: guard(inner.jevBudgetExhausted),
+    jevBudgetMode: guard(inner.jevBudgetMode),
+    analysisJob: guard(inner.analysisJob),
   };
 }

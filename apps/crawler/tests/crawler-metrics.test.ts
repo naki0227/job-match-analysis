@@ -11,19 +11,23 @@ describe("crawler metrics", () => {
         inputTokens: 100,
         outputTokens: null,
         outcome: "success",
+        durationMs: 120,
       });
       metrics.jevBudgetExhausted({ candidates: 12 });
+      metrics.jevBudgetMode("unlimited");
+      metrics.analysisJob({ outcome: "completed", durationMs: 3_000 });
     }).not.toThrow();
   });
 
   it("swallows exporter failures so jobs keep running", () => {
+    const down = () => {
+      throw new Error("exporter down");
+    };
     const safe = safeCrawlerMetrics({
-      jevCall: () => {
-        throw new Error("exporter down");
-      },
-      jevBudgetExhausted: () => {
-        throw new Error("exporter down");
-      },
+      jevCall: down,
+      jevBudgetExhausted: down,
+      jevBudgetMode: down,
+      analysisJob: down,
     });
     expect(() =>
       safe.jevCall({
@@ -31,8 +35,13 @@ describe("crawler metrics", () => {
         inputTokens: 1,
         outputTokens: 1,
         outcome: "success",
+        durationMs: 1,
       }),
     ).not.toThrow();
     expect(() => safe.jevBudgetExhausted({ candidates: 1 })).not.toThrow();
+    expect(() => safe.jevBudgetMode("finite")).not.toThrow();
+    expect(() =>
+      safe.analysisJob({ outcome: "failed", durationMs: 1 }),
+    ).not.toThrow();
   });
 });

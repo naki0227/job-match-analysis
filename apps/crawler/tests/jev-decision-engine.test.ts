@@ -1,3 +1,4 @@
+import { noopCrawlerMetrics } from "../src/crawler-metrics.js";
 import { describe, expect, it, vi } from "vitest";
 import {
   DecisionEngineInputError,
@@ -153,7 +154,7 @@ describe("Jev DecisionEngine adapter", () => {
 
   it("reports candidate count, tokens and outcome without any text", async () => {
     const jevCall = vi.fn();
-    const metrics = { jevCall, jevBudgetExhausted: vi.fn() };
+    const metrics = { ...noopCrawlerMetrics, jevCall };
     await createJevDecisionEngine({
       maxCandidates: 2,
       maxExcerptChars: 200,
@@ -165,6 +166,7 @@ describe("Jev DecisionEngine adapter", () => {
       inputTokens: 20,
       outputTokens: 5,
       outcome: "success",
+      durationMs: expect.any(Number),
     });
     await expect(
       createJevDecisionEngine({
@@ -181,6 +183,7 @@ describe("Jev DecisionEngine adapter", () => {
       inputTokens: null,
       outputTokens: null,
       outcome: "transient_error",
+      durationMs: expect.any(Number),
     });
     expect(JSON.stringify(jevCall.mock.calls)).not.toMatch(
       /remote|example\.com/,

@@ -19,6 +19,10 @@ import {
   type AnalysisRequestResult,
 } from "./repositories/analysis-requests.js";
 import { noopApiMetrics, type ApiMetrics } from "./telemetry/api-metrics.js";
+import {
+  disabledWorkerTrigger,
+  type WorkerTrigger,
+} from "./worker-trigger/worker-trigger.js";
 
 export type AnalysisRoutePolicy = {
   analyzerVersion: string;
@@ -74,8 +78,16 @@ export function createAnalysisRoutes(
   jobDeps: () => JobStore = createSupabaseAnalysisJobRepository,
   policyDeps: () => AnalysisRoutePolicy = createAnalysisRoutePolicy,
   metrics: ApiMetrics = noopApiMetrics,
+  trigger: WorkerTrigger = disabledWorkerTrigger,
 ) {
   const app = new Hono();
+  // Fire and forget: waking a worker must not delay or fail the response.
+  const wakeWorker = () => {
+    void trigger.requestRun().then(
+      (outcome) => metrics.workerTrigger(outcome),
+      () => metrics.workerTrigger("failed"),
+    );
+  };
 
   app.post("/v1/analyses", async (c) => {
     const requestId = randomUUID();
@@ -166,6 +178,7 @@ export function createAnalysisRoutes(
           refreshJobId: result.jobId,
         };
         metrics.analysisRequest("stale");
+        wakeWorker();
         return c.json(body, 200);
       }
       if (result.status === "queued" && result.jobId) {
@@ -174,6 +187,7 @@ export function createAnalysisRoutes(
           jobId: result.jobId,
         };
         metrics.analysisRequest("queued");
+        wakeWorker();
         return c.json(body, 202);
       }
       metrics.analysisRequest("failed");
@@ -206,6 +220,8 @@ export function createAnalysisRoutes(
       }
       const job = await jobDeps().get(jobId);
       if (!job) return fail("not_found", "Analysis job not found", 404);
+      // Recovers a job enqueued just after a worker run went idle.
+      if (job.status === "queued") wakeWorker();
       const body: AnalysisJobResponse =
         job.status === "completed"
           ? { status: "completed", jobId, evaluationId: job.evaluationId }

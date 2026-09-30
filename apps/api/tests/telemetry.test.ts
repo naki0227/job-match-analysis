@@ -19,6 +19,7 @@ function recorder() {
   const metrics: ApiMetrics = {
     request: (event) => requests.push(event),
     analysisRequest: (outcome) => outcomes.push(outcome),
+    workerTrigger: () => {},
   };
   return { requests, outcomes, metrics };
 }
@@ -52,6 +53,9 @@ test("telemetry failures never change responses", async () => {
       throw new Error("exporter down");
     },
     analysisRequest: () => {
+      throw new Error("exporter down");
+    },
+    workerTrigger: () => {
       throw new Error("exporter down");
     },
   };

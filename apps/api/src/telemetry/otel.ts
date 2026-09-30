@@ -15,6 +15,9 @@ export function createOtelApiMetrics(): ApiMetrics {
   const analyses = meter.createCounter("job_match.analysis.requests", {
     description: "Analysis requests by outcome (fresh cache hit, new, quota)",
   });
+  const triggers = meter.createCounter("job_match.worker.triggers", {
+    description: "Crawler Job start requests by outcome",
+  });
   return {
     request: ({ route, method, status, durationMs }) =>
       duration.record(durationMs / 1_000, {
@@ -23,5 +26,6 @@ export function createOtelApiMetrics(): ApiMetrics {
         "http.response.status_code": status,
       }),
     analysisRequest: (outcome) => analyses.add(1, { outcome }),
+    workerTrigger: (outcome) => triggers.add(1, { outcome }),
   };
 }

@@ -16,11 +16,14 @@ import type { CareerProfileStore } from "./repositories/career-profiles.js";
 import { safeApiMetrics, type ApiMetrics } from "./telemetry/api-metrics.js";
 import { requestMetrics } from "./telemetry/middleware.js";
 import { createOtelApiMetrics } from "./telemetry/otel.js";
+import { workerTriggerFromEnv } from "./worker-trigger/from-env.js";
+import type { WorkerTrigger } from "./worker-trigger/worker-trigger.js";
 
 export function createApp(
   deps: () => ProfileBootstrapDeps = createSupabaseProfileBootstrapDeps,
   careerStoreDeps?: () => CareerProfileStore,
   telemetry: ApiMetrics = createOtelApiMetrics(),
+  trigger: WorkerTrigger = workerTriggerFromEnv(process.env),
 ) {
   const app = new Hono();
   const metrics = safeApiMetrics(telemetry);
@@ -67,7 +70,14 @@ export function createApp(
   app.route("/", createCareerProfileRoutes(deps, careerStoreDeps));
   app.route(
     "/",
-    createAnalysisRoutes(deps, undefined, undefined, undefined, metrics),
+    createAnalysisRoutes(
+      deps,
+      undefined,
+      undefined,
+      undefined,
+      metrics,
+      trigger,
+    ),
   );
   app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));

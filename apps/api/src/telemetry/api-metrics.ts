@@ -1,3 +1,5 @@
+import type { WorkerTriggerOutcome } from "../worker-trigger/worker-trigger.js";
+
 /**
  * Vendor-neutral API measurements (Issue #32). Routes and middleware depend
  * on this port; the OpenTelemetry adapter lives in ./otel.ts. Attributes are
@@ -15,11 +17,14 @@ export type ApiMetrics = {
     durationMs: number;
   }) => void;
   analysisRequest: (outcome: AnalysisOutcome) => void;
+  /** Azure worker invocation attempts by outcome. */
+  workerTrigger: (outcome: WorkerTriggerOutcome) => void;
 };
 
 export const noopApiMetrics: ApiMetrics = {
   request: () => {},
   analysisRequest: () => {},
+  workerTrigger: () => {},
 };
 
 /** Telemetry failures must never break a request. */
@@ -35,6 +40,13 @@ export function safeApiMetrics(inner: ApiMetrics): ApiMetrics {
     analysisRequest: (outcome) => {
       try {
         inner.analysisRequest(outcome);
+      } catch {
+        // See above.
+      }
+    },
+    workerTrigger: (outcome) => {
+      try {
+        inner.workerTrigger(outcome);
       } catch {
         // See above.
       }

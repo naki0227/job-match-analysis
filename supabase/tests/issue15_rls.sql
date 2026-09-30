@@ -190,17 +190,8 @@ end;
 $$;
 reset role;
 
-set local role service_role;
-do $$
-begin
-  if (select count(*) from public.profiles) <> 2
-    or (select count(*) from public.companies) <> 1 then
-    raise exception 'Server role should see personal and shared data';
-  end if;
-end;
-$$;
-update public.profiles set created_at = created_at
-where id = '00000000-0000-0000-0000-000000000002';
-reset role;
+-- service_role table privileges are granted later by
+-- 20260930120544_service_role_core_privileges and checked in
+-- service_role_core_privileges.sql.
 
 rollback;

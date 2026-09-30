@@ -22,8 +22,9 @@ const rawUrls = [
   "https://example.org/issue19-http",
 ] as const;
 const normalizedUrl = "https://example.org/issue19-http";
+// RPCs and PostgREST reads run as service_role, like the API's secret key.
 const sql = (userId: string, rawUrl: string) =>
-  `select row_to_json(r)::text from public.request_personal_analysis(
+  `set role service_role; select row_to_json(r)::text from public.request_personal_analysis(
     '${userId}', '${rawUrl}', '${normalizedUrl}',
     'issue19-http-v1', '2026-09-27T00:00:00Z') r`;
 
@@ -73,7 +74,8 @@ const repository = createAnalysisRequestRepository(async (args) => {
 });
 const jobs = createAnalysisJobRepository(async (jobId) => {
   const id = analysisJobIdSchema.parse(jobId);
-  const row = await query(`select row_to_json(j)::text from (
+  const row =
+    await query(`set role service_role; select row_to_json(j)::text from (
     select status, evaluation_id from public.analysis_jobs where id = '${id}'
   ) j`);
   return row ? (JSON.parse(row) as unknown) : null;

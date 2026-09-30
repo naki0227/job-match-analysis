@@ -59,13 +59,14 @@ const readPage: ReadHistoryPage = async (args) => {
     args.p_cursor_analyzed_at,
     args.p_cursor_match_result_id,
   ];
-  return queryJson(`select coalesce(json_agg(row_to_json(r)
+  // RPCs run as service_role, like the API's secret key.
+  return queryJson(`set role service_role; select coalesce(json_agg(row_to_json(r)
       order by r.sort_count desc, r.analyzed_at desc, r.match_result_id desc), '[]'::json)::text
     from public.list_analysis_history_page_v2(${params.map(literal).join(", ")}) r`);
 };
 const pending = createPendingAnalysisStore(async (args) => {
   pendingCalls += 1;
-  return queryJson(`select coalesce(json_agg(json_build_object('evaluation_id', r.evaluation_id)), '[]'::json)::text
+  return queryJson(`set role service_role; select coalesce(json_agg(json_build_object('evaluation_id', r.evaluation_id)), '[]'::json)::text
     from public.list_unmatched_analysis_evaluations(
       ${literal(args.p_user_id)}, ${literal(args.p_limit)}) r`);
 });

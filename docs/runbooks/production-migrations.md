@@ -29,8 +29,17 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20260930060000_issue42_analysis_quota` | 新規解析上限 | なし |
 | `20260930070000_issue42_jev_budget` | Jev日次予算 | なし |
 | `20260930080000_issue42_abuse_signals` | 不正利用signal（7日保持） | なし |
+| `20260930120544_service_role_core_privileges` | `service_role`の表権限（下記） | なし（GRANTのみ） |
 
 rollbackは`supabase/rollback/`に同名のファイルがある。本番で戻すのは、アプリを1つ前のdigestへ戻した**後**に限る（新しいAPIは新しいRPCを前提にするため）。
+
+### `service_role_core_privileges`が必要になった理由
+
+2026年09月30日、本番のcrawlerが`permission denied for table source_document_versions`（42501）で失敗した。Supabaseのsecret key（`service_role`）はRLSを迂回するが、表の権限（GRANT）までは持たない。初期の表（`20260927000100`〜）はmigrationで`service_role`へGRANTしておらず、ローカルのテスト用ロール定義が全表を`service_role`へGRANTしていたため、テストで気づけなかった。
+
+修正は、API・crawlerのPostgREST呼び出しと、それらが呼ぶSECURITY INVOKERのRPCを監査して、表・操作ごとに最小限だけGRANTする。`GRANT ALL`、RLS policyの追加、SECURITY DEFINERへの変更はしていない。`anon`/`authenticated`は変更しない。ローカルのロール定義からは全表GRANTを外し、`supabase/tests/service_role_core_privileges.sql`で全表の`service_role`権限を完全一致で検証し、job処理の流れを`service_role`として実行する。
+
+本番の未適用分（`20260930020000`〜`20260930080000`）の後に適用する。crawlerとAPIの機能は、このmigrationまで入って初めて動く。
 
 ## 3. 適用後の確認
 
@@ -49,7 +58,35 @@ from unnest(array[
 ]::regprocedure[]) p;  -- すべてfalse
 ```
 
+```sql
+-- service_role の表権限（20260930120544 適用後）。すべてtrue
+select t, p, has_table_privilege('service_role', 'public.' || t, p)
+from (values
+  ('source_document_versions', 'SELECT'), ('source_document_versions', 'UPDATE'),
+  ('source_urls', 'SELECT'), ('analysis_jobs', 'SELECT'), ('analysis_jobs', 'UPDATE'),
+  ('profiles', 'INSERT'), ('profiles', 'UPDATE'),
+  ('career_profile_versions', 'INSERT'), ('evaluations', 'INSERT'),
+  ('match_results', 'INSERT')
+) v(t, p);
+
+-- 不要な権限がないこと。0行
+select t, p from (values ('profiles'), ('source_document_versions'),
+  ('analysis_jobs'), ('evaluations'), ('match_results')) v(t)
+cross join (values ('DELETE'), ('TRUNCATE')) w(p)
+where has_table_privilege('service_role', 'public.' || t, p);
+
+-- クライアントが書き込めないこと。0行
+select r, c.relname, p from pg_class c join pg_namespace n on n.oid = c.relnamespace
+cross join (values ('anon'), ('authenticated')) x(r)
+cross join (values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) y(p)
+where n.nspname = 'public' and c.relkind = 'r' and has_table_privilege(r, c.oid, p);
+```
+
+表・操作の完全な一覧は`supabase/tests/service_role_core_privileges.sql`の期待値表を正とする。
+
 関数の引数型が違って`regprocedure`がエラーになる場合は、`\df public.<関数名>`で実際の型を確認する。
+
+crawlerの確認: `az containerapp job start -g job-match-prod -n job-match-crawler`を実行し、実行が`Succeeded`になり、ログが`error after 0 jobs`でないこと。
 
 API側の確認:
 

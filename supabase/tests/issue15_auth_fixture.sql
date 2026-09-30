@@ -12,4 +12,5 @@ $$;
 grant usage on schema auth to anon, authenticated;
 grant execute on function auth.uid() to anon, authenticated;
 grant usage on schema public to anon, authenticated, service_role;
-grant all on all tables in schema public to anon, authenticated, service_role;
+-- No blanket table grants: hosted Supabase does not give them to these
+-- roles, so every privilege must come from a migration.

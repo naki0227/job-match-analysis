@@ -92,6 +92,8 @@ jobs:
               docker run --rm --platform "$platform" -w /app/apps/crawler "$IMAGE" \
                 node -e "console.log(process.arch, process.env.CRAWLER_BROWSER_EXECUTABLE)"
             fi
+            # A digest reference holds one platform locally at a time.
+            docker image rm "$IMAGE"
           done
       - name: Record digest
         run: |

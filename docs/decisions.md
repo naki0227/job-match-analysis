@@ -41,6 +41,7 @@
 | [ADR-035](adr/035-job-target-from-structured-metadata.md) | 単一のJobPosting JSON-LDから求人名と雇用主名を読み、URL内だけで評価対象を再利用する | 会社名・ホスト名だけの誤統合を防ぐ | JSON-LDのないページは未対応。対象行が評価前に残ることがある |
 | [ADR-036](adr/036-deterministic-evaluation-pipeline.md) | 明示的な求人条件と軸ルールを先に確定し、残りの根拠候補だけJevへ渡す | 外部推論の費用と揺れを抑え、評価方法を追跡する | 表記揺れと候補上限によるunknownを実ページで検証する |
 | [ADR-037](adr/037-public-match-share.md) | 本人Matchの公開は作成時に保存した共有projectionだけを推測困難なtokenで返し、本人が失効できる | 匿名読取が個人の表に触れず、希望値・必須条件・根拠を公開しない | 共有後の再計算は反映されず、OG画像は未対応 |
+| [ADR-038](adr/038-account-deletion-and-shared-data.md) | アカウント削除は`auth.users`からのCASCADEで個人データと公開リンクを消し、利用者IDを持たない共有評価は残す | 1回の削除で漏れなく消し、他ユーザーが使う評価を壊さない | 退会APIと法的確認履歴の保持要件は未決定 |
 
 ## 技術スパイクで検証・継続確認する項目
 

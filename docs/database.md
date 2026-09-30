@@ -20,6 +20,10 @@
 
 [migration](../supabase/migrations/20260930050000_issue39_match_shares.sql)は`match_shares`（本人・Match・token・作成時の共有projection・失効日時）を追加する。有効リンクはMatchごとに1件の部分UNIQUE、Match削除で連鎖削除。クライアントロールには表・RPCの権限を与えず、service_role専用RPCで作成・本人の有効リンク読取・失効・token読取を行う。[rollback](../supabase/rollback/20260930050000_issue39_match_shares.sql)は全リンクを削除する。[ADR-037](adr/037-public-match-share.md)。
 
+## Issue #29のセキュリティ検証
+
+`supabase/tests/issue29_security.sql`は全migration適用後に、全表のRLS、クライアントロールのSELECT許可リスト、公開関数の実行不可、別ユーザーの親子行の不可視、`auth.users`削除による個人データ（公開リンク・分析依頼を含む）の全削除と共有データの保持を確認する。新しい表を追加したら、この許可リストとCASCADEの対象を見直す。[ADR-038](adr/038-account-deletion-and-shared-data.md)。
+
 ## データの所有境界
 
 **個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。

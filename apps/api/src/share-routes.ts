@@ -12,6 +12,10 @@ import {
   shareTokenSchema,
 } from "@job-match/contracts";
 import { Hono } from "hono";
+import {
+  disabledAbuseSignals,
+  type AbuseSignals,
+} from "./abuse/abuse-signals.js";
 import { z } from "zod";
 import { authenticate } from "./auth/authenticate.js";
 import type { ProfileBootstrapDeps } from "./auth/profile-bootstrap.js";
@@ -35,6 +39,7 @@ const uuid = z.uuid();
 export function createShareRoutes(
   authDeps: () => ProfileBootstrapDeps,
   portsDeps: () => SharePorts = createSupabaseSharePorts,
+  signals: AbuseSignals = disabledAbuseSignals,
 ) {
   const app = new Hono();
 
@@ -96,6 +101,8 @@ export function createShareRoutes(
       if (result.status === "not_shareable")
         return fail("not_shareable", "Match cannot be shared", 422);
       const body = matchShareSchema.parse(result.share);
+      if (result.status === "created")
+        signals.record(c.req, caller.userId, "share_created");
       return c.json(body, result.status === "created" ? 201 : 200);
     } catch {
       return fail("service_unavailable", "Service unavailable", 503);

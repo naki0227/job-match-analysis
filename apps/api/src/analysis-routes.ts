@@ -6,6 +6,10 @@ import {
   type AnalysisJobResponse,
 } from "@job-match/contracts";
 import { Hono } from "hono";
+import {
+  disabledAbuseSignals,
+  type AbuseSignals,
+} from "./abuse/abuse-signals.js";
 import { normalizeAnalysisUrl } from "./analysis-url.js";
 import { authenticate } from "./auth/authenticate.js";
 import type { ProfileBootstrapDeps } from "./auth/profile-bootstrap.js";
@@ -79,6 +83,7 @@ export function createAnalysisRoutes(
   policyDeps: () => AnalysisRoutePolicy = createAnalysisRoutePolicy,
   metrics: ApiMetrics = noopApiMetrics,
   trigger: WorkerTrigger = disabledWorkerTrigger,
+  signals: AbuseSignals = disabledAbuseSignals,
 ) {
   const app = new Hono();
   // Fire and forget: waking a worker must not delay or fail the response.
@@ -144,6 +149,7 @@ export function createAnalysisRoutes(
       } catch (error) {
         if (error instanceof AnalysisQuotaExceededError) {
           metrics.analysisRequest("quota_rejected");
+          signals.record(c.req, auth.userId, "analysis_quota_rejected");
           return fail(
             "analysis_quota_exceeded",
             "New analysis limit reached",
@@ -178,6 +184,7 @@ export function createAnalysisRoutes(
           refreshJobId: result.jobId,
         };
         metrics.analysisRequest("stale");
+        signals.record(c.req, auth.userId, "analysis_new");
         wakeWorker();
         return c.json(body, 200);
       }
@@ -187,6 +194,7 @@ export function createAnalysisRoutes(
           jobId: result.jobId,
         };
         metrics.analysisRequest("queued");
+        signals.record(c.req, auth.userId, "analysis_new");
         wakeWorker();
         return c.json(body, 202);
       }

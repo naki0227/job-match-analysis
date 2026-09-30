@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { healthResponse } from "@job-match/contracts";
 import { Hono } from "hono";
+import { createAccountRoutes } from "./account-routes.js";
 import { createAnalysisRoutes } from "./analysis-routes.js";
 import { createAnalysisHistoryRoutes } from "./analysis-history-routes.js";
 import {
@@ -61,6 +62,7 @@ export function createApp(
   app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));
   app.route("/", createShareRoutes(deps));
+  app.route("/", createAccountRoutes(deps));
 
   return app;
 }

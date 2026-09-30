@@ -30,6 +30,7 @@ const requests: Array<[string, string, string?]> = [
   ["GET", `/v1/me/matches/${id}/share`],
   ["DELETE", `/v1/me/shares/${id}`],
   ["GET", `/v1/public/shares/${"a".repeat(43)}`],
+  ["DELETE", "/v1/me", '{"confirmation":"delete-my-account"}'],
 ];
 
 async function run(app: ReturnType<typeof createApp>) {

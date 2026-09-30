@@ -12,16 +12,17 @@ Issue #32ではAPM・分散トレース・latency/p95・エラー率・job backl
 - 計測の失敗や送信先の停止は、`safeApiMetrics`・`safeCrawlerMetrics`で握りつぶし、リクエストやjobを止めない（テスト済み）。
 - ログ・トレース・メトリクスのラベルにJWT・token・session・Supabase secret・Jev API key・氏名・メール・電話・CareerProfileの生値・希望値と利用者の組・企業ページ本文・根拠全文・機微なURL query・共有token全文を載せない。
 
-## Datadogの無料枠（2026年09月30日に公式ページで確認）
+## 送信先の決定（2026年09月30日更新、ユーザー決定）
 
-Datadog FreeはInfrastructure Monitoringのみで、5 host・metrics保持1日。**APM・分散トレース・Log Managementは含まれない**（APMは$31/host/月〜、Logsは$0.10/GB〜）。したがって#32のうち、APM・分散トレース・p95の長期監視・ログ検索は月額0円では本番利用できない。
+- Operational Observabilityも**Grafana Cloud Free**で見る。API・crawlerは公式OpenTelemetry SDKとOTLP exporterでGrafana CloudのOTLP endpointへ直接送り、Log Analytics・Azure native logsには依存しない。
+- データ経路と責務はProduct / Business Analytics（ADR-043）と分ける。運用はOTel→Grafana Cloudのtelemetry backend（dashboardは`Operations/`）、製品分析はSupabaseの`analytics` schema→読み取り専用role→Grafana PostgreSQL datasource（dashboardは`Product Analytics/`）。
+- Grafana固有のSDKはapplication/domainへ入れない。Datadogは今は導入しないが、OTelの送信先を追加するだけで将来併用できる構成を維持する。
+- ラベルに生IP・生User-Agent・日次IP/UAのHMAC（ADR-042）を載せない。高カーディナリティでもあり、プライバシー上不要。
 
-## 未決定（DECISION）
+### 履歴: Datadogを主系にしていた当初の設計
 
-- OTel SDK・exporter・Collectorの置き場所。配置（ADR-040）次第で、Workers等のエッジではNode用SDKがそのまま使えない。
-- Datadogで有効化する範囲。無料で使えるのはInfrastructureのhost metricsのみで、エッジ配置ではhost自体がない。有料機能は有効化しない。
-- IP・User-Agentなどの不正利用signal（#42）の保存先・保持期間・仮名化方法（プライバシー方針のため）。
+当初の#32はDatadogをAPM・Trace・Infra・Alertの主系とする設計だった。2026年09月30日に公式ページで確認した**Datadog Free**はInfrastructure Monitoringのみ（5 host・metrics保持1日）で、**APM・分散トレース・Log Managementを含まない**（APMは$31/host/月〜、Logsは$0.10/GB〜）。月額0円の条件では本来の用途を満たせないため、Datadogは将来の追加候補へ移した。
 
 ## 見直し条件
 
-配置の決定時、無料で使えるtrace/metricsの送信先を採用する時、予算が付いた時。Datadogの有料機能でしか満たせない#32の受け入れ条件は、その判断までopenのままにする。
+Grafana Cloud Freeの上限（metrics 10k active series、logs/traces各50GB/月、保持14日）に近づいた時、予算が付いてDatadogを追加する時。

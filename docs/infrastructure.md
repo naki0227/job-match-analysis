@@ -31,7 +31,13 @@ flowchart TB
 
 実際のルーティングはサービスごとのTunnel ingress rulesで指定する。外部からVMへの新規着信ポート開放は原則不要。**Cloudflare Accessに加え、Argo CD自体の認証・RBACも無効化しない。** tunnelから管理サービスへ到達するルート以外が露出していないか確認する。Supabase/Jevは外部SaaSであり、VM内の構成ではない。
 
-> **2026年09月30日追記**: OCI A1は大阪で容量不足、東京は利用不可のため、OCI/k3sは後続の学習・本番候補として残し、MVP公開のblockerにしない。月額0円のMVP配置（Cloudflare Free＋Supabase Free）と責務の差分は[ADR-040（提案）](adr/040-free-mvp-hosting-split.md)を参照。
+> **2026年09月30日追記**: MVPはCloudflare Pages（Web）・Azure Container Apps（API）・Azure Container Apps Job（crawler）・Supabase Free（Auth/DB）・GHCR（image）・Grafana Cloud Free（観測と製品分析）で公開する（[ADR-040](adr/040-free-mvp-hosting-split.md)）。OCI A1は大阪で容量不足のため、下記のOCI/k3s構成は後続の学習・本番候補として残し、MVP公開のblockerにしない。
+
+### MVPの無料枠の確認手順
+
+1. Azure Portal > コストの管理 > 予算で、subscriptionに$0超過のアラートを設定する（Azure for Studentsのcreditは定常費に使わない）。
+2. 月に1回、Container Appsの使用量（vCPU秒・GiB秒・リクエスト）を確認する。無料枠は毎月180,000 vCPU秒・360,000 GiB秒・200万リクエスト。70%に近づいたらcrawler Jobの実行回数・resourceとAPIのreplicaを見直す。
+3. Grafana Cloud Freeの使用量（metrics active series 10k、logs/traces 50GB/月）とSupabase Freeの容量（DB 500MB、egress 5GB）を同じタイミングで確認する。
 
 ### 環境とデプロイ先
 

@@ -187,13 +187,13 @@ if [ "$jev_granted" != '20' ] \
 fi
 psql_cmd -c 'delete from public.jev_daily_usage;'
 psql_cmd < supabase/tests/issue29_security.sql
-JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-account-deletion-db.ts
 pnpm --filter @job-match/contracts build
 pnpm --filter @job-match/domain build
 pnpm --filter @job-match/application build
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-parallel.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-history-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-match-share-db.ts
+JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-account-deletion-db.ts
 psql_cmd < supabase/rollback/20260930070000_issue42_jev_budget.sql
 psql_cmd < supabase/tests/issue42_jev_budget_rollback.sql
 psql_cmd < supabase/rollback/20260930060000_issue42_analysis_quota.sql

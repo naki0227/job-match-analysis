@@ -35,6 +35,8 @@ WORKDIR /app
 
 COPY --from=build /app/apps/api/dist ./apps/api/dist/
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+# OG image font (SIL OFL 1.1, license kept alongside); never served over HTTP.
+COPY --from=build /app/apps/api/assets ./apps/api/assets
 
 COPY --from=build /app/deploy/node_modules ./apps/api/node_modules
 

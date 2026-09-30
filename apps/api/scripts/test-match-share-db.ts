@@ -7,6 +7,7 @@ import {
 } from "@job-match/contracts";
 import { createMatchRepository } from "../src/repositories/matches.js";
 import { createShareRepository } from "../src/repositories/shares.js";
+import { createSharePageRoutes } from "../src/share-page/share-page-routes.js";
 import { createShareRoutes } from "../src/share-routes.js";
 import { psql, requireContainer, rpc } from "./db-bridge.js";
 
@@ -127,6 +128,23 @@ assert.equal(
   "Share HTTP Co",
 );
 
+// The server-rendered page and OG image read the same stored projection.
+const pages = createSharePageRoutes(
+  () => shares,
+  () => ({ shareOrigin: "https://share.example", appUrl: "/" }),
+);
+const html = await pages.request(`/s/${first.token}`);
+assert.equal(html.status, 200);
+const htmlText = await html.text();
+assert.match(htmlText, /Share HTTP Co/);
+assert.doesNotMatch(
+  htmlText,
+  new RegExp(`${owner}|${matchResultId}|>83<|>61<`),
+);
+const og = await pages.request(`/s/${first.token}/og.png`);
+assert.equal(og.status, 200);
+assert.equal(og.headers.get("Content-Type"), "image/png");
+
 const revokePath = `/v1/me/shares/${first.shareId}`;
 assert.equal(
   (await app.request(revokePath, as("other", "DELETE"))).status,
@@ -139,6 +157,8 @@ assert.equal(
 );
 assert.equal((await app.request(publicPath)).status, 404);
 assert.equal((await app.request(sharePath, as("owner"))).status, 404);
+assert.equal((await pages.request(`/s/${first.token}`)).status, 404);
+assert.equal((await pages.request(`/s/${first.token}/og.png`)).status, 404);
 
 const renewed = await app.request(sharePath, as("owner", "POST"));
 assert.equal(renewed.status, 201);

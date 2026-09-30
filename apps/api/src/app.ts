@@ -10,7 +10,8 @@ import {
 } from "./auth/profile-bootstrap.js";
 import { createCareerProfileRoutes } from "./career-profile-routes.js";
 import { createMatchRoutes } from "./match-routes.js";
-import { createShareRoutes } from "./share-routes.js";
+import { createSharePageRoutes } from "./share-page/share-page-routes.js";
+import { createShareRoutes, createSupabaseSharePorts } from "./share-routes.js";
 import type { CareerProfileStore } from "./repositories/career-profiles.js";
 import { safeApiMetrics, type ApiMetrics } from "./telemetry/api-metrics.js";
 import { requestMetrics } from "./telemetry/middleware.js";
@@ -71,6 +72,7 @@ export function createApp(
   app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));
   app.route("/", createShareRoutes(deps));
+  app.route("/", createSharePageRoutes(createSupabaseSharePorts));
   app.route("/", createAccountRoutes(deps));
 
   return app;

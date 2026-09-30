@@ -62,3 +62,28 @@ export function toSharedMatch(report: MatchReport): SharedMatch {
     }),
   };
 }
+
+export type SharedMatchSummary = {
+  close: number;
+  different: number;
+  /** unknown, conflicting and stale together: not yet known, never a score. */
+  unknown: number;
+  closeAxes: SharedMatch["axes"][number]["axisKey"][];
+};
+
+/** Counts shown on share cards, derived only from the public projection. */
+export function summarizeSharedMatch(
+  projection: SharedMatch,
+): SharedMatchSummary {
+  const count = (statuses: readonly string[]) =>
+    projection.axes.filter((axis) => statuses.includes(axis.status)).length;
+  return {
+    close: count(["close"]),
+    different: count(["different"]),
+    unknown: count(["unknown", "conflicting", "stale"]),
+    closeAxes: projection.axes
+      .filter((axis) => axis.status === "close")
+      .slice(0, 3)
+      .map((axis) => axis.axisKey),
+  };
+}

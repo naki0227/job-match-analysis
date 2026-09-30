@@ -21,3 +21,7 @@ HTML解析にはlockfileに既存の`parse5@8.0.1`をCrawlerの直接依存と�
 ## メリット・デメリット・見直し条件
 
 ブラウザ起動を抑え、会社情報の誤った共有を避けられる。一方で明示的な領域がないサイトや厳しいrobotsでは`unknown`が増える。取得頻度、実サイトでの抽出精度、引用範囲を運用前に確定する。SourceDocumentは既存の`commit_analysis_evaluation`で評価と同一TXに保存するため、#22のworker結合時に実保存を確認する。本文30日削除workerの接続前に実サイトの保存運用を開始しない。
+
+## 実装状況（Issue #22）
+
+HTTP/Browser取得からFake DecisionEngine、文書版・8軸評価のDB保存までローカルPostgreSQLで検証した。30日後の本文削除はworker周期に接続した。実サイトごとの引用・個人情報の検証は運用前に行う。

@@ -8,7 +8,7 @@
 - `career_constraint_locations`は`(profile_version_id, prefecture_code)`、`match_constraint_results`は`(match_result_id, kind)`の複合PK。前者は01〜47の重複を拒否し、後者は必須条件の状態と理由を保持する。
 - `career_profile_target_roles`は版ごとの希望職種リストを順序付きで保持する。空白と同一表記の重複を拒否する。職種による自動一致・必須除外はまだ行わない。
 - `evaluation_targets`の求人と会社の所属、`evaluation_evidence`の軸評価・使用文書、`match_results`のユーザー・プロフィール版と軸カタログ版は複合FKで確認する。会社名はUNIQUEにしない。URLのUNIQUEは`source_urls.normalized_url`だけに置く。
-- `source_document_versions.extracted_text`には抽出本文を保存できる。取得から30日経過した本文は予定済みのworkerがNULLに更新する方針。文書のhash・取得日時と評価の短い根拠抜粋は残す。**worker実装まで自動削除は行われない**ため、本文を保存する運用の開始前に削除処理を接続する。
+- `source_document_versions.extracted_text`には抽出本文を保存できる。取得から30日経過した本文は予定済みのworkerがNULLに更新する方針。文書のhash・取得日時と評価の短い根拠抜粋は残す。Crawler workerの各周期で上限付きの対象をNULLにする。worker停止中は期限到達直後の削除を保証しないため、運用時の周期と滞留監視が必要。
 - 21表すべてでRLSを有効化。Issue #15のmigrationはクライアントの表権限を取り消し、個人10表に認証済み本人のSELECTだけを許す。共有11表と匿名ロールは直接参照・変更できない。
 - 手動rollbackは[down SQL](../supabase/rollback/20260927_issue14_down.sql)。全表とデータを削除するため、適用前にバックアップと依存物を確認する。ローカルのup・無効FK/重複/CHECK・RLS・本文削除条件・downの検証は`pnpm test:db`を実行する。
 

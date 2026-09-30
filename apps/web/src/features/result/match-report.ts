@@ -1,8 +1,10 @@
-import type {
-  MatchAxisResult,
-  MatchConstraintResult,
-  MatchReport,
-  MatchTargetResult,
+import {
+  axisDisplayNames,
+  axisStatusDisplayLabels,
+  type MatchAxisResult,
+  type MatchConstraintResult,
+  type MatchReport,
+  type MatchTargetResult,
 } from "@job-match/contracts";
 
 /** Display helpers for the shared match report contract. */
@@ -17,25 +19,10 @@ export type ConstraintStatus = ConstraintResult["status"];
 export type ConstraintReason = NonNullable<ConstraintResult["reason"]>;
 export type MatchReportView = MatchReport;
 
-export const axisNames: Record<AxisKey, string> = {
-  work_location: "働く場所",
-  autonomy: "裁量",
-  collaboration: "協働",
-  growth_direction: "成長の方向",
-  work_change: "仕事の変化",
-  schedule_flexibility: "勤務時間の柔軟性",
-  role_breadth: "役割の幅",
-  customer_contact: "顧客との接点",
-};
+export const axisNames: Record<AxisKey, string> = axisDisplayNames;
 
-export const axisStatusLabels: Record<AxisStatus, string> = {
-  close: "近い",
-  different: "相違",
-  unknown: "不明",
-  conflicting: "情報が矛盾",
-  stale: "情報が古い",
-  excluded: "比較対象外",
-};
+export const axisStatusLabels: Record<AxisStatus, string> =
+  axisStatusDisplayLabels;
 
 export const constraintLabels: Record<ConstraintKind, string> = {
   min_salary: "最低年収",

@@ -76,7 +76,7 @@ jobs:
             --name "$AZURE_CONTAINER_APP" \
             --resource-group "$AZURE_RESOURCE_GROUP" \
             --image "${IMAGE}@${DIGEST}" \
-            --set-env-vars PORT=80
+            --set-env-vars PORT=3000
 
       - name: Verify the deployed digest and health
         env:

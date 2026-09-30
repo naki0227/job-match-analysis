@@ -173,6 +173,8 @@ psql_cmd < supabase/migrations/20260929133857_personal_analysis_interest.sql
 psql_cmd < supabase/tests/issue27_personal_analysis_interest.sql
 psql_cmd < supabase/migrations/20260930050000_issue39_match_shares.sql
 psql_cmd < supabase/tests/issue39_match_shares.sql
+psql_cmd < supabase/migrations/20260930060000_issue42_analysis_quota.sql
+psql_cmd < supabase/tests/issue42_analysis_quota.sql
 psql_cmd < supabase/tests/issue29_security.sql
 pnpm --filter @job-match/contracts build
 pnpm --filter @job-match/domain build
@@ -180,6 +182,8 @@ pnpm --filter @job-match/application build
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-parallel.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-history-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-match-share-db.ts
+psql_cmd < supabase/rollback/20260930060000_issue42_analysis_quota.sql
+psql_cmd < supabase/tests/issue42_analysis_quota_rollback.sql
 psql_cmd < supabase/rollback/20260930050000_issue39_match_shares.sql
 psql_cmd < supabase/tests/issue39_match_shares_rollback.sql
 psql_cmd < supabase/rollback/20260929133857_personal_analysis_interest.sql

@@ -1,9 +1,9 @@
-import type { MatchReport } from "@job-match/contracts";
-import { axisNames, orderAxes, summarizeTarget } from "../result/match-report";
+import type { SharedMatch } from "@job-match/contracts";
+import { axisNames } from "../result/match-report";
 
 /**
- * What a share card may contain. Preference values, salary, locations and
- * account details are deliberately absent.
+ * Card fields derived from the public projection only, so the on-screen card,
+ * the saved image and the public page cannot show different data.
  */
 export type ShareCardData = {
   companyName: string;
@@ -14,22 +14,19 @@ export type ShareCardData = {
   closeAxes: string[];
 };
 
-export function toShareCard(report: MatchReport): ShareCardData {
-  const summary = summarizeTarget(report.job);
-  const closeAxes =
-    report.job.status === "comparable"
-      ? orderAxes(report.job.axes)
-          .filter((axis) => axis.status === "close")
-          .slice(0, 3)
-          .map((axis) => axisNames[axis.axisKey])
-      : [];
+export function toShareCard(projection: SharedMatch): ShareCardData {
+  const count = (statuses: string[]) =>
+    projection.axes.filter((axis) => statuses.includes(axis.status)).length;
   return {
-    companyName: report.companyName,
-    jobTitle: report.jobTitle,
-    close: summary?.close ?? 0,
-    different: summary?.different ?? 0,
-    unknown: summary?.unknown ?? 0,
-    closeAxes,
+    companyName: projection.companyName,
+    jobTitle: projection.jobTitle,
+    close: count(["close"]),
+    different: count(["different"]),
+    unknown: count(["unknown", "conflicting", "stale"]),
+    closeAxes: projection.axes
+      .filter((axis) => axis.status === "close")
+      .slice(0, 3)
+      .map((axis) => axisNames[axis.axisKey]),
   };
 }
 
@@ -37,8 +34,15 @@ export function shareText(card: ShareCardData): string {
   return `${card.companyName}（${card.jobTitle}）を自分の軸で比べてみた：近い${card.close}・相違${card.different}・不明${card.unknown} #jobmatch`;
 }
 
-export function xIntentUrl(card: ShareCardData): string {
-  return `https://x.com/intent/post?text=${encodeURIComponent(shareText(card))}`;
+export function xIntentUrl(card: ShareCardData, link?: string): string {
+  const params = new URLSearchParams({ text: shareText(card) });
+  if (link) params.set("url", link);
+  return `https://x.com/intent/post?${params.toString()}`;
+}
+
+/** Public page URL for a share token on this origin. */
+export function publicShareUrl(token: string, origin: string): string {
+  return `${origin}/s/${token}`;
 }
 
 /** The subset of the 2D canvas API the card drawing needs. */

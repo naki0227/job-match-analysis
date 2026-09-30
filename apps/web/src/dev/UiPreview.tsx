@@ -1,3 +1,4 @@
+import { toSharedMatch } from "@job-match/contracts";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { AnalyzeScreen } from "../features/analysis/AnalyzeScreen";
@@ -14,9 +15,9 @@ import { OnboardingIntro } from "../features/onboarding/OnboardingIntro";
 import { MatchDetailScreen } from "../features/result/MatchDetailScreen";
 import { matchQueryKey } from "../features/result/useMatchReport";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
-import { ShareCard } from "../features/share/ShareCard";
 import { ShareDialog } from "../features/share/ShareDialog";
-import { toShareCard } from "../features/share/share-card";
+import { PublicShareView } from "../features/share/PublicShareView";
+import { shareLinkQueryKey } from "../features/share/useShareLink";
 import { createQueryClient } from "../lib/query-client";
 import { HomeScreen } from "../screens/HomeScreen";
 import { historyItems, sampleProfile, sampleReport } from "./fixtures";
@@ -42,6 +43,12 @@ function previewClient() {
     ["stored-match", sampleReport.matchResultId],
     sampleReport,
   );
+  client.setQueryData(shareLinkQueryKey(sampleReport.matchResultId), {
+    shareId: "7a1e2b3c-4d5e-4f60-8a9b-0c1d2e3f4a5b",
+    token: "SampleShareToken_For-Preview-Only-000000000",
+    sharedAt: "2026-09-29T01:00:00Z",
+    projection: toSharedMatch(sampleReport),
+  });
   return client;
 }
 
@@ -118,12 +125,12 @@ const screens: Record<string, () => ReactNode> = {
   ),
   共有カード: () => <ShareDialog report={sampleReport} onClose={noop} />,
   公開ページ: () => (
-    <section className="page-head narrow">
-      <div className="eyebrow">PUBLIC SHARE</div>
-      <h1>共有結果</h1>
-      <p className="sub">個人情報は載せない。</p>
-      <ShareCard card={toShareCard(sampleReport)} label="PUBLIC SHARE" />
-    </section>
+    <PublicShareView
+      share={{
+        sharedAt: "2026-09-29T01:00:00Z",
+        projection: toSharedMatch(sampleReport),
+      }}
+    />
   ),
 };
 

@@ -1,22 +1,29 @@
-import type { MatchReport } from "@job-match/contracts";
+import { toSharedMatch, type MatchReport } from "@job-match/contracts";
 import { useState } from "react";
 import { Dialog } from "../../components/Dialog";
-import { PendingFeature } from "../../components/PendingFeature";
+import { PublicLinkSection } from "./PublicLinkSection";
 import { ShareCard } from "./ShareCard";
-import { drawShareCard, toShareCard, xIntentUrl } from "./share-card";
+import {
+  drawShareCard,
+  publicShareUrl,
+  toShareCard,
+  xIntentUrl,
+  type ShareCardData,
+} from "./share-card";
+import { useShareLink } from "./useShareLink";
 
 type Props = {
   report: MatchReport;
   onClose: () => void;
 };
 
-function saveImage(report: MatchReport): boolean {
+function saveImage(card: ShareCardData): boolean {
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
   canvas.height = 630;
   const context = canvas.getContext("2d");
   if (!context) return false;
-  drawShareCard(context, toShareCard(report));
+  drawShareCard(context, card);
   const link = document.createElement("a");
   link.href = canvas.toDataURL("image/png");
   link.download = "job-match-share.png";
@@ -25,7 +32,11 @@ function saveImage(report: MatchReport): boolean {
 }
 
 export function ShareDialog({ report, onClose }: Props) {
-  const card = toShareCard(report);
+  const card = toShareCard(toSharedMatch(report));
+  const { link } = useShareLink(report.matchResultId);
+  const url = link.data
+    ? publicShareUrl(link.data.token, window.location.origin)
+    : undefined;
   const [message, setMessage] = useState("");
 
   return (
@@ -34,7 +45,7 @@ export function ShareDialog({ report, onClose }: Props) {
       <div className="share-actions">
         <a
           className="primary share-link"
-          href={xIntentUrl(card)}
+          href={xIntentUrl(card, url)}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -45,7 +56,7 @@ export function ShareDialog({ report, onClose }: Props) {
           type="button"
           onClick={() =>
             setMessage(
-              saveImage(report)
+              saveImage(card)
                 ? "共有画像を保存しました。"
                 : "この環境では画像を作れませんでした。",
             )
@@ -59,10 +70,7 @@ export function ShareDialog({ report, onClose }: Props) {
           {message}
         </p>
       )}
-      <PendingFeature
-        title="公開ページ"
-        reason="URLで見られる公開ページは準備中です（Issue #39）。"
-      />
+      <PublicLinkSection matchResultId={report.matchResultId} />
     </Dialog>
   );
 }

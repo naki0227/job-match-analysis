@@ -83,9 +83,11 @@ export function MatchReport({ report }: Props) {
         </div>
       </div>
 
-      <div className="actions">
-        <ShareButton report={report} />
-      </div>
+      {report.job.status === "comparable" && (
+        <div className="actions">
+          <ShareButton report={report} />
+        </div>
+      )}
 
       <ul className="constraints" aria-label="必須条件">
         {report.hardConstraints.map((constraint) => (

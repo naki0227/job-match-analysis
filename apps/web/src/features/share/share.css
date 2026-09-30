@@ -114,3 +114,37 @@
   place-items: center;
   text-decoration: none;
 }
+
+.public-link {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.public-link h4 {
+  margin: 0;
+  font-family: var(--round);
+  font-size: 16px;
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.public-axes {
+  margin: 18px 0 12px;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.public-axes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}

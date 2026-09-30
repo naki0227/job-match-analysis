@@ -37,7 +37,7 @@ GET 200とPUT 200/201のJSONは`{profileVersionId, profileVersion, profile}`。G
 
 公開経路は`/api/v1/analyses`、Hono内部は`/v1/analyses`。POST JSONは`{url}`だけを受け、Google認証が必要。fragmentと既知の`utm_source`/`utm_medium`/`utm_campaign`/`utm_term`/`utm_content`だけを除去したURLを1回の`request_personal_analysis` RPCへ渡す。このRPCは共有`request_analysis`を実行し、本人の依頼を同じDB操作で記録する。APIは明らかな内部宛URLを拒否し、Crawlerが取得時にDNSとredirectを再検査する。
 
-POSTの応答は`fresh`評価なら200 `{status:"completed",evaluationId,sourceFetchedAt}`、古い評価があれば200 `{status:"stale",evaluationId,sourceFetchedAt,refreshJobId}`、未評価・処理中なら202 `{status:"pending",jobId}`。GET `/api/v1/analyses/:jobId` は200で`{status:"queued"|"running"|"failed",jobId}`または`{status:"completed",jobId,evaluationId}`。存在しないjobIdは404。認証ユーザーは共有状態を読めるが、本人情報・Match・worker tokenは含めない。エラーは診断プロフィールと同じ`{code,message,requestId}`。共有Zod契約と[ADR-030](adr/030-analysis-api-contract.md)を参照。解析版と鮮度期間は実行設定が必須で、値は運用で決める。
+ジョブが必要な新規・更新URLは利用者ごとに期間内の上限があり、超えると429 `analysis_quota_exceeded`（ADR-039）。freshなcache hitは制限しない。POSTの応答は`fresh`評価なら200 `{status:"completed",evaluationId,sourceFetchedAt}`、古い評価があれば200 `{status:"stale",evaluationId,sourceFetchedAt,refreshJobId}`、未評価・処理中なら202 `{status:"pending",jobId}`。GET `/api/v1/analyses/:jobId` は200で`{status:"queued"|"running"|"failed",jobId}`または`{status:"completed",jobId,evaluationId}`。存在しないjobIdは404。認証ユーザーは共有状態を読めるが、本人情報・Match・worker tokenは含めない。エラーは診断プロフィールと同じ`{code,message,requestId}`。共有Zod契約と[ADR-030](adr/030-analysis-api-contract.md)を参照。解析版と鮮度期間は実行設定が必須で、値は運用で決める。
 
 ### 本人のMatch（ADR-032）
 

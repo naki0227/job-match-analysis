@@ -139,6 +139,8 @@ begin
     insert into public.user_analysis_requests
       (user_id, source_url_id, requested_evaluation_id)
     values (v_user, '29000000-0000-4000-8000-0000000000d1', v_eval);
+    insert into public.user_analysis_quota_events(user_id, source_url_id)
+      values (v_user, '29000000-0000-4000-8000-0000000000d1');
   end loop;
 end;
 $$;
@@ -188,6 +190,7 @@ begin
   end if;
 
   foreach v_table in array array['match_shares', 'user_analysis_requests',
+    'user_analysis_quota_events', 'jev_daily_usage',
     'evaluations', 'source_document_versions'] loop
     begin
       execute format('select count(*) from public.%I', v_table);
@@ -226,6 +229,7 @@ begin
     + (select count(*) from public.match_results where user_id = v_user)
     + (select count(*) from public.match_shares where user_id = v_user)
     + (select count(*) from public.user_analysis_requests where user_id = v_user)
+    + (select count(*) from public.user_analysis_quota_events where user_id = v_user)
     + (select count(*) from public.career_profile_axis_values a
         where not exists (select 1 from public.career_profile_versions v
           where v.id = a.profile_version_id))

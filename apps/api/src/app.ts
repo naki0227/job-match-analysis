@@ -12,12 +12,18 @@ import { createCareerProfileRoutes } from "./career-profile-routes.js";
 import { createMatchRoutes } from "./match-routes.js";
 import { createShareRoutes } from "./share-routes.js";
 import type { CareerProfileStore } from "./repositories/career-profiles.js";
+import { safeApiMetrics, type ApiMetrics } from "./telemetry/api-metrics.js";
+import { requestMetrics } from "./telemetry/middleware.js";
+import { createOtelApiMetrics } from "./telemetry/otel.js";
 
 export function createApp(
   deps: () => ProfileBootstrapDeps = createSupabaseProfileBootstrapDeps,
   careerStoreDeps?: () => CareerProfileStore,
+  telemetry: ApiMetrics = createOtelApiMetrics(),
 ) {
   const app = new Hono();
+  const metrics = safeApiMetrics(telemetry);
+  app.use("*", requestMetrics(metrics));
 
   app.get("/health", (c) => c.json(healthResponse));
 
@@ -58,7 +64,10 @@ export function createApp(
   });
 
   app.route("/", createCareerProfileRoutes(deps, careerStoreDeps));
-  app.route("/", createAnalysisRoutes(deps));
+  app.route(
+    "/",
+    createAnalysisRoutes(deps, undefined, undefined, undefined, metrics),
+  );
   app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));
   app.route("/", createShareRoutes(deps));

@@ -18,6 +18,7 @@ import {
   createSupabaseAnalysisRequestRepository,
   type AnalysisRequestResult,
 } from "./repositories/analysis-requests.js";
+import { noopApiMetrics, type ApiMetrics } from "./telemetry/api-metrics.js";
 
 export type AnalysisRoutePolicy = {
   analyzerVersion: string;
@@ -72,6 +73,7 @@ export function createAnalysisRoutes(
   requestDeps: () => RequestStore = createSupabaseAnalysisRequestRepository,
   jobDeps: () => JobStore = createSupabaseAnalysisJobRepository,
   policyDeps: () => AnalysisRoutePolicy = createAnalysisRoutePolicy,
+  metrics: ApiMetrics = noopApiMetrics,
 ) {
   const app = new Hono();
 
@@ -92,12 +94,15 @@ export function createAnalysisRoutes(
       if (auth.status !== "ok")
         return fail("auth_unavailable", "Authentication unavailable", 503);
       const parsed = requestAnalysisSchema.safeParse(await c.req.json());
-      if (!parsed.success)
+      if (!parsed.success) {
+        metrics.analysisRequest("invalid");
         return fail("invalid_request", "Invalid analysis request", 400);
+      }
       let normalizedUrl: string;
       try {
         normalizedUrl = normalizeAnalysisUrl(parsed.data.url);
       } catch {
+        metrics.analysisRequest("invalid");
         return fail("invalid_url", "Invalid public URL", 400);
       }
       const policy = policyDeps();
@@ -126,6 +131,7 @@ export function createAnalysisRoutes(
         });
       } catch (error) {
         if (error instanceof AnalysisQuotaExceededError) {
+          metrics.analysisRequest("quota_rejected");
           return fail(
             "analysis_quota_exceeded",
             "New analysis limit reached",
@@ -144,6 +150,7 @@ export function createAnalysisRoutes(
           evaluationId: result.evaluationId,
           sourceFetchedAt: result.sourceFetchedAt,
         };
+        metrics.analysisRequest("fresh");
         return c.json(body, 200);
       }
       if (
@@ -158,6 +165,7 @@ export function createAnalysisRoutes(
           sourceFetchedAt: result.sourceFetchedAt,
           refreshJobId: result.jobId,
         };
+        metrics.analysisRequest("stale");
         return c.json(body, 200);
       }
       if (result.status === "queued" && result.jobId) {
@@ -165,10 +173,13 @@ export function createAnalysisRoutes(
           status: "pending",
           jobId: result.jobId,
         };
+        metrics.analysisRequest("queued");
         return c.json(body, 202);
       }
+      metrics.analysisRequest("failed");
       return fail("storage_unavailable", "Analysis unavailable", 503);
     } catch {
+      metrics.analysisRequest("failed");
       return fail("service_unavailable", "Service unavailable", 503);
     }
   });

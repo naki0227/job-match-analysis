@@ -20,6 +20,7 @@
     "@job-match/application": "workspace:*",
     "@job-match/contracts": "workspace:*",
     "@job-match/domain": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
     "@supabase/supabase-js": "2.117.2",
     "hono": "^4.13.8",
     "zod": "^4.6.5"

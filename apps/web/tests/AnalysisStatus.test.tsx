@@ -145,3 +145,9 @@ test("the personal result is rendered only for usable evaluations", () => {
   expect(screen.getByText(`result ${evaluationId}`)).toBeInTheDocument();
   expect(screen.getByRole("status")).not.toHaveTextContent("result");
 });
+
+test("quota errors say that existing results remain available", () => {
+  renderState({ kind: "error", url, reason: "quota_exceeded" });
+  expect(screen.getByRole("alert")).toHaveTextContent("上限に達しました");
+  expect(screen.getByRole("alert")).toHaveTextContent("解析済みの求人");
+});

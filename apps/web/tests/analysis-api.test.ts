@@ -70,6 +70,7 @@ test.each([
   [400, "invalid_url"],
   [401, "unauthorized"],
   [403, "unauthorized"],
+  [429, "quota_exceeded"],
   [503, "unavailable"],
 ] as const)("POST maps HTTP %i to %s", async (status, kind) => {
   expect(

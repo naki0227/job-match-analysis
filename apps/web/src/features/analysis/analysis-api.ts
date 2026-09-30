@@ -6,7 +6,11 @@ import {
 } from "@job-match/contracts";
 
 export type AnalysisApiErrorKind =
-  "invalid_url" | "unauthorized" | "not_found" | "unavailable";
+  | "invalid_url"
+  | "unauthorized"
+  | "not_found"
+  | "quota_exceeded"
+  | "unavailable";
 
 export class AnalysisApiError extends Error {
   readonly kind: AnalysisApiErrorKind;
@@ -36,6 +40,7 @@ function classify(response: Response): AnalysisApiError | null {
     return new AnalysisApiError("unauthorized");
   }
   if (response.status === 404) return new AnalysisApiError("not_found");
+  if (response.status === 429) return new AnalysisApiError("quota_exceeded");
   if (!response.ok) return new AnalysisApiError("unavailable");
   return null;
 }

@@ -32,7 +32,8 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "はじめる" }).click();
-  await page.getByRole("button", { name: "Backend Engineer" }).click();
+  await page.getByLabel("職種名").fill("Backend Engineer");
+  await page.getByRole("button", { name: "追加" }).click();
   await page.getByRole("button", { name: "次へ" }).click();
   for (let index = 0; index < 8; index += 1) {
     if (index === 0) {
@@ -59,7 +60,9 @@ test("ログイン済みfixtureで入力・保存・再読込を確認する", a
   await page.getByRole("button", { name: "見直す" }).click();
   await expect(page.getByText(/現在の確定版: 第1版/)).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Backend Engineer" }),
+    page
+      .getByRole("group", { name: "選んだ職種" })
+      .getByRole("button", { name: "Backend Engineer" }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "次へ" }).click();
   await expect(page.getByRole("slider", { name: "希望値" })).toHaveValue("0");

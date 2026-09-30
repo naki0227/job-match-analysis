@@ -46,6 +46,7 @@
 | [ADR-040](adr/040-free-mvp-hosting-split.md) | 月額0円MVPはWebをCloudflare Pages、APIをAzure Container Apps、crawlerをContainer Apps Job、DB/AuthをSupabase Free、imageをGHCRに置く。OCI/k3sは後続 | 既存のNode API・Playwright crawler・DBのjob管理をそのまま使え、無料枠内で動く | scale to zeroの初回遅延、Job起動待ち、egress制御の限定 |
 | [ADR-041](adr/041-operational-observability-boundary.md) | 運用観測はOTelで計装し、Grafana Cloud FreeへOTLPで直接送る。Datadogは将来の追加候補 | ベンダー非依存、送信失敗でも本体が止まらない、0円で運用観測できる | Grafana Cloud Freeの上限と保持14日 |
 | [ADR-042](adr/042-abuse-signals.md) | 不正利用signalは生IP/UAを保存せず、日次HMACの仮名を7日だけ保持し、security用途に限る | 利用者ID上限の回避を仮名で検知しつつ追跡を難しくする | 日をまたぐ追跡不可、信頼proxy境界がない時はIP signalなし |
+| [ADR-045](adr/045-job-resolver.md) | 企業名＋職種から既存の求人を特定するJob Resolverを、機械的なdiscovery（既存DB、opt-inのATS公開一覧）→domainによる絞り込み→Jevによる候補IDの選択（URLは生成させない）で構成する。曖昧なら上位3件を利用者に選ばせる | 存在しない求人を指さない。判定基準を説明でき、URL入力も残る | 初期は解析済み企業のみ。公式採用ページは未対応。検索回数の制限なし |
 
 ## 技術スパイクで検証・継続確認する項目
 

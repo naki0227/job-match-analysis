@@ -31,6 +31,8 @@ flowchart TB
 
 実際のルーティングはサービスごとのTunnel ingress rulesで指定する。外部からVMへの新規着信ポート開放は原則不要。**Cloudflare Accessに加え、Argo CD自体の認証・RBACも無効化しない。** tunnelから管理サービスへ到達するルート以外が露出していないか確認する。Supabase/Jevは外部SaaSであり、VM内の構成ではない。
 
+> **2026年09月30日追記**: OCI A1は大阪で容量不足、東京は利用不可のため、OCI/k3sは後続の学習・本番候補として残し、MVP公開のblockerにしない。月額0円のMVP配置（Cloudflare Free＋Supabase Free）と責務の差分は[ADR-040（提案）](adr/040-free-mvp-hosting-split.md)を参照。
+
 ### 環境とデプロイ先
 
 | 環境 | 実行基盤 | 用途 |

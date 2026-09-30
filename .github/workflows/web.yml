@@ -11,6 +11,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/web.yml"
+      - "scripts/check-web-bundle-secrets.sh"
   pull_request:
     paths:
       - "apps/web/**"
@@ -19,6 +20,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/web.yml"
+      - "scripts/check-web-bundle-secrets.sh"
 
 permissions:
   contents: read
@@ -56,3 +58,6 @@ jobs:
 
       - name: Build Web
         run: pnpm --filter web build
+
+      - name: Check Web bundle for server secrets
+        run: sh scripts/check-web-bundle-secrets.sh

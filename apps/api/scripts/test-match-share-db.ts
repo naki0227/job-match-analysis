@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { promisify } from "node:util";
 import {
   matchShareSchema,
   publicShareSchema,
@@ -10,11 +8,10 @@ import {
 import { createMatchRepository } from "../src/repositories/matches.js";
 import { createShareRepository } from "../src/repositories/shares.js";
 import { createShareRoutes } from "../src/share-routes.js";
+import { psql, requireContainer, rpc } from "./db-bridge.js";
 
 // Issue #39: share links through Hono, the application layer and PostgreSQL.
-const container = process.env.JOB_MATCH_DB_CONTAINER;
-if (!container) throw new Error("JOB_MATCH_DB_CONTAINER is required");
-const execFileAsync = promisify(execFile);
+requireContainer();
 const owner = "39100000-0000-4000-8000-000000000001";
 const other = "39100000-0000-4000-8000-000000000002";
 const profile = "39100000-0000-4000-8000-000000000003";
@@ -29,48 +26,6 @@ const keys = [
   "role_breadth",
   "customer_contact",
 ];
-
-async function psql(statement: string): Promise<string> {
-  const { stdout } = await execFileAsync("docker", [
-    "exec",
-    container!,
-    "psql",
-    "-X",
-    "-q",
-    "-At",
-    "-v",
-    "ON_ERROR_STOP=1",
-    "-U",
-    "postgres",
-    "-d",
-    "postgres",
-    "-c",
-    statement,
-  ]);
-  return stdout.trim();
-}
-
-function literal(value: unknown): string {
-  if (value === null || value === undefined) return "null";
-  if (typeof value === "string") return `'${value.replaceAll("'", "''")}'`;
-  return `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
-}
-
-/** Calls an RPC the way PostgREST would, returning JSON-compatible data. */
-async function rpc(name: string, args: Record<string, unknown>) {
-  const list = Object.values(args).map(literal).join(", ");
-  const scalar = [
-    "read_evaluation_for_match",
-    "read_match_result",
-    "revoke_match_share",
-  ].includes(name);
-  const text = scalar
-    ? await psql(`select to_json(public.${name}(${list}))::text`)
-    : await psql(
-        `select coalesce(json_agg(row_to_json(r)), '[]'::json)::text from public.${name}(${list}) r`,
-      );
-  return text === "" ? null : (JSON.parse(text) as unknown);
-}
 
 await psql(`
   insert into auth.users(id) values ('${owner}'), ('${other}');

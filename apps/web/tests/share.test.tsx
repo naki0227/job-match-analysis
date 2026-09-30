@@ -112,3 +112,12 @@ test("the dialog creates, shows and revokes a public link", async () => {
     "画像を作れませんでした",
   );
 });
+
+test("share links point at the origin that renders /s/<token>", async () => {
+  const { publicShareUrl } = await import("../src/features/share/share-card");
+  const token = "t".repeat(43);
+  expect(publicShareUrl(token, "https://share.example/")).toBe(
+    `https://share.example/s/${token}`,
+  );
+  expect(publicShareUrl(token)).toBe(`${window.location.origin}/s/${token}`);
+});

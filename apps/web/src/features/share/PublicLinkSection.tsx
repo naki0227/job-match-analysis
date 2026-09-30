@@ -9,9 +9,7 @@ export function PublicLinkSection({ matchResultId }: Props) {
   const { link, create, revoke } = useShareLink(matchResultId);
   const [copied, setCopied] = useState(false);
   const share = link.data ?? null;
-  const url = share
-    ? publicShareUrl(share.token, window.location.origin)
-    : null;
+  const url = share ? publicShareUrl(share.token) : null;
   const failed = link.isError || create.isError || revoke.isError;
 
   async function copy() {

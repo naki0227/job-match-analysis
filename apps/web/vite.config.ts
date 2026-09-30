@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => {
           target: env.API_PROXY_TARGET,
           rewrite: (path) => path.replace(/^\/api/, ""),
         },
+        // Share pages and OG images are rendered by the API (Issue #39).
+        "/s/": { target: env.API_PROXY_TARGET },
       },
     },
 

@@ -34,9 +34,7 @@ function saveImage(card: ShareCardData): boolean {
 export function ShareDialog({ report, onClose }: Props) {
   const card = toShareCard(toSharedMatch(report));
   const { link } = useShareLink(report.matchResultId);
-  const url = link.data
-    ? publicShareUrl(link.data.token, window.location.origin)
-    : undefined;
+  const url = link.data ? publicShareUrl(link.data.token) : undefined;
   const [message, setMessage] = useState("");
 
   return (

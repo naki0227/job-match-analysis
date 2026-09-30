@@ -1,9 +1,4 @@
-import {
-  matchShareSchema,
-  publicShareSchema,
-  type MatchShare,
-  type PublicShare,
-} from "@job-match/contracts";
+import { matchShareSchema, type MatchShare } from "@job-match/contracts";
 
 export type ShareApiErrorKind = "unauthorized" | "not_found" | "unavailable";
 
@@ -91,18 +86,4 @@ export async function revokeShareLink(
     { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } },
     fetcher,
   );
-}
-
-/** Anonymous read of a live public share. */
-export async function readPublicShare(
-  token: string,
-  fetcher: typeof fetch = fetch,
-  signal?: AbortSignal,
-): Promise<PublicShare> {
-  const response = await send(
-    `/api/v1/public/shares/${encodeURIComponent(token)}`,
-    { signal },
-    fetcher,
-  );
-  return parse(response, (value) => publicShareSchema.parse(value));
 }

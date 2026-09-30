@@ -1,4 +1,4 @@
-import type { SharedMatch } from "@job-match/contracts";
+import { summarizeSharedMatch, type SharedMatch } from "@job-match/contracts";
 import { axisNames } from "../result/match-report";
 
 /**
@@ -15,18 +15,14 @@ export type ShareCardData = {
 };
 
 export function toShareCard(projection: SharedMatch): ShareCardData {
-  const count = (statuses: string[]) =>
-    projection.axes.filter((axis) => statuses.includes(axis.status)).length;
+  const summary = summarizeSharedMatch(projection);
   return {
     companyName: projection.companyName,
     jobTitle: projection.jobTitle,
-    close: count(["close"]),
-    different: count(["different"]),
-    unknown: count(["unknown", "conflicting", "stale"]),
-    closeAxes: projection.axes
-      .filter((axis) => axis.status === "close")
-      .slice(0, 3)
-      .map((axis) => axisNames[axis.axisKey]),
+    close: summary.close,
+    different: summary.different,
+    unknown: summary.unknown,
+    closeAxes: summary.closeAxes.map((axisKey) => axisNames[axisKey]),
   };
 }
 
@@ -40,9 +36,17 @@ export function xIntentUrl(card: ShareCardData, link?: string): string {
   return `https://x.com/intent/post?${params.toString()}`;
 }
 
-/** Public page URL for a share token on this origin. */
-export function publicShareUrl(token: string, origin: string): string {
-  return `${origin}/s/${token}`;
+/**
+ * Public page URL for a share token. The page and its OG image are rendered
+ * by the API at /s/<token>; VITE_PUBLIC_SHARE_ORIGIN points at the origin
+ * that serves that path when it differs from the SPA's own origin.
+ */
+export function publicShareUrl(
+  token: string,
+  origin: string = import.meta.env.VITE_PUBLIC_SHARE_ORIGIN ||
+    window.location.origin,
+): string {
+  return `${origin.replace(/\/$/, "")}/s/${token}`;
 }
 
 /** The subset of the 2D canvas API the card drawing needs. */

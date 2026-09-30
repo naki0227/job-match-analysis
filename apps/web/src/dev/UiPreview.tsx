@@ -16,7 +16,6 @@ import { MatchDetailScreen } from "../features/result/MatchDetailScreen";
 import { matchQueryKey } from "../features/result/useMatchReport";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { ShareDialog } from "../features/share/ShareDialog";
-import { PublicShareView } from "../features/share/PublicShareView";
 import { shareLinkQueryKey } from "../features/share/useShareLink";
 import { createQueryClient } from "../lib/query-client";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -125,14 +124,6 @@ const screens: Record<string, () => ReactNode> = {
     />
   ),
   共有カード: () => <ShareDialog report={sampleReport} onClose={noop} />,
-  公開ページ: () => (
-    <PublicShareView
-      share={{
-        sharedAt: "2026-09-29T01:00:00Z",
-        projection: toSharedMatch(sampleReport),
-      }}
-    />
-  ),
 };
 
 /** Dev-only gallery of every screen with sample data (open /#ui-preview). */

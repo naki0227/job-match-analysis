@@ -9,6 +9,7 @@ import {
 } from "./auth/profile-bootstrap.js";
 import { createCareerProfileRoutes } from "./career-profile-routes.js";
 import { createMatchRoutes } from "./match-routes.js";
+import { createShareRoutes } from "./share-routes.js";
 import type { CareerProfileStore } from "./repositories/career-profiles.js";
 
 export function createApp(
@@ -59,6 +60,7 @@ export function createApp(
   app.route("/", createAnalysisRoutes(deps));
   app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));
+  app.route("/", createShareRoutes(deps));
 
   return app;
 }

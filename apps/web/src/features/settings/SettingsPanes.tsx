@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PendingFeature } from "../../components/PendingFeature";
 import { prefectures } from "../career-profile/assessment-catalog";
 import { useCareerProfile } from "../career-profile/useCareerProfile";
+import { DeleteAccountSection } from "./DeleteAccountSection";
 
 const prefectureNames = new Map<string, string>(prefectures);
 
@@ -96,9 +97,11 @@ export function NotificationsPane() {
 export function AccountPane({
   email,
   onSignOut,
+  onAccountDeleted,
 }: {
   email: string | null;
   onSignOut: () => Promise<void>;
+  onAccountDeleted: () => void;
 }) {
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -115,8 +118,8 @@ export function AccountPane({
         </div>
       </dl>
       <PendingFeature
-        title="自分のデータのエクスポート・削除"
-        reason="個人データの書き出しと削除の手順は準備中です（Issue #29）。"
+        title="自分のデータの書き出し"
+        reason="個人データをファイルで受け取る機能は準備中です。"
       />
       <div className="actions">
         <button
@@ -140,6 +143,7 @@ export function AccountPane({
           ログアウトできませんでした。もう一度お試しください。
         </p>
       )}
+      <DeleteAccountSection onDeleted={onAccountDeleted} />
     </>
   );
 }

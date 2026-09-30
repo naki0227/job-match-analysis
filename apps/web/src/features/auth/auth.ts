@@ -47,3 +47,17 @@ export async function signOut(
   const { error } = await auth.signOut();
   if (error) throw new Error("Sign out failed");
 }
+
+/**
+ * Forgets the session in this browser only. Used after account deletion,
+ * when the server-side session no longer exists.
+ */
+export async function clearLocalSession(
+  auth: Pick<SupabaseClient["auth"], "signOut">,
+): Promise<void> {
+  try {
+    await auth.signOut({ scope: "local" });
+  } catch {
+    // The account is already gone; a stale local session is harmless to drop.
+  }
+}

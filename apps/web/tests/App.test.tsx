@@ -14,6 +14,7 @@ import { createQueryWrapper } from "./render-with-query";
 
 const session = vi.hoisted(() => ({ current: null as unknown }));
 const signOut = vi.hoisted(() => vi.fn(async () => {}));
+const clearLocalSession = vi.hoisted(() => vi.fn(async () => {}));
 const authEvents = vi.hoisted(() => ({
   listener: null as null | ((event: string, value: unknown) => void),
   failSubscribe: false,
@@ -37,6 +38,7 @@ vi.mock("../src/features/auth/auth", () => ({
   initializeOwnProfile: vi.fn(async () => {}),
   startGoogleSignIn: vi.fn(),
   signOut,
+  clearLocalSession,
   getCurrentAccessToken: async () => "token",
 }));
 
@@ -157,4 +159,41 @@ test("account changes clear personal cached matches before showing the next user
   fireEvent.click(await screen.findByRole("button", { name: "設定" }));
   fireEvent.click(screen.getByRole("tab", { name: "アカウント" }));
   expect(screen.getByText("b@example.com")).toBeInTheDocument();
+});
+
+test("deleting the account returns to sign-in with a confirmation", async () => {
+  session.current = {
+    access_token: "token",
+    user: { id: "user-1", email: "sample@example.com" },
+  };
+  const requests: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push(`${init?.method ?? "GET"} ${String(input)}`);
+      if (String(input) === "/api/health")
+        return Response.json({ status: "ok" });
+      if (init?.method === "DELETE") return new Response(null, { status: 204 });
+      return Response.json({ code: "not_found" }, { status: 404 });
+    }),
+  );
+  render(<App />, { wrapper: createQueryWrapper() });
+  fireEvent.click(await screen.findByRole("button", { name: "あとで" }));
+  fireEvent.click(screen.getByRole("button", { name: "設定" }));
+  fireEvent.click(screen.getByRole("tab", { name: "アカウント" }));
+  fireEvent.click(screen.getByRole("button", { name: "退会の手続きへ" }));
+  fireEvent.change(screen.getByLabelText(/「退会する」と入力/), {
+    target: { value: "退会する" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "完全に削除する" }));
+  expect(
+    await screen.findByText(
+      "退会しました。あなたに結びつくデータを削除しました。",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Googleでログイン" }),
+  ).toBeVisible();
+  expect(clearLocalSession).toHaveBeenCalled();
+  expect(requests).toContain("DELETE /api/v1/me");
 });

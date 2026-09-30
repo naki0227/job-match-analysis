@@ -6,6 +6,7 @@ import {
   getCurrentAccessToken,
   getSupabaseClient,
   initializeOwnProfile,
+  clearLocalSession,
   signOut,
   startGoogleSignIn,
 } from "./features/auth/auth";
@@ -94,6 +95,16 @@ function App() {
     }
   }
 
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function handleAccountDeleted() {
+    await clearLocalSession(getSupabaseClient().auth);
+    queryClient.clear();
+    setEmail(null);
+    setNotice("退会しました。あなたに結びつくデータを削除しました。");
+    setAuthStatus("signed_out");
+  }
+
   async function handleSignOut() {
     await signOut(getSupabaseClient().auth);
     queryClient.clear();
@@ -111,6 +122,7 @@ function App() {
       {(authStatus === "signed_out" || authStatus === "error") && (
         <SignInScreen
           failed={authStatus === "error"}
+          notice={notice}
           onSignIn={() => void handleGoogleSignIn()}
         />
       )}
@@ -119,6 +131,7 @@ function App() {
           getAccessToken={getCurrentAccessToken}
           email={email}
           onSignOut={handleSignOut}
+          onAccountDeleted={() => void handleAccountDeleted()}
         />
       )}
       <footer className="api-status">API Status: {status}</footer>

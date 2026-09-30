@@ -24,6 +24,7 @@ type Props = {
   getAccessToken: () => Promise<string>;
   email: string | null;
   onSignOut: () => Promise<void>;
+  onAccountDeleted: () => void;
 };
 
 export function AuthenticatedApp(props: Props) {
@@ -34,7 +35,12 @@ export function AuthenticatedApp(props: Props) {
   );
 }
 
-function Screens({ getAccessToken, email, onSignOut }: Props) {
+function Screens({
+  getAccessToken,
+  email,
+  onSignOut,
+  onAccountDeleted,
+}: Props) {
   const queryClient = useQueryClient();
   const [screen, setScreen] = useState<Screen>("home");
   const [matchResultId, setMatchResultId] = useState<string | null>(null);
@@ -130,6 +136,7 @@ function Screens({ getAccessToken, email, onSignOut }: Props) {
             email={email}
             onEditProfile={editProfile}
             onSignOut={onSignOut}
+            onAccountDeleted={onAccountDeleted}
           />
         )}
         {screen === "profile" && (

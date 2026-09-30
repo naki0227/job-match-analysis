@@ -3,9 +3,11 @@ import { Mascot } from "../../components/Mascot";
 type Props = {
   failed: boolean;
   onSignIn: () => void;
+  /** Shown once after signing out or deleting the account. */
+  notice?: string | null;
 };
 
-export function SignInScreen({ failed, onSignIn }: Props) {
+export function SignInScreen({ failed, onSignIn, notice }: Props) {
   return (
     <section className="gate" aria-labelledby="sign-in-heading">
       <div className="brand">
@@ -15,6 +17,11 @@ export function SignInScreen({ failed, onSignIn }: Props) {
       <div className="gate-mascot">
         <Mascot pose="wave" />
       </div>
+      {notice && (
+        <p className="notice" role="status">
+          {notice}
+        </p>
+      )}
       <h1 id="sign-in-heading">はじめよう。</h1>
       <p className="sub">気になる求人を、自分の軸で。</p>
       <button className="google-btn" type="button" onClick={onSignIn}>

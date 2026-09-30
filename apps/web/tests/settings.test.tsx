@@ -49,6 +49,7 @@ function renderSettings(onSignOut = vi.fn(async () => {})) {
       email="sample@example.com"
       onEditProfile={onEditProfile}
       onSignOut={onSignOut}
+      onAccountDeleted={vi.fn()}
     />,
     { wrapper: createQueryWrapper() },
   );

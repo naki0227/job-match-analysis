@@ -25,6 +25,7 @@ test("home submission moves to the analysis screen and shows progress", async ()
       getAccessToken={async () => "token"}
       email="sample@example.com"
       onSignOut={async () => {}}
+      onAccountDeleted={() => {}}
     />,
     {
       wrapper: createQueryWrapper(),
@@ -57,6 +58,7 @@ test("invalid URL is flagged without calling the API", async () => {
       getAccessToken={async () => "token"}
       email="sample@example.com"
       onSignOut={async () => {}}
+      onAccountDeleted={() => {}}
     />,
     {
       wrapper: createQueryWrapper(),
@@ -103,6 +105,7 @@ test("a cache hit shows the personal match report", async () => {
       getAccessToken={async () => "token"}
       email="sample@example.com"
       onSignOut={async () => {}}
+      onAccountDeleted={() => {}}
     />,
     {
       wrapper: createQueryWrapper(),
@@ -132,6 +135,7 @@ test("a user without a profile sees onboarding first and can skip it", async () 
       getAccessToken={async () => "token"}
       email="sample@example.com"
       onSignOut={async () => {}}
+      onAccountDeleted={() => {}}
     />,
     { wrapper: createQueryWrapper() },
   );

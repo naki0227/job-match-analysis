@@ -121,6 +121,7 @@ const screens: Record<string, () => ReactNode> = {
       email="sample.user@example.com"
       onEditProfile={noop}
       onSignOut={async () => {}}
+      onAccountDeleted={noop}
     />
   ),
   共有カード: () => <ShareDialog report={sampleReport} onClose={noop} />,

@@ -24,9 +24,15 @@ type Props = {
   email: string | null;
   onEditProfile: () => void;
   onSignOut: () => Promise<void>;
+  onAccountDeleted: () => void;
 };
 
-export function SettingsScreen({ email, onEditProfile, onSignOut }: Props) {
+export function SettingsScreen({
+  email,
+  onEditProfile,
+  onSignOut,
+  onAccountDeleted,
+}: Props) {
   const [tab, setTab] = useState<TabKey>("preferences");
   return (
     <section className="page-head settings" aria-labelledby="settings-heading">
@@ -41,7 +47,11 @@ export function SettingsScreen({ email, onEditProfile, onSignOut }: Props) {
         {tab === "privacy" && <PrivacyPane />}
         {tab === "notifications" && <NotificationsPane />}
         {tab === "account" && (
-          <AccountPane email={email} onSignOut={onSignOut} />
+          <AccountPane
+            email={email}
+            onSignOut={onSignOut}
+            onAccountDeleted={onAccountDeleted}
+          />
         )}
       </Tabs>
     </section>

@@ -56,3 +56,15 @@ test("sign-out reports failures without details", async () => {
     } as never),
   ).rejects.toThrow("Sign out failed");
 });
+
+test("clearing the local session never throws after account deletion", async () => {
+  const { clearLocalSession } = await import("../src/features/auth/auth");
+  const calls: unknown[] = [];
+  await clearLocalSession({
+    signOut: async (options?: unknown) => {
+      calls.push(options);
+      throw new Error("session_not_found");
+    },
+  } as never);
+  expect(calls).toEqual([{ scope: "local" }]);
+});

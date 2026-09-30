@@ -172,6 +172,8 @@ psql_cmd < supabase/tests/issue27_analysis_history_page.sql
 psql_cmd < supabase/migrations/20260929133857_personal_analysis_interest.sql
 psql_cmd < supabase/tests/issue27_personal_analysis_interest.sql
 pnpm --filter @job-match/contracts build
+pnpm --filter @job-match/domain build
+pnpm --filter @job-match/application build
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-parallel.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-history-db.ts
 psql_cmd < supabase/rollback/20260929133857_personal_analysis_interest.sql

@@ -95,6 +95,8 @@ const routes = createAnalysisRoutes(
   () => ({
     analyzerVersion: "issue19-http-v1",
     freshnessSeconds: 3600,
+    newAnalysisLimit: 100,
+    quotaWindowSeconds: 86_400,
     now: () => new Date("2026-09-29T02:00:00Z"),
   }),
 );

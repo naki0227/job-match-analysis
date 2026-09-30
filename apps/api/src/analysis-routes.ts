@@ -14,6 +14,7 @@ import {
   type AnalysisJob,
 } from "./repositories/analysis-jobs.js";
 import {
+  AnalysisQuotaExceededError,
   createSupabaseAnalysisRequestRepository,
   type AnalysisRequestResult,
 } from "./repositories/analysis-requests.js";
@@ -21,20 +22,36 @@ import {
 export type AnalysisRoutePolicy = {
   analyzerVersion: string;
   freshnessSeconds: number;
+  /** Most new or refreshed URLs one user may start per quota window. */
+  newAnalysisLimit: number;
+  quotaWindowSeconds: number;
   now: () => Date;
 };
+
+function positiveInteger(value: number): boolean {
+  return Number.isSafeInteger(value) && value > 0;
+}
 
 export function createAnalysisRoutePolicy(): AnalysisRoutePolicy {
   const analyzerVersion = process.env.ANALYZER_VERSION;
   const freshnessSeconds = Number(process.env.ANALYSIS_FRESHNESS_SECONDS);
+  const newAnalysisLimit = Number(process.env.ANALYSIS_NEW_URL_LIMIT);
+  const quotaWindowSeconds = Number(process.env.ANALYSIS_QUOTA_WINDOW_SECONDS);
   if (
     !analyzerVersion?.trim() ||
-    !Number.isSafeInteger(freshnessSeconds) ||
-    freshnessSeconds <= 0
+    !positiveInteger(freshnessSeconds) ||
+    !positiveInteger(newAnalysisLimit) ||
+    !positiveInteger(quotaWindowSeconds)
   ) {
     throw new Error("Analysis policy is not configured");
   }
-  return { analyzerVersion, freshnessSeconds, now: () => new Date() };
+  return {
+    analyzerVersion,
+    freshnessSeconds,
+    newAnalysisLimit,
+    quotaWindowSeconds,
+    now: () => new Date(),
+  };
 }
 
 type RequestStore = {
@@ -44,6 +61,8 @@ type RequestStore = {
     normalizedUrl: string;
     analyzerVersion: string;
     freshAfter: string;
+    quotaSince: string;
+    newAnalysisLimit: number;
   }) => Promise<AnalysisRequestResult>;
 };
 type JobStore = { get: (jobId: string) => Promise<AnalysisJob | null> };
@@ -62,7 +81,7 @@ export function createAnalysisRoutes(
     const fail = (
       code: string,
       message: string,
-      status: 400 | 401 | 403 | 503,
+      status: 400 | 401 | 403 | 429 | 503,
     ) => c.json({ code, message, requestId }, status);
     try {
       const auth = await authenticate(c.req.header("Authorization"), authDeps);
@@ -84,20 +103,37 @@ export function createAnalysisRoutes(
       const policy = policyDeps();
       if (
         !policy.analyzerVersion.trim() ||
-        !Number.isSafeInteger(policy.freshnessSeconds) ||
-        policy.freshnessSeconds <= 0
+        !positiveInteger(policy.freshnessSeconds) ||
+        !positiveInteger(policy.newAnalysisLimit) ||
+        !positiveInteger(policy.quotaWindowSeconds)
       )
         return fail("service_unavailable", "Service unavailable", 503);
-      const freshAfter = new Date(
-        policy.now().getTime() - policy.freshnessSeconds * 1_000,
-      ).toISOString();
-      const result = await requestDeps().request({
-        userId: auth.userId,
-        rawUrl: parsed.data.url,
-        normalizedUrl,
-        analyzerVersion: policy.analyzerVersion,
-        freshAfter,
-      });
+      const now = policy.now().getTime();
+      let result: AnalysisRequestResult;
+      try {
+        result = await requestDeps().request({
+          userId: auth.userId,
+          rawUrl: parsed.data.url,
+          normalizedUrl,
+          analyzerVersion: policy.analyzerVersion,
+          freshAfter: new Date(
+            now - policy.freshnessSeconds * 1_000,
+          ).toISOString(),
+          quotaSince: new Date(
+            now - policy.quotaWindowSeconds * 1_000,
+          ).toISOString(),
+          newAnalysisLimit: policy.newAnalysisLimit,
+        });
+      } catch (error) {
+        if (error instanceof AnalysisQuotaExceededError) {
+          return fail(
+            "analysis_quota_exceeded",
+            "New analysis limit reached",
+            429,
+          );
+        }
+        throw error;
+      }
       if (
         result.status === "fresh" &&
         result.evaluationId &&

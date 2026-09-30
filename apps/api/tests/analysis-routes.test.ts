@@ -8,7 +8,10 @@ import {
 import { createAnalysisRoutes } from "../src/analysis-routes.js";
 import type { ProfileBootstrapDeps } from "../src/auth/profile-bootstrap.js";
 import type { AnalysisJob } from "../src/repositories/analysis-jobs.js";
-import type { AnalysisRequestResult } from "../src/repositories/analysis-requests.js";
+import {
+  AnalysisQuotaExceededError,
+  type AnalysisRequestResult,
+} from "../src/repositories/analysis-requests.js";
 
 const userId = randomUUID();
 const jobId = randomUUID();
@@ -18,6 +21,8 @@ const fetchedAt = "2026-09-29T00:00:00Z";
 const policy = {
   analyzerVersion: "analysis-v1",
   freshnessSeconds: 3600,
+  newAnalysisLimit: 5,
+  quotaWindowSeconds: 86_400,
   now: () => new Date("2026-09-29T02:00:00Z"),
 };
 
@@ -46,6 +51,8 @@ function routes(args: {
     normalizedUrl: string;
     analyzerVersion: string;
     freshAfter: string;
+    quotaSince: string;
+    newAnalysisLimit: number;
   }) => Promise<AnalysisRequestResult>;
   get?: (id: string) => Promise<AnalysisJob | null>;
 }) {
@@ -113,6 +120,8 @@ test("same normalized URL from two callers shares the repository job", async () 
       calls.push(input.normalizedUrl);
       assert.equal(input.analyzerVersion, "analysis-v1");
       assert.equal(input.freshAfter, "2026-09-29T01:00:00.000Z");
+      assert.equal(input.quotaSince, "2026-09-28T02:00:00.000Z");
+      assert.equal(input.newAnalysisLimit, 5);
       return {
         status: "queued",
         sourceUrlId,
@@ -189,4 +198,28 @@ test("authentication, unsafe URL and storage failures return safe errors", async
     JSON.stringify(await response.json()).includes("private DB details"),
     false,
   );
+});
+
+test("新規解析の上限超過は429で返し、内部詳細を含めない", async () => {
+  const response = await post(
+    routes({
+      request: async () => {
+        throw new AnalysisQuotaExceededError();
+      },
+    }),
+  );
+  assert.equal(response.status, 429);
+  const body = (await response.json()) as Record<string, unknown>;
+  assert.equal(body.code, "analysis_quota_exceeded");
+  assert.equal(typeof body.requestId, "string");
+});
+
+test("上限の設定が欠けると新規受付を503で止める", async () => {
+  const app = createAnalysisRoutes(
+    auth(),
+    () => ({ request: async () => assert.fail("must not be called") }),
+    () => ({ get: async () => null }),
+    () => ({ ...policy, newAnalysisLimit: Number.NaN }),
+  );
+  assert.equal((await post(app)).status, 503);
 });

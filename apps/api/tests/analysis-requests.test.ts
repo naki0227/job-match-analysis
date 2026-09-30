@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import {
+  AnalysisQuotaExceededError,
   AnalysisRequestError,
   createAnalysisRequestRepository,
 } from "../src/repositories/analysis-requests.js";
@@ -16,6 +17,8 @@ const input = {
   normalizedUrl: "https://example.org/jobs/123",
   analyzerVersion: "v1",
   freshAfter,
+  quotaSince: "2026-09-28T00:00:00Z",
+  newAnalysisLimit: 5,
 };
 
 test("受付を1 RPCで行い、rawとnormalized URLを分けて渡す", async () => {
@@ -26,6 +29,8 @@ test("受付を1 RPCで行い、rawとnormalized URLを分けて渡す", async (
     assert.equal(args.p_raw_url, input.rawUrl);
     assert.equal(args.p_normalized_url, input.normalizedUrl);
     assert.equal(args.p_fresh_after, freshAfter);
+    assert.equal(args.p_quota_since, input.quotaSince);
+    assert.equal(args.p_new_analysis_limit, 5);
     return [
       {
         request_status: "queued",
@@ -89,4 +94,24 @@ test("不正な入力とDB応答を拒否し、内部エラーを公開しない
     },
   ]);
   await assert.rejects(missingDate.request(input), AnalysisRequestError);
+});
+
+test("上限超過は専用エラーで伝え、不正な上限値はRPC前に拒否する", async () => {
+  const quota = createAnalysisRequestRepository(async () => {
+    throw new AnalysisQuotaExceededError();
+  });
+  await assert.rejects(quota.request(input), AnalysisQuotaExceededError);
+  let called = false;
+  const guarded = createAnalysisRequestRepository(async () => {
+    called = true;
+    return [];
+  });
+  for (const bad of [
+    { newAnalysisLimit: 0 },
+    { newAnalysisLimit: 1.5 },
+    { quotaSince: "yesterday" },
+  ]) {
+    await assert.rejects(guarded.request({ ...input, ...bad }), RangeError);
+  }
+  assert.equal(called, false);
 });

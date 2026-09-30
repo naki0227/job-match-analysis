@@ -24,7 +24,17 @@ export type ReadAnalysisRequest = (args: {
   p_normalized_url: string;
   p_analyzer_version: string;
   p_fresh_after: string;
+  p_quota_since: string;
+  p_new_analysis_limit: number;
 }) => Promise<unknown>;
+
+/** The caller used up their quota of analyses that need a new job. */
+export class AnalysisQuotaExceededError extends Error {
+  constructor() {
+    super("Analysis quota exceeded");
+    this.name = "AnalysisQuotaExceededError";
+  }
+}
 
 export class AnalysisRequestError extends Error {
   constructor() {
@@ -41,13 +51,18 @@ export function createAnalysisRequestRepository(read: ReadAnalysisRequest) {
       normalizedUrl: string;
       analyzerVersion: string;
       freshAfter: string;
+      quotaSince: string;
+      newAnalysisLimit: number;
     }): Promise<AnalysisRequestResult> {
       if (
         !uuid.safeParse(input.userId).success ||
         !input.rawUrl ||
         !input.normalizedUrl.startsWith("https://") ||
         !input.analyzerVersion.trim() ||
-        !z.iso.datetime({ offset: true }).safeParse(input.freshAfter).success
+        !z.iso.datetime({ offset: true }).safeParse(input.freshAfter).success ||
+        !z.iso.datetime({ offset: true }).safeParse(input.quotaSince).success ||
+        !Number.isSafeInteger(input.newAnalysisLimit) ||
+        input.newAnalysisLimit < 1
       ) {
         throw new RangeError("Invalid analysis request");
       }
@@ -59,8 +74,11 @@ export function createAnalysisRequestRepository(read: ReadAnalysisRequest) {
           p_normalized_url: input.normalizedUrl,
           p_analyzer_version: input.analyzerVersion,
           p_fresh_after: input.freshAfter,
+          p_quota_since: input.quotaSince,
+          p_new_analysis_limit: input.newAnalysisLimit,
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof AnalysisQuotaExceededError) throw error;
         throw new AnalysisRequestError();
       }
       const parsed = z.array(resultSchema).length(1).safeParse(raw);
@@ -100,7 +118,11 @@ export function createSupabaseAnalysisRequestRepository() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   return createAnalysisRequestRepository(async (args) => {
-    const { data, error } = await client.rpc("request_personal_analysis", args);
+    const { data, error } = await client.rpc(
+      "request_personal_analysis_limited",
+      args,
+    );
+    if (error?.code === "P0429") throw new AnalysisQuotaExceededError();
     if (error) throw new AnalysisRequestError();
     return data;
   });

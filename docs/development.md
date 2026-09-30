@@ -54,6 +54,24 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 - Web CIは `apps/web/**`、`packages/contracts/**`、root package設定・lockfile、Web workflowの変更時に実行し、lint、unit test、UI導線のPlaywright、buildを確認する。Web Dockerfileも `apps/web/**` に含む。
 - DB migration CIはmigration・rollback・DBテスト・検証スクリプト・root package設定の変更時に実行し、migrationとダミーデータ別DB復元を確認する。
 
+## ローカルの起動とテストの順番（Issue #28）
+
+前提はNode.js 24、pnpm 11、Docker。ルートで`pnpm install --frozen-lockfile`を実行する。秘密値は`apps/api/.env.local`・`apps/web/.env.local`・ルートの無追跡`.env`だけに置き、Gitへ入れない。
+
+| 順番 | コマンド | 使うもの | 確認すること | CI |
+|---|---|---|---|---|
+| 1 | `pnpm precommit` | なし | format・lint・typecheck・unit test（contracts/domain/application/Crawler/API/Web）・build | CI・Web |
+| 2 | `pnpm test:db` | Docker上の使い捨てPostgreSQL 17 | 全migration・制約・RLS・RPC・同時実行、HTTP＋DBの統合テスト（解析受付・履歴・共有リンク・worker回復）、セキュリティ権限ガード、rollback | DB migration |
+| 3 | `sh scripts/test-db-restore.sh` | 同上 | ダミーデータのdump/restoreとFK・RLS・版履歴 | DB migration |
+| 4 | `pnpm test:e2e` | ローカルChrome、API不要（Playwrightが応答をfixtureで返す） | ログイン済み画面の入力・解析・履歴・公開ページの導線 | Web |
+| 5 | `docker build -f apps/api/Dockerfile .`／`apps/web/Dockerfile` | Docker | 本番imageのbuild | CI |
+
+- テストはJevの本番APIを呼ばない。Crawlerのunit test・統合テストは`createFakeDecisionEngine`を使い、CIは`JEV_API_KEY`などの秘密値を要求しない。実Jevの確認は`apps/api/scripts/jev-smoke.ts`で低頻度・手動に限る。
+- DBのfixtureは`supabase/tests/*.sql`と`apps/api/scripts/test-*-db.ts`に置き、`scripts/test-db-migration.sh`が適用順を管理する。migrationを追加したら、このスクリプトへup・テスト・rollbackを追加する。
+- ローカルSupabase（Auth・Data API）は、ルートの`.env`に`GOOGLE_CLIENT_ID`と`GOOGLE_CLIENT_SECRET`を置いて`pnpm exec supabase start`で起動し、`pnpm test:auth`で匿名・本人・サーバー資格情報の境界を確認する（[Auth](auth.md)）。
+- 画面を動かす時は2つのターミナルで`pnpm --filter api dev`と`pnpm --filter web dev`を実行する。APIの`.env.local`には`SUPABASE_URL`・`SUPABASE_PUBLISHABLE_KEY`・`SUPABASE_SECRET_KEY`と、`ANALYZER_VERSION`・`ANALYSIS_FRESHNESS_SECONDS`・`ANALYSIS_NEW_URL_LIMIT`・`ANALYSIS_QUOTA_WINDOW_SECONDS`が必要（値は運用判断）。画面の見た目だけなら`http://localhost:5173/#ui-preview`でサンプルデータを表示できる。
+- 共有ジョブを実際に処理する場合は、下の「ローカルCrawler worker」の設定でworkerを起動する。
+
 ## ローカルCrawler worker
 
 `pnpm --filter crawler build`の後、`pnpm --filter crawler worker`で共有ジョブを処理する。workerは各周期で取得から30日を過ぎた`source_document_versions.extracted_text`を最大指定件数だけNULLにし、次に共有ジョブを1件claimする。終了時はSIGINT/SIGTERMでブラウザを閉じる。

@@ -96,3 +96,60 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
     }),
   ).toBeVisible();
 });
+
+test("解析中にホームへ戻っても完了後の履歴が自動更新される", async ({
+  page,
+}) => {
+  await signInWithFixture(page);
+  await page.route("**/api/v1/me/career-profile", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(savedProfile),
+    }),
+  );
+  await page.route("**/api/v1/analyses", (route) =>
+    route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "pending", jobId }),
+    }),
+  );
+  let completed = false;
+  let polls = 0;
+  await page.route(`**/api/v1/analyses/${jobId}`, (route) => {
+    polls += 1;
+    completed = polls >= 2;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        completed
+          ? { status: "completed", jobId, evaluationId }
+          : { status: "running", jobId },
+      ),
+    });
+  });
+  await page.route("**/api/v1/me/analysis-history?**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: completed ? [historyItems[0]] : [],
+        nextCursor: null,
+      }),
+    }),
+  );
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page
+    .getByLabel("求人ページのURL")
+    .fill("https://jobs.example.com/posting/1");
+  await page.getByRole("button", { name: "分析する" }).click();
+  await expect(page.getByText("公開ページを確認しています")).toBeVisible();
+  await page.getByRole("button", { name: "ホーム" }).click();
+  await expect(
+    page
+      .getByRole("list", { name: "最近の分析" })
+      .getByRole("button", { name: /サンプルテック株式会社/ }),
+  ).toBeVisible({ timeout: 10_000 });
+});

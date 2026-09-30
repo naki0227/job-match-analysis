@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppHeader, type Screen } from "./components/AppHeader";
 import { Toast } from "./components/Toast";
 import { useToast } from "./components/useToast";
@@ -34,12 +35,19 @@ export function AuthenticatedApp(props: Props) {
 }
 
 function Screens({ getAccessToken, email, onSignOut }: Props) {
+  const queryClient = useQueryClient();
   const [screen, setScreen] = useState<Screen>("home");
   const [matchResultId, setMatchResultId] = useState<string | null>(null);
   const [onboardingSkipped, setOnboardingSkipped] = useState(false);
   const [historyFilter, setHistoryFilter] =
     useState<HistoryFilter>(defaultHistoryFilter);
   const analysis = useAnalysisRequest({ getAccessToken });
+  const completedEvaluationId =
+    analysis.state.kind === "ready" ? analysis.state.evaluationId : null;
+  useEffect(() => {
+    if (completedEvaluationId)
+      void queryClient.invalidateQueries({ queryKey: ["analysis-history"] });
+  }, [completedEvaluationId, queryClient]);
   const recentHistory = useAnalysisHistory(
     defaultHistoryFilter,
     screen === "home",

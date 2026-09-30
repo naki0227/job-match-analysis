@@ -15,6 +15,7 @@
 | Method | Path | 概要 | 成功 |
 |---|---|---|---|
 | GET | /api/v1/me | 認証ユーザー | 200 |
+| DELETE | /api/v1/me | 本人の退会。body `{"confirmation":"delete-my-account"}`必須。Auth userを削除し個人データはCASCADEで削除（ADR-038） | 204 / 400 / 401 / 403 / 503 |
 | POST | /api/v1/me/profile | Google認証後に本人のprofiles行を冪等に作成。bodyなし、Bearer token必須 | 204 / 400 / 401 / 403 / 503 |
 | GET | /api/v1/me/career-profile | 本人の最新確定プロフィール版。Bearer token必須 | 200 / 401 / 403 / 404 / 503 |
 | PUT | /api/v1/me/career-profile | 軸ごとのpreference, importanceと必須条件を新バージョンで確定。Bearer token必須 | 200 / 201 / 400 / 401 / 403 / 409 / 503 |

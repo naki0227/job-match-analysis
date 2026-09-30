@@ -153,3 +153,81 @@ test("解析中にホームへ戻っても完了後の履歴が自動更新さ�
       .getByRole("button", { name: /サンプルテック株式会社/ }),
   ).toBeVisible({ timeout: 10_000 });
 });
+
+test("企業名と職種で求人を探し、候補から選んだ求人を分析する", async ({
+  page,
+}) => {
+  await signInWithFixture(page);
+  await page.route("**/api/v1/me/career-profile", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(savedProfile),
+    }),
+  );
+  const searches: unknown[] = [];
+  await page.route("**/api/v1/job-resolver/search", async (route) => {
+    searches.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "candidates",
+        candidates: ["tokyo", "osaka"].map((city) => ({
+          companyName: "サンプル株式会社",
+          title: `法人営業（${city === "tokyo" ? "東京" : "大阪"}）`,
+          url: `https://jobs.example.com/posting/${city}`,
+          source: "known",
+          employmentTypes: [],
+        })),
+        partial: false,
+      }),
+    });
+  });
+  const posted: unknown[] = [];
+  await page.route("**/api/v1/analyses", async (route) => {
+    posted.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "completed",
+        evaluationId,
+        sourceFetchedAt: "2026-09-30T00:00:00Z",
+      }),
+    });
+  });
+  await page.route("**/api/v1/matches", (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(sampleReport),
+    }),
+  );
+  await page.route("**/api/v1/me/analysis-history?**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], nextCursor: null }),
+    }),
+  );
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /企業名と職種から探す/ }).click();
+  await page.getByLabel("企業名").fill("サンプル");
+  await page.getByLabel("職種", { exact: true }).fill("法人営業");
+  await page.getByRole("button", { name: "求人を探す" }).click();
+  const list = page.getByRole("list", { name: "求人の候補" });
+  await expect(list.getByRole("listitem")).toHaveCount(2);
+  expect(posted).toEqual([]);
+  await list
+    .getByRole("listitem")
+    .nth(1)
+    .getByRole("button", { name: "この求人を分析する" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "解析済みの共有評価が見つかりました" }),
+  ).toBeVisible({ timeout: 10_000 });
+  expect(searches).toEqual([{ company: "サンプル", roleQuery: "法人営業" }]);
+  expect(posted).toEqual([{ url: "https://jobs.example.com/posting/osaka" }]);
+});

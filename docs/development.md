@@ -78,4 +78,10 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 
 起動前に`SUPABASE_URL`、`SUPABASE_SECRET_KEY`、`JEV_API_KEY`、`CRAWLER_BROWSER_EXECUTABLE`をサーバー側環境変数に設定する。`CRAWLER_LEASE_SECONDS`、`CRAWLER_MAX_ATTEMPTS`、`CRAWLER_RETENTION_BATCH_SIZE`、`CRAWLER_MAX_CANDIDATES`、`CRAWLER_MAX_EXCERPT_CHARS`、`CRAWLER_POLL_INTERVAL_MS`、Jevへ送る根拠候補の1日（UTC）あたりの全体上限`CRAWLER_JEV_DAILY_CANDIDATE_BUDGET`も必須で、正の整数か`unlimited`を指定する。有限の場合は上限到達後に新規のJev呼び出しを止め、未解決の軸を`unknown`として保存する（評価器版に`jev-budget-exhausted`を含む）。`unlimited`は予算表を参照せず常にJevを呼ぶ。どちらのモードでもJev呼び出しの候補数・token・結果はmetrics portへ記録する。費用と実行環境に応じた値を運用者が指定する。ブラウザへ秘密鍵を渡さない。
 
+`CRAWLER_RUN_MODE=drain`（Azure Container Apps Job用、ADR-040）では`CRAWLER_DRAIN_MAX_JOBS`も必須で、queueが空になるか上限件数に達したら終了する。既定の`loop`は常駐する。
+
+## 運用telemetry（Issue #32、ADR-041）
+
+APIとcrawlerは公式OpenTelemetry SDKをOTLP/HTTPで起動する。`OTEL_EXPORTER_OTLP_ENDPOINT`が未設定なら何も登録せず、計測はno-opになる（ローカル・CIの既定）。Grafana Cloudへ送る場合は、Grafana CloudのOTLP endpointと`OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <instance:token>`をサーバー側の秘密として設定する。任意で`OTEL_SERVICE_NAME`、`DEPLOYMENT_ENVIRONMENT`（既定`production`）、`OTEL_METRIC_EXPORT_INTERVAL`（ms、既定60000）を指定する。exporterやbackendの失敗はdiag loggerで握りつぶし、終了時のflushは最大5秒で打ち切るため、API・crawlerを止めない。span・metricのattributeはroute template・method・status・outcomeだけで、raw path・query・token・利用者情報・本文は送らない。
+
 新規URLは単一の`JobPosting` JSON-LDに求人名と雇用主名がある場合だけ評価対象を作る。構造化メタデータのないページや複数求人の一覧は、誤った企業へ結びつけずジョブを失敗として確定する。robots・公開URL・SSRFの取得境界はADR-021/026/034に従う。

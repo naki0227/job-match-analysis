@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { healthResponse } from "@job-match/contracts";
 import { Hono } from "hono";
+import {
+  abuseSignalsFromEnv,
+  type AbuseSignals,
+} from "./abuse/abuse-signals.js";
 import { createAccountRoutes } from "./account-routes.js";
 import { createAnalysisRoutes } from "./analysis-routes.js";
 import { createAnalysisHistoryRoutes } from "./analysis-history-routes.js";
@@ -24,6 +28,7 @@ export function createApp(
   careerStoreDeps?: () => CareerProfileStore,
   telemetry: ApiMetrics = createOtelApiMetrics(),
   trigger: WorkerTrigger = workerTriggerFromEnv(process.env),
+  signals: AbuseSignals = abuseSignalsFromEnv(process.env),
 ) {
   const app = new Hono();
   const metrics = safeApiMetrics(telemetry);
@@ -68,7 +73,7 @@ export function createApp(
     }
   });
 
-  app.route("/", createCareerProfileRoutes(deps, careerStoreDeps));
+  app.route("/", createCareerProfileRoutes(deps, careerStoreDeps, signals));
   app.route(
     "/",
     createAnalysisRoutes(
@@ -78,11 +83,12 @@ export function createApp(
       undefined,
       metrics,
       trigger,
+      signals,
     ),
   );
   app.route("/", createAnalysisHistoryRoutes(deps));
   app.route("/", createMatchRoutes(deps));
-  app.route("/", createShareRoutes(deps));
+  app.route("/", createShareRoutes(deps, undefined, signals));
   app.route("/", createSharePageRoutes(createSupabaseSharePorts));
   app.route("/", createAccountRoutes(deps));
 

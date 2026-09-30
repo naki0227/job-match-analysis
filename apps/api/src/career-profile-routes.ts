@@ -4,6 +4,10 @@ import {
   type CommitCareerProfileRequest,
 } from "@job-match/contracts";
 import { Hono } from "hono";
+import {
+  disabledAbuseSignals,
+  type AbuseSignals,
+} from "./abuse/abuse-signals.js";
 import { authenticate } from "./auth/authenticate.js";
 import type { ProfileBootstrapDeps } from "./auth/profile-bootstrap.js";
 import {
@@ -14,6 +18,7 @@ import {
 export function createCareerProfileRoutes(
   authDeps: () => ProfileBootstrapDeps,
   storeDeps: () => CareerProfileStore = createSupabaseCareerProfileStore,
+  signals: AbuseSignals = disabledAbuseSignals,
 ) {
   const app = new Hono();
 
@@ -86,6 +91,7 @@ export function createCareerProfileRoutes(
       if (result.status === "unavailable") {
         return fail("storage_unavailable", "Profile unavailable", 503);
       }
+      signals.record(c.req, auth.userId, "career_profile_saved");
       return c.json(result.value, input.expectedVersion === 0 ? 201 : 200);
     } catch {
       return fail("service_unavailable", "Service unavailable", 503);

@@ -16,6 +16,7 @@ import {
   stateFromPost,
   type AnalysisState,
 } from "./analysis-state";
+import { useForegroundRefetch } from "./useForegroundRefetch";
 
 export type AnalysisRequestOptions = {
   getAccessToken: () => Promise<string>;
@@ -73,9 +74,12 @@ export function useAnalysisRequest({
     queryKey: analysisJobQueryKey(jobId ?? ""),
     queryFn: async ({ signal }) =>
       readAnalysisJob(await getAccessToken(), jobId ?? "", fetcher, signal),
-    enabled: jobId !== null && !expired,
+    // Stays enabled after the deadline so a return to the page can still
+    // pick up a job that finished while the browser was suspended.
+    enabled: jobId !== null,
     staleTime: 0,
     refetchInterval: (query) => {
+      if (expired) return false;
       const status = query.state.data?.status;
       if (status === "completed" || status === "failed") {
         return false;
@@ -103,6 +107,12 @@ export function useAnalysisRequest({
   if (activeJobId !== null && expired) {
     state = expirePolling(state, activeJobId);
   }
+
+  // Replaces a poll that may be stuck in a suspended request.
+  const { refetch } = job;
+  useForegroundRefetch(activeJobId !== null, () => {
+    void refetch({ cancelRefetch: true });
+  });
 
   useEffect(() => {
     if (activeJobId === null || expired) return;

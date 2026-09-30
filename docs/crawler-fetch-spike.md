@@ -18,14 +18,14 @@
 
 ## 公開情報の取得方針
 
-- 取得対象は公開かつアクセスを許されたページのみ。ログイン、paywall、アクセス制限、CAPTCHAを回避しない。公開表示されていても利用規約・robotsを対象サイトごとに確認し、禁止されていれば取得しない。
-- 今回の練習サイトは運営者がスクレイピング演習用と明記している。`robots.txt`は2026-09-28時点で404だった。robotsの404だけで他サイトの取得許可を推定しない。
-- robots取得が5xxまたは失敗した場合は取得を保留する。RFC 9309のunreachable時に完全拒否として扱う考え方に合わせる。取得ペース、引用・保存範囲、サイト別の利用条件は本番投入前に確定する。
+- 取得対象は公開HTTPSページとし、対象パスをrobotsが許可した場合に取得する。サイト別の手動承認は必須にしない。ログイン、paywall、アクセス制限、CAPTCHAは回避しない。詳細は[ADR-034](adr/034-public-crawl-eligibility.md)に従う。
+- 今回の練習サイトは運営者がスクレイピング演習用と明記している。`robots.txt`は2026-09-28時点で404だった。現行実装では対象originのrobotsが404または410ならルールなしとして扱い、他のoriginにはその結果を流用しない。
+- robots取得が5xxまたは失敗した場合は取得を保留する。RFC 9309のunreachable時に完全拒否として扱う考え方に合わせる。取得ペース、引用・保存範囲は運用前に確定する。
 
 参照: [Scraping Sandbox](https://sites.toscrape.com/)、[Playwright Network](https://playwright.dev/docs/network)、[RFC 9309](https://www.rfc-editor.org/rfc/rfc9309.html)。
 
 ## #21 実装への反映
 
-`apps/crawler/src/fetch-source-document.ts`は、HTTP本文が100非空白文字に満たない場合だけ既存の安全なPlaywright境界を1回使う。本文抽出は`source-extractor.ts`の`html-v1`で求人と明示された会社領域を区別し、正規化本文のSHA-256、取得日時、DOM位置を返す。`crawl-policy.ts`は利用条件の確認済み判定とrobotsを両方要求し、redirectとブラウザ要求にも適用する。判断の理由と制約は[ADR-026](adr/026-crawler-source-extraction.md)を参照。
+`apps/crawler/src/fetch-source-document.ts`は、HTTP本文が100非空白文字に満たない場合だけ既存の安全なPlaywright境界を1回使う。本文抽出は`source-extractor.ts`の`html-v1`で求人と明示された会社領域を区別し、正規化本文のSHA-256、取得日時、DOM位置を返す。`crawl-policy.ts`はrobotsを確認し、redirectとブラウザ要求にも同じ判定を適用する。サイト別の追加遮断は呼び出し側で指定できる。判断の理由と制約は[ADR-026](adr/026-crawler-source-extraction.md)と[ADR-034](adr/034-public-crawl-eligibility.md)を参照。
 
-この段階ではfixtureだけで検証する。実サイトの利用条件・取得頻度は未確定で、評価との原子的なDB保存と30日後の本文削除処理は後続のworker結合時に確認する。
+スパイク当時はfixtureだけで検証した。その後、評価との原子的なDB保存と30日後の本文削除処理はworkerへ接続した。実サイトでの抽出精度、取得頻度、引用範囲は運用前に確認する。

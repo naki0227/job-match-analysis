@@ -1,12 +1,20 @@
 import { serve } from "@hono/node-server";
-import { app } from "./app.js";
+import { serverPort } from "./server-port.js";
+import { startTelemetry } from "./telemetry/sdk.js";
 
-const port = Number(process.env.PORT ?? "3000");
-if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
-  throw new Error("PORT must be a valid TCP port");
-}
+const port = serverPort(process.env.PORT);
+// The SDK must be registered before the app creates its instruments.
+const telemetry = startTelemetry("job-match-api");
+const { app } = await import("./app.js");
 
-serve({
+const server = serve({
   fetch: app.fetch,
   port,
 });
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    server.close();
+    void telemetry.shutdown().finally(() => process.exit(0));
+  });
+}

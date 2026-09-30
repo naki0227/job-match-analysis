@@ -4,6 +4,8 @@ import { z } from "zod";
 import { createSupabaseAnalysisSourceStore } from "./analysis-source-store.js";
 import { runCrawlerCycle } from "./crawler-cycle.js";
 import { createJevDecisionEngine } from "./integrations/jev/decision-engine.js";
+import { safeCrawlerMetrics } from "./crawler-metrics.js";
+import { createOtelCrawlerMetrics } from "./crawler-metrics-otel.js";
 import { createSupabaseAnalysisJobStore } from "./job-store.js";
 import {
   createBudgetedDecisionEngine,
@@ -63,16 +65,19 @@ async function main(): Promise<void> {
     config.SUPABASE_URL,
     config.SUPABASE_SECRET_KEY,
   );
+  const crawlerMetrics = safeCrawlerMetrics(createOtelCrawlerMetrics());
   const engine = createBudgetedDecisionEngine(
     createJevDecisionEngine({
       maxCandidates: config.CRAWLER_MAX_CANDIDATES,
       maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
+      metrics: crawlerMetrics,
     }),
     createSupabaseJevBudget(
       config.SUPABASE_URL,
       config.SUPABASE_SECRET_KEY,
       config.CRAWLER_JEV_DAILY_CANDIDATE_BUDGET,
     ),
+    crawlerMetrics,
   );
   try {
     await runWorkerLoop({

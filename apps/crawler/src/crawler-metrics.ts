@@ -20,3 +20,20 @@ export const noopCrawlerMetrics: CrawlerMetrics = {
   jevCall: () => {},
   jevBudgetExhausted: () => {},
 };
+
+/** Telemetry failures must never stop evaluation. */
+export function safeCrawlerMetrics(inner: CrawlerMetrics): CrawlerMetrics {
+  const guard =
+    <T>(record: (event: T) => void) =>
+    (event: T) => {
+      try {
+        record(event);
+      } catch {
+        // Dropping a measurement is acceptable; failing a job is not.
+      }
+    };
+  return {
+    jevCall: guard(inner.jevCall),
+    jevBudgetExhausted: guard(inner.jevBudgetExhausted),
+  };
+}

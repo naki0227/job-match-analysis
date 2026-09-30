@@ -10,6 +10,7 @@
     "worker": "node dist/worker-main.js"
   },
   "dependencies": {
+    "@opentelemetry/api": "1.9.1",
     "@supabase/supabase-js": "2.117.2",
     "parse5": "8.0.1",
     "playwright": "1.63.0",

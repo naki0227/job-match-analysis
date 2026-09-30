@@ -82,7 +82,8 @@ erDiagram
 | evaluation_targets | id | target_type company/job、company_id、job_posting_id nullable、整合CHECK + 所属制約 |
 | evaluations | id | target_id、source_set_hash、rubric_version、evaluator_version、model_version；この組合せのUNIQUE |
 | evaluation_sources | (evaluation_id, source_document_version_id) | 評価入力となった正確な文書版へのFK |
-| evaluated_axis_values | (evaluation_id, axis_key) | 0/50/100アンカー、unknown等の状態、軸カタログ版の複合FK |
+| evaluated_axis_values | (evaluation_id, axis_key) | 0/50/100アンカー、unknown等の状態、deterministic/rule/jevの評価方法、軸カタログ版の複合FK |
+| evaluation_job_facts | (evaluation_id, kind) | 年収・勤務地・フルリモート・週の出社日数・フレックス・職種・技術スタックの版付き抽出結果。RLS有効、service roleのみ参照・追加 |
 | evaluation_evidence | id | (evaluation_id, axis_key)と(evaluation_id, source_document_version_id)への複合FK、根拠抜粋・位置 |
 | analysis_jobs | id | source_url_id、analyzer_version、status、attempts、lease_until、worker_token |
 | user_analysis_requests | (user_id, source_url_id) | 本人の共有解析依頼。job_idまたは既存評価ID、再訪時のMatch反映に使う |

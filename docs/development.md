@@ -85,3 +85,11 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 APIとcrawlerは公式OpenTelemetry SDKをOTLP/HTTPで起動する。`OTEL_EXPORTER_OTLP_ENDPOINT`が未設定なら何も登録せず、計測はno-opになる（ローカル・CIの既定）。Grafana Cloudへ送る場合は、Grafana CloudのOTLP endpointと`OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <instance:token>`をサーバー側の秘密として設定する。任意で`OTEL_SERVICE_NAME`、`DEPLOYMENT_ENVIRONMENT`（既定`production`）、`OTEL_METRIC_EXPORT_INTERVAL`（ms、既定60000）を指定する。exporterやbackendの失敗はdiag loggerで握りつぶし、終了時のflushは最大5秒で打ち切るため、API・crawlerを止めない。span・metricのattributeはroute template・method・status・outcomeだけで、raw path・query・token・利用者情報・本文は送らない。
 
 新規URLは単一の`JobPosting` JSON-LDに求人名と雇用主名がある場合だけ評価対象を作る。構造化メタデータのないページや複数求人の一覧は、誤った企業へ結びつけずジョブを失敗として確定する。robots・公開URL・SSRFの取得境界はADR-021/026/034に従う。
+
+## 不正利用signal（Issue #42、ADR-042）
+
+APIは`ABUSE_SIGNAL_SECRET`（32文字以上のランダム値、例: `openssl rand -base64 48`）がある時だけ、新規解析・上限拒否・希望条件の保存・共有リンク作成を`abuse_signal_events`へ記録する。未設定なら記録しない。保存するのは日次のHMAC（IP・User-Agent）だけで、生の値はDB・ログ・telemetryへ出さない。
+
+- `ABUSE_CLIENT_IP_SOURCE`: 既定`none`（IP signalは常に`null`）。Azure Container Appsのingressが最後の`X-Forwarded-For`に接続元を追記することを実環境で確認できた場合だけ`xff-rightmost`にする。前段に別のproxy（CDNなど）を置いた場合は`none`へ戻す。
+- rotation: 新しい秘密値をAzureのsecretに設定してAPIを再起動する。切り替えた日から新しい鍵で計算され、古い鍵のイベントは7日で自然に消える。漏えいが疑われる時は即時に切り替え、必要なら`delete from public.abuse_signal_events`で全削除してよい（7日保持の一時データ）。
+- 確認はservice_roleで`select * from public.abuse_signal_overview(now() - interval '1 day')`。仮名そのものはGrafanaのラベルやダッシュボードへ載せない。

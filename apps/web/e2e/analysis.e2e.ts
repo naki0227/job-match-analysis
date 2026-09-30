@@ -154,6 +154,88 @@ test("解析中にホームへ戻っても完了後の履歴が自動更新さ�
   ).toBeVisible({ timeout: 10_000 });
 });
 
+test("バックグラウンド中にサーバー側で完了した解析が、画面に戻るとすぐ反映される", async ({
+  page,
+}) => {
+  await signInWithFixture(page);
+  await page.route("**/api/v1/me/career-profile", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(savedProfile),
+    }),
+  );
+  await page.route("**/api/v1/analyses", (route) =>
+    route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "pending", jobId }),
+    }),
+  );
+  let serverDone = false;
+  const polls: number[] = [];
+  await page.route(`**/api/v1/analyses/${jobId}`, (route) => {
+    polls.push(Date.now());
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        serverDone
+          ? { status: "completed", jobId, evaluationId }
+          : { status: "queued", jobId },
+      ),
+    });
+  });
+  await page.route("**/api/v1/matches", (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(sampleReport),
+    }),
+  );
+  await page.route("**/api/v1/me/analysis-history?**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], nextCursor: null }),
+    }),
+  );
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page
+    .getByLabel("求人ページのURL")
+    .fill("https://jobs.example.com/posting/1");
+  await page.getByRole("button", { name: "分析する" }).click();
+  await expect(page.getByText("解析の順番を待っています")).toBeVisible();
+
+  // Emulates a mobile browser putting the tab in the background.
+  const setVisibility = (state: "hidden" | "visible") =>
+    page.evaluate((next) => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => next,
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      if (next === "visible") {
+        window.dispatchEvent(new Event("focus"));
+        window.dispatchEvent(new Event("pageshow"));
+      }
+    }, state);
+  await setVisibility("hidden");
+  const pollsWhenHidden = polls.length;
+  await page.waitForTimeout(4_000);
+  expect(polls.length).toBeLessThanOrEqual(pollsWhenHidden + 1);
+  serverDone = true;
+
+  const returnedAt = Date.now();
+  await setVisibility("visible");
+  await expect(page.getByText("解析が完了しました")).toBeVisible({
+    timeout: 3_000,
+  });
+  expect(Date.now() - returnedAt).toBeLessThan(3_000);
+  expect(polls.filter((at) => at >= returnedAt).length).toBeLessThanOrEqual(2);
+});
+
 test("企業名と職種で求人を探し、候補から選んだ求人を分析する", async ({
   page,
 }) => {

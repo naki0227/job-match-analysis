@@ -120,3 +120,21 @@ test("GET reads the job state and rejects a mismatched job", async () => {
     ),
   ).toBe("not_found");
 });
+
+test("a job read that never settles is abandoned as a temporary outage", async () => {
+  // Resolves only through the abort signal, like a request dropped while
+  // the browser suspended the page.
+  const hanging = (_input: RequestInfo | URL, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () =>
+        reject(new DOMException("aborted", "AbortError")),
+      );
+    });
+  expect(
+    await kindOf(readAnalysisJob("t", jobId, hanging, undefined, 20)),
+  ).toBe("unavailable");
+  const parent = new AbortController();
+  const read = readAnalysisJob("t", jobId, hanging, parent.signal, 60_000);
+  parent.abort();
+  expect(await kindOf(read)).toBe("unavailable");
+});

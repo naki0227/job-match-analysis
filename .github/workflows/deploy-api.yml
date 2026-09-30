@@ -1,0 +1,101 @@
+name: Deploy API
+
+# Deploys the image that the Images workflow already built, pushed and
+# smoke-tested, by digest. This workflow never builds, so build and deploy
+# stay separate and the same digest can later go to more environments.
+on:
+  workflow_run:
+    workflows: [Images]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Existing job-match-api digest to deploy or roll back to (sha256:...)"
+        required: true
+
+concurrency:
+  group: deploy-api-production
+  # Never interrupt a running Azure update; queue the next one instead.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/job-match-api
+  AZURE_RESOURCE_GROUP: job-match-prod
+  AZURE_CONTAINER_APP: job-match-api
+  HEALTH_URL: https://api.career.enludus.com/health
+
+jobs:
+  deploy:
+    if: >-
+      vars.API_DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event != 'pull_request'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Resolve image digest
+        id: digest
+        env:
+          INPUT_DIGEST: ${{ inputs.digest }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -n "$INPUT_DIGEST" ]; then
+            digest="$INPUT_DIGEST"
+          else
+            digest=$(docker buildx imagetools inspect "${IMAGE}:sha-${HEAD_SHA}" \
+              --format '{{json .Manifest}}' | jq -r .digest)
+          fi
+          if ! printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "Invalid image digest" >&2
+            exit 1
+          fi
+          # Fails early if the digest is not in GHCR.
+          docker buildx imagetools inspect "${IMAGE}@${digest}" > /dev/null
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # GHCR packages are public, so no registry credential is configured.
+      - name: Deploy immutable image digest
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: |
+          az containerapp update \
+            --name "$AZURE_CONTAINER_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --image "${IMAGE}@${DIGEST}" \
+            --set-env-vars PORT=80
+
+      - name: Verify the deployed digest and health
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: |
+          deployed=$(az containerapp show \
+            --name "$AZURE_CONTAINER_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query 'properties.template.containers[0].image' -o tsv)
+          if [ "$deployed" != "${IMAGE}@${DIGEST}" ]; then
+            echo "Container App runs $deployed" >&2
+            exit 1
+          fi
+          # Scale to zero: the first request may wait for a cold start.
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error --max-time 20 "$HEALTH_URL"; then
+              echo "### Deployed ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1

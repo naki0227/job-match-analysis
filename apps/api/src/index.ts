@@ -1,13 +1,15 @@
 import { serve } from "@hono/node-server";
+import { serverPort } from "./server-port.js";
 import { startTelemetry } from "./telemetry/sdk.js";
 
+const port = serverPort(process.env.PORT);
 // The SDK must be registered before the app creates its instruments.
 const telemetry = startTelemetry("job-match-api");
 const { app } = await import("./app.js");
 
 const server = serve({
   fetch: app.fetch,
-  port: 3000,
+  port,
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

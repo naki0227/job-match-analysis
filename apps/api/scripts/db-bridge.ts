@@ -42,16 +42,21 @@ const scalarRpcs = new Set([
   "revoke_match_share",
 ]);
 
-/** Calls an RPC the way PostgREST would, returning JSON-compatible data. */
+/**
+ * Calls an RPC the way PostgREST would with the secret key: as service_role,
+ * so missing table privileges fail here as they do in production.
+ */
 export async function rpc(
   name: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const list = Object.values(args).map(literal).join(", ");
   const text = scalarRpcs.has(name)
-    ? await psql(`select to_json(public.${name}(${list}))::text`)
+    ? await psql(
+        `set role service_role; select to_json(public.${name}(${list}))::text`,
+      )
     : await psql(
-        `select coalesce(json_agg(row_to_json(r)), '[]'::json)::text from public.${name}(${list}) r`,
+        `set role service_role; select coalesce(json_agg(row_to_json(r)), '[]'::json)::text from public.${name}(${list}) r`,
       );
   return text === "" ? null : (JSON.parse(text) as unknown);
 }

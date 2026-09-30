@@ -60,6 +60,8 @@ async function seedUser(userId: string): Promise<string> {
     insert into public.user_analysis_quota_events(user_id, source_url_id)
       select '${userId}', id from public.source_urls
       where normalized_url = 'https://jobs.example.org/deletion';
+    select public.record_abuse_signal('${userId}', 'analysis_new',
+      decode(repeat('ab', 32), 'hex'), null);
     insert into public.career_profile_versions
       (user_id, version, axis_catalog_version, status)
       values ('${userId}', 1, 1, 'completed') returning id`);
@@ -183,7 +185,8 @@ const remaining = await psql(`select
   + (select count(*) from public.match_results where user_id = '${leaver}')
   + (select count(*) from public.match_shares where user_id = '${leaver}')
   + (select count(*) from public.user_analysis_requests where user_id = '${leaver}')
-  + (select count(*) from public.user_analysis_quota_events where user_id = '${leaver}')`);
+  + (select count(*) from public.user_analysis_quota_events where user_id = '${leaver}')
+  + (select count(*) from public.abuse_signal_events where user_id = '${leaver}')`);
 assert.equal(remaining, "0");
 
 // Shared analysis data and the other user are untouched.
@@ -196,6 +199,12 @@ assert.equal(
 assert.equal(
   await psql(
     `select count(*) from public.job_postings where company_id = '${company}'`,
+  ),
+  "1",
+);
+assert.equal(
+  await psql(
+    `select count(*) from public.abuse_signal_events where user_id = '${stayer}'`,
   ),
   "1",
 );

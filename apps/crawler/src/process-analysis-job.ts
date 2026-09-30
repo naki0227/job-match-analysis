@@ -1,4 +1,6 @@
 import type { Browser } from "playwright";
+import type { ContextLimits } from "./context-fragments.js";
+import type { CrawlerMetrics } from "./crawler-metrics.js";
 import type { DecisionEngine } from "./decision-engine.js";
 import { evaluateSource } from "./evaluate-source.js";
 import { fetchSourceDocument } from "./fetch-source-document.js";
@@ -24,8 +26,8 @@ export type AnalysisProcessorDeps = {
   ) => Promise<string>;
   siteAllowed?: (origin: string) => Promise<boolean>;
   engine: DecisionEngine;
-  maxCandidates: number;
-  maxExcerptChars: number;
+  limits: ContextLimits;
+  metrics?: CrawlerMetrics;
   browser?: Browser;
   resolve?: ResolveAddresses;
   send?: RequestOnce;
@@ -65,8 +67,8 @@ export async function processAnalysisJob(
     document: fetched.document,
     scope: source.scope,
     engine: deps.engine,
-    maxCandidates: deps.maxCandidates,
-    maxExcerptChars: deps.maxExcerptChars,
+    limits: deps.limits,
+    metrics: deps.metrics,
   });
   await renew();
   let targetId = source.targetId;

@@ -24,21 +24,19 @@ const input: DecisionEngineInput = {
     { axisKey: "autonomy", anchors: { 0: "a", 50: "b", 100: "c" } },
     { axisKey: "role_breadth", anchors: { 0: "a", 50: "b", 100: "c" } },
   ],
-  candidates: [
+  fragments: [
     {
       id: "c1",
-      axisKey: "autonomy",
       scope: "job",
       documentIndex: 0,
-      excerpt: "設計から担当",
+      text: "設計から担当",
       locator: "p[1]",
     },
     {
       id: "c2",
-      axisKey: "role_breadth",
       scope: "job",
       documentIndex: 0,
-      excerpt: "幅広く担当",
+      text: "幅広く担当",
       locator: "p[2]",
     },
   ],
@@ -71,7 +69,7 @@ describe("Jev daily budget", () => {
     const reserve = vi.fn(async () => true);
     await createBudgetedDecisionEngine(createFakeDecisionEngine(), {
       reserve,
-    }).evaluate({ ...input, candidates: [] });
+    }).evaluate({ ...input, fragments: [] });
     expect(reserve).not.toHaveBeenCalled();
   });
 
@@ -88,8 +86,11 @@ describe("Jev daily budget", () => {
       engine: createBudgetedDecisionEngine(createFakeDecisionEngine(), {
         reserve: async () => false,
       }),
-      maxCandidates: 8,
-      maxExcerptChars: 120,
+      limits: {
+        maxFragments: 40,
+        maxContextChars: 8_000,
+        maxFragmentChars: 200,
+      },
     });
     expect(result.evaluation.evaluatorVersion).toContain(
       BUDGET_EXHAUSTED_EVALUATOR,
@@ -166,6 +167,6 @@ describe("Jev daily budget", () => {
       { reserve: async () => false },
       { ...noopCrawlerMetrics, jevBudgetExhausted: exhausted },
     ).evaluate(input);
-    expect(exhausted).toHaveBeenCalledWith({ candidates: 2 });
+    expect(exhausted).toHaveBeenCalledWith({ fragments: 2 });
   });
 });

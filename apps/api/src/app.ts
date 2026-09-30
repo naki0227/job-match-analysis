@@ -14,7 +14,7 @@ import { createSharePageRoutes } from "./share-page/share-page-routes.js";
 import { createShareRoutes, createSupabaseSharePorts } from "./share-routes.js";
 import type { CareerProfileStore } from "./repositories/career-profiles.js";
 import { safeApiMetrics, type ApiMetrics } from "./telemetry/api-metrics.js";
-import { requestMetrics } from "./telemetry/middleware.js";
+import { requestMetrics, requestTracing } from "./telemetry/middleware.js";
 import { createOtelApiMetrics } from "./telemetry/otel.js";
 import { workerTriggerFromEnv } from "./worker-trigger/from-env.js";
 import type { WorkerTrigger } from "./worker-trigger/worker-trigger.js";
@@ -27,6 +27,7 @@ export function createApp(
 ) {
   const app = new Hono();
   const metrics = safeApiMetrics(telemetry);
+  app.use("*", requestTracing());
   app.use("*", requestMetrics(metrics));
 
   app.get("/health", (c) => c.json(healthResponse));

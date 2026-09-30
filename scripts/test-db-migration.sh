@@ -173,6 +173,7 @@ psql_cmd < supabase/migrations/20260929133857_personal_analysis_interest.sql
 psql_cmd < supabase/tests/issue27_personal_analysis_interest.sql
 psql_cmd < supabase/migrations/20260930050000_issue39_match_shares.sql
 psql_cmd < supabase/tests/issue39_match_shares.sql
+psql_cmd < supabase/tests/issue29_security.sql
 pnpm --filter @job-match/contracts build
 pnpm --filter @job-match/domain build
 pnpm --filter @job-match/application build

@@ -8,6 +8,7 @@ import { createSupabaseAnalysisJobStore } from "./job-store.js";
 import {
   createBudgetedDecisionEngine,
   createSupabaseJevBudget,
+  parseJevBudgetSetting,
 } from "./jev-budget.js";
 import { createSupabaseSourceRetentionStore } from "./source-retention.js";
 import { runWorkerLoop } from "./worker-loop.js";
@@ -23,8 +24,15 @@ const configSchema = z.object({
   CRAWLER_MAX_CANDIDATES: z.coerce.number().int().positive(),
   CRAWLER_MAX_EXCERPT_CHARS: z.coerce.number().int().positive(),
   CRAWLER_POLL_INTERVAL_MS: z.coerce.number().int().positive(),
-  /** Evidence candidates sent to Jev per UTC day, service-wide (Issue #42). */
-  CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: z.coerce.number().int().positive(),
+  /** Jev evidence candidates per UTC day, or "unlimited" (Issue #42). */
+  CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: z.string().transform((value, context) => {
+    try {
+      return parseJevBudgetSetting(value);
+    } catch {
+      context.addIssue({ code: "custom", message: "invalid Jev budget" });
+      return z.NEVER;
+    }
+  }),
 });
 
 export function parseWorkerConfig(env: NodeJS.ProcessEnv) {

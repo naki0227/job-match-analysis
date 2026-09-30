@@ -6,6 +6,10 @@ import {
   validateDecisionInput,
   type DecisionEngine,
 } from "../../decision-engine.js";
+import {
+  noopCrawlerMetrics,
+  type CrawlerMetrics,
+} from "../../crawler-metrics.js";
 import { CANDIDATE_SELECTOR_VERSION } from "../../evidence-candidates.js";
 import { callJev, type JevRequest, type JevResponse } from "./client.js";
 import {
@@ -33,6 +37,7 @@ export function createJevDecisionEngine(args: {
   maxCandidates: number;
   maxExcerptChars: number;
   call?: (request: JevRequest) => Promise<JevResponse>;
+  metrics?: CrawlerMetrics;
 }): DecisionEngine {
   if (
     !Number.isSafeInteger(args.maxCandidates) ||
@@ -43,6 +48,7 @@ export function createJevDecisionEngine(args: {
     throw new DecisionEngineInputError();
   }
   const call = args.call ?? callJev;
+  const metrics = args.metrics ?? noopCrawlerMetrics;
   return {
     async evaluate(input) {
       validateDecisionInput(input);
@@ -98,16 +104,26 @@ export function createJevDecisionEngine(args: {
           questions,
         });
       } catch (error) {
-        if (
+        const transient =
           error instanceof JevRateLimitError ||
           error instanceof JevTimeoutError ||
           error instanceof JevNetworkError ||
-          (error instanceof JevApiError && error.status >= 500)
-        ) {
-          throw new DecisionEngineTransientError();
-        }
+          (error instanceof JevApiError && error.status >= 500);
+        metrics.jevCall({
+          candidates: usable.length,
+          inputTokens: null,
+          outputTokens: null,
+          outcome: transient ? "transient_error" : "provider_error",
+        });
+        if (transient) throw new DecisionEngineTransientError();
         throw new DecisionEngineProviderError();
       }
+      metrics.jevCall({
+        candidates: usable.length,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        outcome: "success",
+      });
       const accepted = new Map<string, 0 | 50 | 100>();
       for (const item of usable) {
         const answer = response.answers[item.id];

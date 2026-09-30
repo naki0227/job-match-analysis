@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { noopCrawlerMetrics, type CrawlerMetrics } from "./crawler-metrics.js";
 import {
   DecisionEngineTransientError,
   unknownDecisions,
@@ -15,6 +16,29 @@ export type JevBudget = {
 };
 
 /**
+ * The daily candidate budget is either an explicit finite number or the
+ * explicit word "unlimited"; no number stands in for "no limit".
+ */
+export type JevBudgetSetting =
+  { mode: "unlimited" } | { mode: "finite"; dailyCandidates: number };
+
+export function parseJevBudgetSetting(
+  raw: string | undefined,
+): JevBudgetSetting {
+  if (raw === "unlimited") return { mode: "unlimited" };
+  if (raw !== undefined && /^[1-9][0-9]*$/.test(raw)) {
+    const dailyCandidates = Number(raw);
+    if (Number.isSafeInteger(dailyCandidates)) {
+      return { mode: "finite", dailyCandidates };
+    }
+  }
+  throw new RangeError("Jev budget must be a positive integer or unlimited");
+}
+
+/** Unlimited mode never consults the budget table and never refuses. */
+export const unlimitedJevBudget: JevBudget = { reserve: async () => true };
+
+/**
  * Calls the inner engine only after reserving one unit per evidence
  * candidate. Without budget the remaining axes are explicitly unknown, so
  * cached and deterministic results keep working (Issue #42).
@@ -22,6 +46,7 @@ export type JevBudget = {
 export function createBudgetedDecisionEngine(
   inner: DecisionEngine,
   budget: JevBudget,
+  metrics: CrawlerMetrics = noopCrawlerMetrics,
 ): DecisionEngine {
   return {
     async evaluate(input) {
@@ -29,6 +54,7 @@ export function createBudgetedDecisionEngine(
       if (await budget.reserve(input.candidates.length)) {
         return inner.evaluate(input);
       }
+      metrics.jevBudgetExhausted({ candidates: input.candidates.length });
       return {
         axisCatalogVersion: input.axisCatalogVersion,
         rubricVersion: input.rubricVersion,
@@ -78,12 +104,13 @@ export function createJevBudget(
 export function createSupabaseJevBudget(
   url: string,
   secretKey: string,
-  dailyLimit: number,
+  setting: JevBudgetSetting,
 ): JevBudget {
+  if (setting.mode === "unlimited") return unlimitedJevBudget;
   return createJevBudget(
     createClient(url, secretKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     }),
-    dailyLimit,
+    setting.dailyCandidates,
   );
 }

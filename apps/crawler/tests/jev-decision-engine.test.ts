@@ -150,4 +150,40 @@ describe("Jev DecisionEngine adapter", () => {
       DecisionEngineProviderError,
     );
   });
+
+  it("reports candidate count, tokens and outcome without any text", async () => {
+    const jevCall = vi.fn();
+    const metrics = { jevCall, jevBudgetExhausted: vi.fn() };
+    await createJevDecisionEngine({
+      maxCandidates: 2,
+      maxExcerptChars: 200,
+      call: async () => response("100", 0.94),
+      metrics,
+    }).evaluate(input);
+    expect(jevCall).toHaveBeenLastCalledWith({
+      candidates: 1,
+      inputTokens: 20,
+      outputTokens: 5,
+      outcome: "success",
+    });
+    await expect(
+      createJevDecisionEngine({
+        maxCandidates: 2,
+        maxExcerptChars: 200,
+        call: async () => {
+          throw new JevTimeoutError();
+        },
+        metrics,
+      }).evaluate(input),
+    ).rejects.toBeInstanceOf(DecisionEngineTransientError);
+    expect(jevCall).toHaveBeenLastCalledWith({
+      candidates: 1,
+      inputTokens: null,
+      outputTokens: null,
+      outcome: "transient_error",
+    });
+    expect(JSON.stringify(jevCall.mock.calls)).not.toMatch(
+      /remote|example\.com/,
+    );
+  });
 });

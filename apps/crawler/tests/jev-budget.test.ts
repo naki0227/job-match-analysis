@@ -9,6 +9,9 @@ import {
   BUDGET_EXHAUSTED_EVALUATOR,
   createBudgetedDecisionEngine,
   createJevBudget,
+  createSupabaseJevBudget,
+  parseJevBudgetSetting,
+  unlimitedJevBudget,
 } from "../src/jev-budget.js";
 import { extractSourceDocument } from "../src/source-extractor.js";
 
@@ -115,5 +118,53 @@ describe("Jev daily budget", () => {
     );
     await expect(granted.reserve(3)).resolves.toBe(true);
     expect(() => createJevBudget({ rpc: vi.fn() }, 0)).toThrow(RangeError);
+  });
+
+  it("parses only a positive integer or the word unlimited", () => {
+    expect(parseJevBudgetSetting("unlimited")).toEqual({ mode: "unlimited" });
+    expect(parseJevBudgetSetting("500")).toEqual({
+      mode: "finite",
+      dailyCandidates: 500,
+    });
+    for (const raw of [
+      undefined,
+      "",
+      "0",
+      "-1",
+      "1.5",
+      "Unlimited",
+      "none",
+      "99999999999999999999",
+    ]) {
+      expect(() => parseJevBudgetSetting(raw)).toThrow(RangeError);
+    }
+  });
+
+  it("unlimited mode calls Jev every time without touching the budget table", async () => {
+    const inner = createFakeDecisionEngine();
+    const evaluate = vi.spyOn(inner, "evaluate");
+    const exhausted = vi.fn();
+    const engine = createBudgetedDecisionEngine(inner, unlimitedJevBudget, {
+      jevCall: vi.fn(),
+      jevBudgetExhausted: exhausted,
+    });
+    for (let call = 0; call < 3; call += 1) await engine.evaluate(input);
+    expect(evaluate).toHaveBeenCalledTimes(3);
+    expect(exhausted).not.toHaveBeenCalled();
+    expect(
+      createSupabaseJevBudget("https://example.supabase.co", "secret", {
+        mode: "unlimited",
+      }),
+    ).toBe(unlimitedJevBudget);
+  });
+
+  it("finite mode reports exhaustion to metrics", async () => {
+    const exhausted = vi.fn();
+    await createBudgetedDecisionEngine(
+      createFakeDecisionEngine(),
+      { reserve: async () => false },
+      { jevCall: vi.fn(), jevBudgetExhausted: exhausted },
+    ).evaluate(input);
+    expect(exhausted).toHaveBeenCalledWith({ candidates: 2 });
   });
 });

@@ -22,6 +22,32 @@ describe("worker runtime", () => {
         CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: "500",
       }).CRAWLER_LEASE_SECONDS,
     ).toBe(60);
+    const base = {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SECRET_KEY: "secret",
+      JEV_API_KEY: "private-test-key",
+      CRAWLER_BROWSER_EXECUTABLE: "/usr/bin/chromium",
+      CRAWLER_LEASE_SECONDS: "60",
+      CRAWLER_MAX_ATTEMPTS: "2",
+      CRAWLER_RETENTION_BATCH_SIZE: "100",
+      CRAWLER_MAX_CANDIDATES: "16",
+      CRAWLER_MAX_EXCERPT_CHARS: "120",
+      CRAWLER_POLL_INTERVAL_MS: "1000",
+    };
+    expect(
+      parseWorkerConfig({
+        ...base,
+        CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: "unlimited",
+      }).CRAWLER_JEV_DAILY_CANDIDATE_BUDGET,
+    ).toEqual({ mode: "unlimited" });
+    for (const budget of [undefined, "0", "-5", "infinite"]) {
+      expect(() =>
+        parseWorkerConfig({
+          ...base,
+          CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: budget,
+        }),
+      ).toThrow("Crawler worker configuration is invalid");
+    }
   });
 
   it("continues after a cycle error and stops on abort", async () => {

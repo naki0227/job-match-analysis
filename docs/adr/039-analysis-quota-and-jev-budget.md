@@ -17,6 +17,19 @@ Issue #42では、取得済み評価の再利用（cache hit）は軽いが、�
 - `request_personal_analysis_limited`は既存の受付RPCを本人のprofile行ロック下で呼ぶ。ジョブが必要だった要求（新規URL・更新が必要なstale）だけ、期間内に同じURLで1件の`user_analysis_quota_events`を追記し、件数が上限を超えたら`P0429`で全体を巻き戻す（ジョブ・依頼行・イベントとも残らない）。freshなcache hitは制限しない。依頼行は後のcache hitで上書きされるため、上限の数え直しに使わず追記専用の表で数える。APIは429 `analysis_quota_exceeded`を返し、Webは解析済みの結果と履歴が引き続き見られることを伝える。
 - `reserve_jev_budget`はUTC日ごとの行を更新し、上限内の場合だけ候補数を予約する（全か無か）。Crawlerは`createBudgetedDecisionEngine`でJev呼び出しの前に予約する。予約できない場合はJevを呼ばず、未解決の軸を`unknown`として保存し、評価器版に`jev-budget-exhausted`を含める。決定的なparser・ruleの結果はそのまま使い、その軸を`jev`判定と記録しない。予算ストアの障害は一時エラーとして再試行する。
 - 上限値（`ANALYSIS_NEW_URL_LIMIT`、`ANALYSIS_QUOTA_WINDOW_SECONDS`、`CRAWLER_JEV_DAILY_CANDIDATE_BUDGET`）は必須の実行設定とし、既定値をコードに置かない。未設定ならAPIの新規受付は503、workerは起動しない。
+- Jevの予算設定は正の整数（有限）か明示的な`unlimited`だけを受け付ける。0・負数・大きな数値を無制限の意味に使わない。`unlimited`では予算表を参照せず、予算理由で`unknown`へ落とさない。有限モードの予約・同時実行の保証と予算表は将来の切り替えのために残す。Jev呼び出しの候補数・input/output token・成功/失敗は、vendor非依存のmetrics port（`CrawlerMetrics`）から計測する（#32でOpenTelemetryへ接続）。
+
+## 初期の運用値（2026年09月30日、ユーザー決定）
+
+リリース初動は解析品質を優先する。正規ユーザーの解析品質をJev予算で落とさず、botや大量URL要求は利用者ごとの上限で防ぐ。
+
+| 設定 | 値 | 意味 |
+|---|---|---|
+| `ANALYSIS_NEW_URL_LIMIT` | `10` | 1利用者あたり、期間内に新規・更新が必要なURLは10件まで |
+| `ANALYSIS_QUOTA_WINDOW_SECONDS` | `86400` | 期間は24時間 |
+| `CRAWLER_JEV_DAILY_CANDIDATE_BUDGET` | `unlimited` | Jevの日次予算で制限しない |
+
+これらは運用設定であり、ドメイン規則ではない。実測後に有限の予算へ戻せる。
 - 制限や予算は評価値やMatch判定を変えない。上限による拒否は受付前に起き、予算切れは明示的な`unknown`になる。
 
 ## メリット・デメリット

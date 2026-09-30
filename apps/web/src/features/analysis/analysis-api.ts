@@ -81,18 +81,39 @@ export async function requestAnalysis(
   );
 }
 
+/**
+ * A poll that never settles (for example a request cut off while a mobile
+ * browser suspended the page) would block every later poll, so each read
+ * gives up after this long and counts as a temporary outage.
+ */
+export const JOB_READ_TIMEOUT_MS = 10_000;
+
 /** Reads only the shared, non-personal state of an analysis job. */
 export async function readAnalysisJob(
   accessToken: string,
   jobId: string,
   fetcher: typeof fetch = fetch,
   signal?: AbortSignal,
+  timeoutMs = JOB_READ_TIMEOUT_MS,
 ): Promise<AnalysisJobResponse> {
-  const response = await send(
-    `/api/v1/analyses/${encodeURIComponent(jobId)}`,
-    { headers: { Authorization: `Bearer ${accessToken}` }, signal },
-    fetcher,
-  );
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(abort, timeoutMs);
+  let response: Response;
+  try {
+    response = await send(
+      `/api/v1/analyses/${encodeURIComponent(jobId)}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: controller.signal,
+      },
+      fetcher,
+    );
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
   const error = classify(response);
   if (error) throw error;
   const job = await parseBody(response, (value) =>

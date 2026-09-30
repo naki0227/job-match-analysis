@@ -56,7 +56,8 @@ GET 200とPUT 200/201のJSONは`{profileVersionId, profileVersion, profile}`。G
 - `GET /api/v1/me/matches/:matchResultId/share`（認証必須）: 本人の有効リンク。なければ404。
 - `DELETE /api/v1/me/shares/:shareId`（認証必須）: 失効して204。他人・不在は404。
 - `GET /api/v1/public/shares/:token`（認証不要）: 有効なリンクの`{sharedAt, projection}`だけを返す。形式不正・不存在・失効はすべて404。`Cache-Control: no-store`、`X-Robots-Tag: noindex`。
-- `projection`は`{companyName, jobTitle, evaluatedAt, axes:[{axisKey, status}]×8}`。希望値・評価値・必須条件・根拠・利用者やMatchのIDを含まない。Webの公開ページは`/s/<token>`。
+- `projection`は`{companyName, jobTitle, evaluatedAt, axes:[{axisKey, status}]×8}`。希望値・評価値・必須条件・根拠・利用者やMatchのIDを含まない。
+- `GET /s/:token`（認証不要、HTML）と`GET /s/:token/og.png`（認証不要、PNG）はAPIがserver-renderする共有ページとOG画像。同じprojectionだけを使い、無効なtokenはどれも同じ404、`no-store`・`noindex`。
 
 ## 共有解析ジョブ状態
 

@@ -49,6 +49,14 @@ POSTの応答は`fresh`評価なら200 `{status:"completed",evaluationId,sourceF
 
 `GET /api/v1/me/analysis-history`はGoogle認証が必要。queryは`limit`（1..100、既定20）、`cursor`、`role`（希望職種の完全一致）、`judgement`（`all`/`mostly_close`/`has_different`/`has_unknown`）、`sort`（`recent`/`close`/`fewest_unknown`）。レスポンスは`{items,nextCursor}`。求人ごとの最新Match、当時のプロフィール版・求人評価版、最新会社評価版、軸別の近い/相違/不明件数、求人条件の鮮度警告を返す。`cursor`は絞り込み・並び順に紐付け、異なる条件では400。本人の依頼で完了した未保存評価は、先頭ページ取得時に本人の最新プロフィールでMatchへ反映してから一覧を読む。プロフィール未保存・版不一致の評価はMatchにできず、一覧へ含めない。共有ジョブのGETには依頼者情報を返さない。[ADR-033](adr/033-analysis-history-delivery.md)。
 
+### 本人Matchの公開リンク（ADR-037、Issue #39）
+
+- `POST /api/v1/me/matches/:matchResultId/share`（認証必須）: 本人のMatchから共有projectionを作り、公開リンクを作成して201。有効なリンクがあれば同じ内容を200。他人・不在のMatchは404、比較不可のMatchは422。応答は`{shareId, token, sharedAt, projection}`。
+- `GET /api/v1/me/matches/:matchResultId/share`（認証必須）: 本人の有効リンク。なければ404。
+- `DELETE /api/v1/me/shares/:shareId`（認証必須）: 失効して204。他人・不在は404。
+- `GET /api/v1/public/shares/:token`（認証不要）: 有効なリンクの`{sharedAt, projection}`だけを返す。形式不正・不存在・失効はすべて404。`Cache-Control: no-store`、`X-Robots-Tag: noindex`。
+- `projection`は`{companyName, jobTitle, evaluatedAt, axes:[{axisKey, status}]×8}`。希望値・評価値・必須条件・根拠・利用者やMatchのIDを含まない。Webの公開ページは`/s/<token>`。
+
 ## 共有解析ジョブ状態
 
 ~~~mermaid

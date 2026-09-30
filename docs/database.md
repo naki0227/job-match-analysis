@@ -16,6 +16,10 @@
 
 [追加migration](../supabase/migrations/20260928161035_optional_profile_education_legal_history.sql)は既存`profiles`にnullable列を加え、学歴と公開文書・本人確認履歴を別表で保持する。学歴と確認履歴は本人のみSELECT可能で、匿名には公開済み文書だけを見せる。認証済みクライアントは書込できない。文書本文と確認履歴はサーバーロールにも更新・削除権限を与えない。[rollback](../supabase/rollback/20260928_issue38_down.sql)は追加データを削除するため、適用前にバックアップする。設計理由は[ADR-022](adr/022-private-profile-education-legal-history.md)を参照。
 
+## Issue #39の公開リンク
+
+[migration](../supabase/migrations/20260930050000_issue39_match_shares.sql)は`match_shares`（本人・Match・token・作成時の共有projection・失効日時）を追加する。有効リンクはMatchごとに1件の部分UNIQUE、Match削除で連鎖削除。クライアントロールには表・RPCの権限を与えず、service_role専用RPCで作成・本人の有効リンク読取・失効・token読取を行う。[rollback](../supabase/rollback/20260930050000_issue39_match_shares.sql)は全リンクを削除する。[ADR-037](adr/037-public-match-share.md)。
+
 ## データの所有境界
 
 **個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。

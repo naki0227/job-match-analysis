@@ -92,3 +92,44 @@
     grid-template-columns: minmax(0, 1fr) 150px;
   }
 }
+
+.job-search-form {
+  display: grid;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.job-search-form .primary {
+  margin-top: 8px;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate-card {
+  display: grid;
+  gap: 6px;
+}
+
+.resolver-result,
+.direct-url {
+  margin-top: 16px;
+}
+
+.direct-url summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.direct-url .analyze-form {
+  margin-top: 10px;
+}

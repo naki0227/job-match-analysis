@@ -101,6 +101,7 @@ function Screens({
             profileVersion={profileVersion}
             history={recentHistory}
             onAnalyze={analyze}
+            onFindJob={() => setScreen("analyze")}
             onEditProfile={editProfile}
             onShowHistory={() => setScreen("history")}
             onOpenMatch={openMatch}

@@ -44,6 +44,7 @@
 | [ADR-038](adr/038-account-deletion-and-shared-data.md) | アプリ内退会でAuth userを削除し、CASCADEで個人データ・公開リンク・確認履歴を消す。共有評価と再識別できない集計値は残す | 1回の削除で漏れなく消し、他ユーザーが使う評価を壊さない | 削除は取り消せず、確認履歴も残らない |
 | [ADR-039](adr/039-analysis-quota-and-jev-budget.md) | 新規解析は利用者ごとにDBで数えて上限を超えたら429、Jevは日次予算を予約できた時だけ呼び、切れたらunknownで保存する | 複数プロセス・同時要求でも超過せず、サービス全体を止めない | 上限値は運用設定、予算切れ評価は鮮度期間中再利用される |
 | [ADR-040（提案）](adr/040-free-mvp-hosting-split.md) | 月額0円MVPはWeb/APIを無料エッジ、DBをSupabase Free、crawlerを定期実行に置く案を推奨（未決定） | OCI A1の容量不足をblockerにせず、既存のNode crawlerを使える | 解析の遅延、Workers CPU上限の実測が必要 |
+| [ADR-041](adr/041-operational-observability-boundary.md) | 運用観測はport＋`@opentelemetry/api`のadapterで計装し、送信先はデプロイで選ぶ | ベンダー非依存、送信失敗でも本体が止まらない | Datadog FreeはAPM・trace・logsを含まず、0円では#32の一部が未達 |
 
 ## 技術スパイクで検証・継続確認する項目
 

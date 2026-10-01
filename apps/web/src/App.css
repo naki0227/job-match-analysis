@@ -482,6 +482,18 @@
   accent-color: var(--blue);
 }
 
+.link-button {
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--blue-ink);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .legal-row {
   display: flex;
   flex-wrap: wrap;

@@ -27,6 +27,7 @@ export interface AnalysisJobStore {
     leaseSeconds: number,
   ): Promise<boolean>;
   fail(jobId: string, workerToken: string): Promise<boolean>;
+  requeue(jobId: string, workerToken: string): Promise<boolean>;
   complete(
     jobId: string,
     workerToken: string,
@@ -91,8 +92,16 @@ export async function consumeOneAnalysisJob(args: {
     if (error instanceof AnalysisLeaseLostError) {
       return { status: "lease_lost", jobId: job.jobId };
     }
-    // Transient failure: leave the claim running until its lease expires.
-    // The next claim reaps it and increments the attempt counter.
-    return { status: "retry_pending", jobId: job.jobId };
+    // Transient failure: release the live claim immediately. Waiting for the
+    // full lease made the UI appear stuck for up to ten minutes.
+    if (job.attempts >= args.maxAttempts) {
+      const failed = await args.store.fail(job.jobId, workerToken);
+      return { status: failed ? "failed" : "lease_lost", jobId: job.jobId };
+    }
+    const requeued = await args.store.requeue(job.jobId, workerToken);
+    return {
+      status: requeued ? "retry_pending" : "lease_lost",
+      jobId: job.jobId,
+    };
   }
 }

@@ -92,31 +92,27 @@ az containerapp update -g $RG -n job-match-api --set-env-vars \
 3. 数十秒〜数分で分析が完了し、Jobの実行が`Succeeded`で終わる
 4. 同じURLを続けて送っても、cooldown中はJobが増えない
 
-## 5. crawler imageの更新
+## 5. crawler imageと実行設定の更新
 
-現時点ではJobのdeployは自動化していない。新しいdigestへ手動で更新する:
-`az containerapp job update -g $RG -n $JOB --image ghcr.io/naki0227/job-match-crawler@<digest>`
+本番ではGitHub Actionsのidentityに`Microsoft.App/jobs/write`を与えない。Images workflowがAPIとcrawlerを同じcommitからbuildした後、Deploy APIがAPI imageをdigestで更新し、同じcommitのcrawler digestを`CRAWLER_EXECUTION_IMAGE`としてAPIへ設定する。
 
-## Web探索（ADR-047、任意）
+APIのmanaged identityは既存の`Microsoft.App/jobs/start/action`だけを使い、Jobのstart requestに**実行ごとのtemplate override**を付ける。overrideにはcrawler image digest、CPU/memory、必要なenvと既存Job secretへの`secretRef`を含める。Azure Job resource本体のtemplateは変更しない。
 
-crawler Jobに次を設定すると、Job Resolverの探索jobも処理する（未設定なら無効）。DDGSのPythonとscriptのパスはimageの`ENV`で設定済み。
+この方式ではcrawlerの新しいreleaseを反映するために`az containerapp job update`は不要。解析または求人探索でAPIが次にJobを起動した時点から、新しいcrawler digestが使われる。
 
-```bash
-az containerapp job update -g $RG -n $JOB --set-env-vars \
-  CRAWLER_WEB_SEARCH_PROVIDER=ddgs CRAWLER_DDGS_REGION=jp-jp CRAWLER_DDGS_TIMEOUT_MS=10000 \
-  CRAWLER_DISCOVERY_MAX_QUERIES=2 CRAWLER_DISCOVERY_RESULTS_PER_QUERY=10 \
-  CRAWLER_DISCOVERY_MAX_FETCHES=12 CRAWLER_DISCOVERY_MAX_LINKS_PER_LISTING=10 \
-  CRAWLER_DISCOVERY_MAX_RESULTS=20
-```
+## Web探索（ADR-047）
 
-API側（Container App）にも次を設定する。値は運用値の目安。
+本番のexecution overrideではDDGSを有効にする。
 
-```bash
-az containerapp update -g $RG -n job-match-api --set-env-vars \
-  JOB_RESOLVER_MAX_CANDIDATES=20 JOB_RESOLVER_LISTING_LIMIT=20 JOB_RESOLVER_KNOWN_LISTING_MINIMUM=5 \
-  JOB_RESOLVER_SEARCH_LIMIT=30 JOB_RESOLVER_SEARCH_WINDOW_SECONDS=3600 \
-  JOB_DISCOVERY_FRESHNESS_SECONDS=86400 JOB_DISCOVERY_USER_LIMIT=10 JOB_DISCOVERY_WINDOW_SECONDS=86400 \
-  JOB_DISCOVERY_MAX_ACTIVE=20 JOB_DISCOVERY_RETENTION_SECONDS=2592000
-```
+- `CRAWLER_WEB_SEARCH_PROVIDER=ddgs`
+- `CRAWLER_DDGS_REGION=jp-jp`
+- `CRAWLER_DDGS_TIMEOUT_MS=10000`
+- 検索は最大2 query、10 results/query
+- 安全なpage fetchは最大12、listingからの同一origin linkは最大10
+- 保存候補は最大20
 
-DDGSがblockされた場合や失敗した場合でも、探索jobはretryののち`failed`になるだけで、解析jobには影響しない。利用者には既知の求人か「URLを直接入力」が表示される。
+API側もDeploy APIでJob Resolver/Discoveryの上限を設定する。Privacy Policy v1.1がcurrentになっていることを前提とする。
+
+解析jobは`CRAWLER_LEASE_SECONDS=120`、`CRAWLER_MAX_ATTEMPTS=2`で起動する。transient failureは`requeue_analysis_job`で直ちにqueuedへ戻し、lease満了まで待たない。これにより一時的なJev/network failureで画面が10分近くrunningのままになる状態を避ける。
+
+DDGSがblockまたはtimeoutした場合、探索jobだけがretry/failedになり、既知求人検索とURL直接入力は引き続き利用できる。

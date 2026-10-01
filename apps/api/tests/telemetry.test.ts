@@ -20,6 +20,7 @@ function recorder() {
     request: (event) => requests.push(event),
     analysisRequest: (outcome) => outcomes.push(outcome),
     workerTrigger: () => {},
+    jobResolution: () => {},
   };
   return { requests, outcomes, metrics };
 }
@@ -56,6 +57,9 @@ test("telemetry failures never change responses", async () => {
       throw new Error("exporter down");
     },
     workerTrigger: () => {
+      throw new Error("exporter down");
+    },
+    jobResolution: () => {
       throw new Error("exporter down");
     },
   };

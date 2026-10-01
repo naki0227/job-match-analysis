@@ -25,3 +25,10 @@ export type {
   CreatedShare,
   SharePorts,
 } from "./share-use-cases.js";
+export { resolveJob } from "./job-resolver.js";
+export type {
+  CandidateSelector,
+  CandidateSource,
+  JobResolution,
+  JobResolverDeps,
+} from "./job-resolver.js";

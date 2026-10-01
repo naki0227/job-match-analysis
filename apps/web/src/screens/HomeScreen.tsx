@@ -10,6 +10,8 @@ type Props = {
   profileVersion: number | null | undefined;
   history: AnalysisHistoryState;
   onAnalyze: (url: string) => void;
+  /** Opens the company + role search when the user has no URL at hand. */
+  onFindJob?: () => void;
   onEditProfile: () => void;
   onShowHistory: () => void;
   onOpenMatch: (matchResultId: string) => void;
@@ -57,6 +59,7 @@ export function HomeScreen({
   profileVersion,
   history,
   onAnalyze,
+  onFindJob,
   onEditProfile,
   onShowHistory,
   onOpenMatch,
@@ -80,6 +83,11 @@ export function HomeScreen({
         </div>
       </div>
       <AnalyzeForm busy={false} invalid={false} onSubmit={onAnalyze} />
+      {onFindJob && (
+        <button className="link-button" type="button" onClick={onFindJob}>
+          URLが分からない場合は、企業名と職種から探す
+        </button>
+      )}
       <section className="section" aria-labelledby="recent-heading">
         <h2 id="recent-heading">最近の分析</h2>
         <RecentAnalyses

@@ -13,6 +13,7 @@ import {
   type ProfileBootstrapDeps,
 } from "./auth/profile-bootstrap.js";
 import { createCareerProfileRoutes } from "./career-profile-routes.js";
+import { createJobResolverRoutes } from "./job-resolver-routes.js";
 import { createMatchRoutes } from "./match-routes.js";
 import { createSharePageRoutes } from "./share-page/share-page-routes.js";
 import { createShareRoutes, createSupabaseSharePorts } from "./share-routes.js";
@@ -91,6 +92,7 @@ export function createApp(
   app.route("/", createShareRoutes(deps, undefined, signals));
   app.route("/", createSharePageRoutes(createSupabaseSharePorts));
   app.route("/", createAccountRoutes(deps));
+  app.route("/", createJobResolverRoutes(deps, undefined, metrics));
 
   return app;
 }

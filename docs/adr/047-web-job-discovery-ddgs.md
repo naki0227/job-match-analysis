@@ -16,7 +16,9 @@ ADR-045のJob Resolverは、このサービスで解析済みの求人しか見�
    - 利用者ごとの検索回数を確認する（`record_job_resolver_search`、超過は429）。
    - 既知の求人（`search_known_job_postings`）だけで足りるか判定する。職種あり: 全語句を含む求人がある。企業名だけ: `JOB_RESOLVER_KNOWN_LISTING_MINIMUM`件以上。
    - 足りなければ、探索jobを登録する（`request_job_discovery`）。同じ企業・職種・雇用形態（正規化した`query_key`）で新しい完了済み探索があればcacheとして再利用する。実行中なら合流する（singleflight）。どちらでもなければ、利用者ごとの回数上限とサービス全体の待ち行列上限を確認して新規に登録し、crawler Jobを起こす。
-   - 登録した場合は`searching`と`discoveryId`を返す。Webは`GET /v1/job-resolver/discoveries/:id`をpollingする。完了したら、既知の求人と探索結果をまとめて同じ判定（domain）にかける。
+   - 登録した場合は`searching`と`discoveryId`を返す。Webは`GET /v1/job-resolver/discoveries/:id`をpollingする。
+   - **pollingの認可**: 新規開始・実行中の探索への合流・新しい完了済み探索の再利用のいずれでも、`job_discovery_access`に「利用者 ↔ 探索」を記録する。pollingでは、認証した利用者とその探索の対応をサーバー側で確かめる。IDが推測しにくいことを認可の代わりにしない。対応がなければ、存在を隠すため404にする。退会すると利用者側の対応だけがCASCADEで消え、探索と求人は残る。
+   - **サービス全体の上限**: `JOB_DISCOVERY_MAX_ACTIVE`の確認と登録は、query単位のlockに続けてglobalのadvisory transaction lockの中で行い、API replicaが複数あっても上限を超えない。lockを取る順序は常に「query単位 → global」で固定する。完了したら、既知の求人と探索結果をまとめて同じ判定（domain）にかける。
    - 失敗・混雑・回数超過のときは、既知の求人で答えるか`not_found`にする。どちらの場合もURLの直接入力へ誘導する。
 2. crawler worker（`apps/crawler/src/discovery/`、解析pipelineとは別の責務）:
    - 解析jobが空のときだけ探索jobを処理する。

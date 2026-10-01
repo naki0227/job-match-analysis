@@ -10,7 +10,8 @@
 
 一連の流れは「表示した文書版 → 本人の明示操作 → サーバー側での記録 → 次回アクセス時の版確認」とする。
 
-- **現在の版**は、`published_at <= now()`かつ`effective_at <= now()`を満たす文書のうち、種類ごとに最新の`effective_at`を持つもの（`current_legal_documents()`）。公開前や適用前の版は対象外。
+- **現在の版**は、`published_at <= now()`かつ`effective_at <= now()`を満たす文書のうち、種類ごとに最新の`effective_at`を持つもの（`current_legal_documents()`）。公開前や適用前の版は対象外。判定は時刻を引数に取る`legal_documents_current_at(時刻)`で行い、テストで公開日時の前後を確かめられるようにした。
+- **v1.0**（利用規約・プライバシーポリシー）は、2026-10-03 00:00 JSTに公開・適用するmigrationとして登録する。
 - **本文の正**は`legal_documents.body_markdown`だけとする。Web bundleに本文を持たない。画面ではMarkdownを**プレーンテキストとして**表示し、HTMLとしては解釈しない（注入を防ぐため）。
 - **API**（既存の命名規約に合わせる）:
   - `GET /api/v1/legal-documents/current`（認証不要）: 現在の利用規約とプライバシーポリシー（id・版・本文・公開日時・適用日時）。

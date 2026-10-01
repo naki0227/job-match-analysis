@@ -32,6 +32,8 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20260930120544_service_role_core_privileges` | `service_role`の表権限（下記） | なし（GRANTのみ） |
 | `20260930160126_job_facts_employment_type` | job factsに`employmentType`を追加（ADR-044） | なし（CHECK制約の拡張のみ。rollbackは該当factを削除） |
 | `20260930161211_job_resolver_known_postings` | Job Resolverの既存求人検索RPC（ADR-045） | なし（読み取り関数の追加のみ） |
+| `20261001004539_legal_acknowledgement_rpcs` | 法的文書と確認記録のRPC（ADR-046） | なし（関数の追加のみ） |
+| `20261001014615_legal_documents_v1_0` | 利用規約・プライバシーポリシー v1.0の本文（2026-10-03 00:00 JSTから有効） | なし（追加のみ。同じ版が既にあれば失敗する。rollbackは確認記録がない間だけ可能） |
 | `20261001020540_job_discovery` | Web探索のjob・結果・利用者ごとの回数記録とRPC（ADR-047） | なし（表と関数の追加のみ。rollbackは探索記録を消すが、保存済みの求人は残る） |
 
 rollbackは`supabase/rollback/`に同名のファイルがある。本番で戻すのは、アプリを1つ前のdigestへ戻した**後**に限る（新しいAPIは新しいRPCを前提にするため）。
@@ -97,3 +99,13 @@ API側の確認:
 2. Webでログイン→希望条件保存→求人URLを1件分析→`pending`になる
 3. 共有リンクを作成→`/s/<token>`が200、失効後に404
 4. `select count(*) from public.abuse_signal_events`が増える（`ABUSE_SIGNAL_SECRET`設定時のみ）
+
+## 法的文書の登録（ADR-046、リリース前に必須）
+
+APIの`legal-acknowledgements`は、有効な利用規約とプライバシーポリシーが両方そろうまで503を返し、誰もアプリを利用できない（fail closed）。本文の正は`legal_documents.body_markdown`で、更新・削除はできない（改定は新しい版の追加）。
+
+v1.0は`20261001014615_legal_documents_v1_0`で登録する（公開・適用は2026-10-03 00:00 JST = 2026-10-02T15:00:00Z）。**この時刻より前は誰も利用を始められない**（fail closed）。リリース前にAPI・Webをdeployしてもよいが、10/3 0:00 JSTまでは「現在利用できません」と表示される。
+
+改定時は、新しい`version`をmigrationとして追加する（既存行は更新しない）。同じ種類・版が既にあるとmigrationは失敗する。
+
+確認: `curl https://api.career.enludus.com/v1/legal-documents/current`（Web経由では`/api/v1/legal-documents/current`）が200を返し、ログイン後に同意画面が表示されること。改定時は新しい`version`を追加すれば、次回アクセス時に全員へ再確認を求める。

@@ -1,0 +1,29 @@
+name: Format preview
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/format-preview.yml"
+      - "apps/crawler/src/deterministic-parser.ts"
+      - "apps/crawler/src/rule-engine.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Print formatted files
+        run: |
+          echo '===DETERMINISTIC==='
+          pnpm exec prettier apps/crawler/src/deterministic-parser.ts
+          echo '===RULE==='
+          pnpm exec prettier apps/crawler/src/rule-engine.ts

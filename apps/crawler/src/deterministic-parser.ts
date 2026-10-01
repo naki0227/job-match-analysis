@@ -4,7 +4,7 @@ import type {
   SourceFragment,
 } from "./source-extractor.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v2";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v3";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
@@ -142,19 +142,22 @@ function salary(text: string): SalaryRange[] {
 }
 
 function location(text: string): string[][] {
-  const match = /^勤務地\s*[:：]\s*(.+)$/u.exec(text);
+  const match =
+    /(?:^|\s)勤務地(?:\s*[:：]\s*|\s+)(.{1,500}?)(?=\s(?:働き方|休日|休暇|待遇|福利厚生|勤務時間|応募|選考|職種|雇用形態|給与)(?:\s|[（(])|$)/u.exec(
+      text,
+    );
   if (!match) return [];
-  const names = PREFECTURES.filter((name) => match[1]!.includes(name));
-  const remainder = names
-    .reduce((value, name) => value.replaceAll(name, ""), match[1]!)
-    .replace(/(?:または|もしくは|及び|、|,|，|／|\/|\s)+/gu, "");
-  return names.length && !remainder ? [[...names]] : [];
+  const value = match[1]!;
+  const names = PREFECTURES.filter((name) => value.includes(name));
+  if (value.includes("名古屋") && !names.includes("愛知県")) names.push("愛知県");
+  return names.length ? [[...names]] : [];
 }
 
 function fullRemote(text: string): boolean[] {
-  const negative = /フルリモート不可|完全在宅不可|出社必須|原則出社/u.test(
-    text,
-  );
+  const negative =
+    /フルリモート不可|完全在宅不可|出社\s*必須|原則[、,\s]*出社/u.test(
+      text,
+    );
   const positive =
     /フルリモート(?:可|可能|勤務|制度)|完全在宅(?:可|可能|勤務)|出社不要/u.test(
       text,
@@ -163,9 +166,13 @@ function fullRemote(text: string): boolean[] {
 }
 
 function weeklyOfficeDays(text: string): number[] {
-  return [...text.matchAll(/週\s*([0-5])\s*日出社(?=$|[。．、，\s])/gu)].map(
-    (match) => Number(match[1]),
-  );
+  const required = [
+    ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社\s*必須/gu),
+  ].map((match) => Number(match[1]));
+  if (required.length) return required;
+  return [
+    ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu),
+  ].map((match) => Number(match[1]));
 }
 
 function scheduleFlexibility(text: string): (0 | 50 | 100)[] {

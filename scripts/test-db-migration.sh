@@ -197,6 +197,21 @@ psql_cmd -c "update public.analysis_jobs set status = 'failed', lease_until = nu
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx ../crawler/tests/job-recovery.integration.ts
 psql_cmd < supabase/migrations/20260930161211_job_resolver_known_postings.sql
 psql_cmd < supabase/tests/job_resolver_known_postings.sql
+psql_cmd < supabase/migrations/20261001004539_legal_acknowledgement_rpcs.sql
+psql_cmd < supabase/tests/legal_acknowledgement_rpcs.sql
+psql_cmd < supabase/migrations/20261001014615_legal_documents_v1_0.sql
+psql_cmd < supabase/tests/legal_documents_v1_0.sql
+legal_rerun_log=$(mktemp)
+if psql_cmd < supabase/migrations/20261001014615_legal_documents_v1_0.sql >"$legal_rerun_log" 2>&1; then
+  printf '%s\n' 'Re-applying the v1.0 legal documents did not fail' >&2
+  exit 1
+fi
+if ! grep -Fq 'legal_documents v1.0 already exists' "$legal_rerun_log"; then
+  cat "$legal_rerun_log" >&2
+  printf '%s\n' 'Re-applying the v1.0 legal documents failed for an unexpected reason' >&2
+  exit 1
+fi
+rm -f "$legal_rerun_log"
 psql_cmd < supabase/migrations/20261001020540_job_discovery.sql
 psql_cmd < supabase/tests/job_discovery.sql
 # Different queries started at once must not exceed the service-wide cap.
@@ -229,6 +244,11 @@ JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-analysis-history-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-match-share-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-account-deletion-db.ts
+JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-legal-db.ts
+psql_cmd < supabase/rollback/20261001014615_legal_documents_v1_0.sql
+psql_cmd < supabase/tests/legal_documents_v1_0_rollback.sql
+psql_cmd < supabase/rollback/20261001004539_legal_acknowledgement_rpcs.sql
+psql_cmd < supabase/tests/legal_acknowledgement_rpcs_rollback.sql
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-job-resolver-db.ts
 psql_cmd < supabase/rollback/20261001020540_job_discovery.sql
 psql_cmd < supabase/tests/job_discovery_rollback.sql

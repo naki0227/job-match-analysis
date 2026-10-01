@@ -30,8 +30,48 @@ export const savedProfile = {
 
 const userId = "7fac714a-165e-44e9-a39a-7d65cd63767e";
 
-/** Stores a fixture Supabase session and stubs the always-called routes. */
-export async function signInWithFixture(page: Page): Promise<void> {
+export const legalDocuments = {
+  terms: {
+    id: "46100000-0000-4000-8000-000000000001",
+    version: "1.0",
+    bodyMarkdown: "# 利用規約\n\nE2E用の本文です。",
+    publishedAt: "2026-09-25T00:00:00Z",
+    effectiveAt: "2026-10-01T00:00:00Z",
+  },
+  privacyPolicy: {
+    id: "46100000-0000-4000-8000-000000000002",
+    version: "1.0",
+    bodyMarkdown: "# プライバシーポリシー\n\nE2E用の本文です。",
+    publishedAt: "2026-09-25T00:00:00Z",
+    effectiveAt: "2026-10-01T00:00:00Z",
+  },
+};
+
+export function legalStatus(recordedAt: string | null) {
+  return {
+    complete: recordedAt !== null,
+    terms: {
+      documentId: legalDocuments.terms.id,
+      version: "1.0",
+      recordedAt,
+    },
+    privacyPolicy: {
+      documentId: legalDocuments.privacyPolicy.id,
+      version: "1.0",
+      recordedAt,
+    },
+    history: [],
+  };
+}
+
+/**
+ * Stores a fixture Supabase session and stubs the always-called routes. The
+ * user has confirmed the current legal documents unless `consented` is false.
+ */
+export async function signInWithFixture(
+  page: Page,
+  { consented = true }: { consented?: boolean } = {},
+): Promise<void> {
   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
   await page.addInitScript(
     ({ session }) => {
@@ -62,6 +102,15 @@ export async function signInWithFixture(page: Page): Promise<void> {
       body: '{"status":"ok"}',
     }),
   );
+  if (consented) {
+    await page.route("**/api/v1/me/legal-acknowledgements", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(legalStatus("2026-10-01T00:00:00Z")),
+      }),
+    );
+  }
   await page.route("**/api/v1/me/profile", (route) =>
     route.fulfill({ status: 204 }),
   );

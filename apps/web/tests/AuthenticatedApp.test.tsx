@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { AuthenticatedApp } from "../src/AuthenticatedApp";
 import { sampleReport } from "./fixtures/match-report";
+import { consented } from "./legal-consented";
 import { createQueryWrapper } from "./render-with-query";
 
 const jobId = "3f0c7c1e-8d2b-4a52-9c36-2f7f2f0c9a11";
@@ -19,7 +20,7 @@ test("home submission moves to the analysis screen and shows progress", async ()
         headers: { "Content-Type": "application/json" },
       }),
   );
-  vi.stubGlobal("fetch", fetcher);
+  vi.stubGlobal("fetch", consented(fetcher));
   render(
     <AuthenticatedApp
       getAccessToken={async () => "token"}
@@ -32,7 +33,7 @@ test("home submission moves to the analysis screen and shows progress", async ()
     },
   );
 
-  fireEvent.change(screen.getByLabelText("求人ページのURL"), {
+  fireEvent.change(await screen.findByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
   });
   fireEvent.click(screen.getByRole("button", { name: "分析する" }));
@@ -52,7 +53,7 @@ test("home submission moves to the analysis screen and shows progress", async ()
 
 test("invalid URL is flagged without calling the API", async () => {
   const fetcher = vi.fn();
-  vi.stubGlobal("fetch", fetcher);
+  vi.stubGlobal("fetch", consented(fetcher));
   render(
     <AuthenticatedApp
       getAccessToken={async () => "token"}
@@ -64,7 +65,7 @@ test("invalid URL is flagged without calling the API", async () => {
       wrapper: createQueryWrapper(),
     },
   );
-  fireEvent.click(screen.getByRole("button", { name: "求人分析" }));
+  fireEvent.click(await screen.findByRole("button", { name: "求人分析" }));
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "jobs.example.com" },
   });
@@ -99,7 +100,7 @@ test("a cache hit shows the personal match report", async () => {
           headers: { "Content-Type": "application/json" },
         }),
   );
-  vi.stubGlobal("fetch", fetcher);
+  vi.stubGlobal("fetch", consented(fetcher));
   render(
     <AuthenticatedApp
       getAccessToken={async () => "token"}
@@ -111,7 +112,7 @@ test("a cache hit shows the personal match report", async () => {
       wrapper: createQueryWrapper(),
     },
   );
-  fireEvent.change(screen.getByLabelText("求人ページのURL"), {
+  fireEvent.change(await screen.findByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
   });
   fireEvent.click(screen.getByRole("button", { name: "分析する" }));
@@ -125,9 +126,11 @@ test("a cache hit shows the personal match report", async () => {
 test("a user without a profile sees onboarding first and can skip it", async () => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(
-      async () =>
-        new Response(JSON.stringify({ code: "not_found" }), { status: 404 }),
+    consented(
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ code: "not_found" }), { status: 404 }),
+      ),
     ),
   );
   render(

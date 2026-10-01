@@ -82,6 +82,14 @@ export function createAnalysisJobStore(client: RpcClient): AnalysisJobStore {
       if (typeof data !== "boolean") throw new AnalysisJobStoreError();
       return data;
     },
+    async requeue(jobId, workerToken) {
+      const data = await call("requeue_analysis_job", {
+        p_job_id: jobId,
+        p_worker_token: workerToken,
+      });
+      if (typeof data !== "boolean") throw new AnalysisJobStoreError();
+      return data;
+    },
     async complete(jobId, workerToken, work: AnalysisWork) {
       const data = await call("commit_analysis_evaluation_v2", {
         p_job_id: jobId,

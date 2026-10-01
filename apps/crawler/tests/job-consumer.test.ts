@@ -30,6 +30,7 @@ function fakeStore(): AnalysisJobStore {
     })),
     renew: vi.fn(async () => true),
     fail: vi.fn(async () => true),
+    requeue: vi.fn(async () => true),
     complete: vi.fn(async () => evaluationId),
   };
 }
@@ -72,7 +73,7 @@ describe("analysis job consumer", () => {
     expect(store.fail).not.toHaveBeenCalled();
   });
 
-  it("一時失敗はlease満了まで保持し、恒久失敗はfailedにする", async () => {
+  it("一時失敗は即座にqueuedへ戻し、恒久失敗はfailedにする", async () => {
     const transientStore = fakeStore();
     const transient = await consumeOneAnalysisJob({
       store: transientStore,
@@ -83,6 +84,10 @@ describe("analysis job consumer", () => {
       },
     });
     expect(transient).toEqual({ status: "retry_pending", jobId });
+    expect(transientStore.requeue).toHaveBeenCalledWith(
+      jobId,
+      expect.any(String),
+    );
     expect(transientStore.fail).not.toHaveBeenCalled();
     const permanentStore = fakeStore();
     const permanent = await consumeOneAnalysisJob({
@@ -95,6 +100,29 @@ describe("analysis job consumer", () => {
     });
     expect(permanent).toEqual({ status: "failed", jobId });
     expect(permanentStore.fail).toHaveBeenCalledWith(jobId, expect.any(String));
+  });
+
+  it("最終attemptの一時失敗はfailedにする", async () => {
+    const store = fakeStore();
+    store.claim = vi.fn(async (workerToken) => ({
+      jobId,
+      sourceUrlId,
+      analyzerVersion: "v1",
+      attempts: 3,
+      leaseUntil: "2026-09-29T12:00:00Z",
+      workerToken,
+    }));
+    const result = await consumeOneAnalysisJob({
+      store,
+      leaseSeconds: 60,
+      maxAttempts: 3,
+      process: async () => {
+        throw new Error("temporary external failure");
+      },
+    });
+    expect(result).toEqual({ status: "failed", jobId });
+    expect(store.fail).toHaveBeenCalledWith(jobId, expect.any(String));
+    expect(store.requeue).not.toHaveBeenCalled();
   });
 
   it("更新時にleaseを失ったら評価を確定しない", async () => {
@@ -115,7 +143,7 @@ describe("analysis job consumer", () => {
 });
 
 describe("Supabase job store adapter", () => {
-  it("claim、renew、completeを各1 RPCに変換する", async () => {
+  it("claim、renew、requeue、completeを各RPCに変換する", async () => {
     const rpc = vi.fn(async (name: string) => {
       if (name === "claim_analysis_job")
         return {
@@ -130,15 +158,19 @@ describe("Supabase job store adapter", () => {
           ],
           error: null,
         };
-      if (name === "renew_analysis_job_lease")
+      if (
+        name === "renew_analysis_job_lease" ||
+        name === "requeue_analysis_job"
+      )
         return { data: true, error: null };
       return { data: evaluationId, error: null };
     });
     const store = createAnalysisJobStore({ rpc });
     expect((await store.claim(randomUUID(), 60, 3))?.jobId).toBe(jobId);
     expect(await store.renew(jobId, randomUUID(), 60)).toBe(true);
+    expect(await store.requeue(jobId, randomUUID())).toBe(true);
     expect(await store.complete(jobId, randomUUID(), work)).toBe(evaluationId);
-    expect(rpc).toHaveBeenCalledTimes(3);
+    expect(rpc).toHaveBeenCalledTimes(4);
   });
 
   it("DB内部エラーを隠し、claim競合のみlease喪失として扱う", async () => {

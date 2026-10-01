@@ -53,8 +53,14 @@ begin;
 set local role anon;
 do $$
 begin
-  if (select count(*) from public.legal_documents) <> 1 then
-    raise exception 'Published legal document is not visible after restore';
+  if (select count(*) from public.legal_documents
+      where id = '31000000-0000-0000-0000-000000000005') <> 1
+    or (select count(*) from public.legal_documents
+      where version = '1.0'
+        and document_type in ('terms', 'privacy_policy')
+        and published_at <= now()
+        and effective_at <= now()) <> 2 then
+    raise exception 'Published legal documents are not visible after restore';
   end if;
 end;
 $$;

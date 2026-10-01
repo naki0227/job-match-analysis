@@ -34,6 +34,7 @@ describe("crawler cycle", () => {
       claim,
       renew: async () => false,
       fail: async () => false,
+      requeue: async () => false,
       complete: async () => "",
     });
     await runCrawlerCycle({ ...base, jobStore: store(async () => null) });
@@ -62,6 +63,7 @@ describe("crawler cycle", () => {
       claim,
       renew: async () => false,
       fail: async () => false,
+      requeue: async () => false,
       complete: async () => "",
     };
     const result = await runCrawlerCycle({

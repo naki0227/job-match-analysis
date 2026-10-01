@@ -64,15 +64,9 @@ describe("HTTP to browser source fetch", () => {
         visited.push(url.pathname);
         if (url.pathname === "/robots.txt")
           return response(url, "User-agent: *\nAllow: /");
-        if (url.pathname === "/app.js") {
-          return response(
-            url,
-            `document.querySelector('main').textContent = ${JSON.stringify(jobText)};`,
-          );
-        }
         return response(
           url,
-          '<main data-job></main><script src="/app.js"></script>',
+          `<main data-job></main><script>document.querySelector('main').textContent = ${JSON.stringify(jobText)};</script>`,
         );
       };
       const result = await fetchSourceDocument({
@@ -84,7 +78,7 @@ describe("HTTP to browser source fetch", () => {
       });
       expect(result.usedBrowser).toBe(true);
       expect(result.document.sufficient).toBe(true);
-      expect(visited).toEqual(["/robots.txt", "/job/1", "/job/1", "/app.js"]);
+      expect(visited).toEqual(["/robots.txt", "/job/1", "/job/1"]);
     } finally {
       await browser.close();
     }

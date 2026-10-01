@@ -41,7 +41,7 @@ export function useAnalysisRequest({
   fetcher = fetch,
   pollIntervalMs = 2_000,
   maxPollIntervalMs = 10_000,
-  timeoutMs = 180_000,
+  timeoutMs = 120_000,
 }: AnalysisRequestOptions) {
   const [invalidUrl, setInvalidUrl] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);

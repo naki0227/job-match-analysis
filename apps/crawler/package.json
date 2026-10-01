@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --no-file-parallelism",
     "build": "tsc -p tsconfig.build.json",
     "worker": "node dist/worker-main.js"
   },

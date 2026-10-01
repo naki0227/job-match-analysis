@@ -5,7 +5,7 @@ name: Deploy API
 # stay separate and the same digest can later go to more environments.
 on:
   workflow_run:
-    workflows: [Images]
+    workflows: [Deploy Crawler]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -76,7 +76,20 @@ jobs:
             --name "$AZURE_CONTAINER_APP" \
             --resource-group "$AZURE_RESOURCE_GROUP" \
             --image "${IMAGE}@${DIGEST}" \
-            --set-env-vars PORT=3000
+            --set-env-vars \
+              PORT=3000 \
+              ANALYZER_VERSION=analysis-v2 \
+              JOB_RESOLVER_MAX_CANDIDATES=20 \
+              JOB_RESOLVER_LISTING_LIMIT=20 \
+              JOB_RESOLVER_KNOWN_LISTING_MINIMUM=5 \
+              JOB_RESOLVER_SEARCH_LIMIT=30 \
+              JOB_RESOLVER_SEARCH_WINDOW_SECONDS=3600 \
+              JOB_RESOLVER_JEV_TIMEOUT_MS=10000 \
+              JOB_DISCOVERY_FRESHNESS_SECONDS=86400 \
+              JOB_DISCOVERY_USER_LIMIT=10 \
+              JOB_DISCOVERY_WINDOW_SECONDS=86400 \
+              JOB_DISCOVERY_MAX_ACTIVE=20 \
+              JOB_DISCOVERY_RETENTION_SECONDS=2592000
 
       - name: Verify the deployed digest and health
         env:

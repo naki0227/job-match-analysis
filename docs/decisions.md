@@ -49,6 +49,7 @@
 | [ADR-044](adr/044-whole-context-evaluation.md) | 求人評価はkeyword事前選別をやめ、上限付きの本文断片を1回のJev requestで全未解決軸について判定し、根拠断片を複数保存する。根拠を特定できない判定はunknown | 言い回しに依存せず判定でき、根拠が複数残る。1求人1回の上限でコストを抑える | 入力tokenの増加、上限超過時の優先付けは語彙依存が残る |
 | [ADR-045](adr/045-job-resolver.md) | 企業名＋職種から既存の求人を特定するJob Resolverを、機械的なdiscovery（既存DB、opt-inのATS公開一覧）→domainによる絞り込み→Jevによる候補IDの選択（URLは生成させない）で構成する。曖昧なら上位3件を利用者に選ばせる | 存在しない求人を指さない。判定基準を説明でき、URL入力も残る | 初期は解析済み企業のみ。公式採用ページは未対応。検索回数の制限なし |
 | [ADR-046](adr/046-legal-consent-flow.md) | 利用規約（同意）とプライバシーポリシー（確認）の現在の版への記録を利用開始の条件にする。本文はDBが正、記録はserverが現在版だけを受け付け、文書未登録時はfail closed | 誰がどの版にいつ同意したかを示せ、改定時に再同意を求められる | 有効な文書が未登録だと誰も利用できない（意図どおり） |
+| [ADR-047](adr/047-web-job-discovery-ddgs.md) | 既知の求人で足りない時だけ、crawler workerで非同期にWeb探索する。検索（初期βはDDGSのDuckDuckGo backendをbest-effort、`WebSearchProvider`で差し替え可能）は手がかりにとどめ、安全な取得とJobPosting JSON-LDの検証を通った求人だけを既存の表へ保存する | URLを知らなくても実在する求人に届き、API requestは外部へ出ない。検証済みの求人は全利用者で再利用される | 結果まで数十秒。JSON-LDのない求人は見つからない。DDGSは非公式でblockされうる |
 
 ## 技術スパイクで検証・継続確認する項目
 

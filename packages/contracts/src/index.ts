@@ -89,6 +89,7 @@ export { axisDisplayNames, axisStatusDisplayLabels } from "./labels.js";
 export {
   employmentPreferenceSchema,
   jobCandidateSchema,
+  jobDiscoveryIdSchema,
   jobSearchRequestSchema,
   jobSearchResponseSchema,
 } from "./job-resolver.js";
@@ -113,3 +114,8 @@ export type {
   LegalHistoryItem,
   RecordLegalAcknowledgements,
 } from "./legal.js";
+
+export {
+  InvalidAnalysisUrlError,
+  normalizeAnalysisUrl,
+} from "./analysis-url.js";

@@ -1,5 +1,10 @@
 import { noopCrawlerMetrics, type CrawlerMetrics } from "./crawler-metrics.js";
 import {
+  consumeOneDiscovery,
+  type DiscoveryOutcome,
+  type DiscoveryRuntime,
+} from "./discovery/consume-discovery.js";
+import {
   consumeOneAnalysisJob,
   type AnalysisJobStore,
   type ConsumeResult,
@@ -22,7 +27,13 @@ export async function runCrawlerCycle(args: {
   retentionBatchSize: number;
   now?: () => Date;
   metrics?: CrawlerMetrics;
-}): Promise<{ clearedSourceTexts: number; analysis: ConsumeResult }> {
+  /** Web discovery (ADR-047); runs only when no analysis job is waiting. */
+  discovery?: DiscoveryRuntime;
+}): Promise<{
+  clearedSourceTexts: number;
+  analysis: ConsumeResult;
+  discovery: DiscoveryOutcome;
+}> {
   const clearedSourceTexts = await clearExpiredSourceText({
     store: args.retentionStore,
     now: args.now?.() ?? new Date(),
@@ -51,5 +62,10 @@ export async function runCrawlerCycle(args: {
       durationMs: performance.now() - started,
     });
   }
-  return { clearedSourceTexts, analysis };
+  // Analysis users are waiting on a page; discovery goes after them.
+  const discovery =
+    args.discovery && analysis.status === "idle"
+      ? await consumeOneDiscovery(args.discovery, metrics, args.now)
+      : "idle";
+  return { clearedSourceTexts, analysis, discovery };
 }

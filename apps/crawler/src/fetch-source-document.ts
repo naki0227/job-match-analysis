@@ -120,3 +120,39 @@ export async function fetchSourceDocument(args: {
     await boundary.context.close();
   }
 }
+
+/**
+ * One public HTML page over plain HTTP, for job discovery (ADR-047): the
+ * same URL, DNS, redirect, robots, size, time and content-type checks as
+ * analysis, no browser, and redirects must stay on the starting origin. The
+ * robots policy is shared across calls so one origin's robots.txt is read
+ * once per discovery.
+ */
+export function createPublicPageFetcher(args: {
+  resolve?: ResolveAddresses;
+  send?: RequestOnce;
+}): (url: string) => Promise<{ url: string; html: string }> {
+  const resolve = args.resolve ?? systemResolver;
+  const send = args.send ?? requestOnce;
+  const policy = createCrawlPolicy({
+    siteApproved: async () => true,
+    fetchRobots: (url) =>
+      fetchPublic(url, resolve, send, async (next) => {
+        if (next.origin !== new URL(url).origin) {
+          throw new SourceFetchError("robots redirected across origins");
+        }
+      }),
+  });
+  return async (url) => {
+    const origin = parsePublicUrl(url).origin;
+    const response = await fetchPublic(url, resolve, send, async (next) => {
+      if (next.origin !== origin) {
+        throw new SourceFetchError("redirected to another origin");
+      }
+      await policy(next);
+    });
+    const html = requireHtml(response);
+    rejectAccessGate(html);
+    return { url: response.url, html };
+  };
+}

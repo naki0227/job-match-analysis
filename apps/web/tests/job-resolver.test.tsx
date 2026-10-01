@@ -51,7 +51,9 @@ function searchFor(company: string, role: string, employment?: string) {
   fireEvent.change(screen.getByLabelText("企業名"), {
     target: { value: company },
   });
-  fireEvent.change(screen.getByLabelText("職種"), { target: { value: role } });
+  fireEvent.change(screen.getByLabelText("職種（任意）"), {
+    target: { value: role },
+  });
   if (employment) {
     fireEvent.change(screen.getByLabelText("雇用形態"), {
       target: { value: employment },
@@ -60,11 +62,15 @@ function searchFor(company: string, role: string, employment?: string) {
   fireEvent.click(screen.getByRole("button", { name: "求人を探す" }));
 }
 
-test("searching needs both fields and sends only what the user entered", async () => {
+test("searching needs a company and sends only what the user entered", async () => {
   const { fetcher } = renderFinder(
     json({ status: "not_found", partial: false }),
   );
   expect(screen.getByRole("button", { name: "求人を探す" })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("企業名"), {
+    target: { value: "サンプル" },
+  });
+  expect(screen.getByRole("button", { name: "求人を探す" })).toBeEnabled();
   searchFor("  マネーフォワード ", " 法人営業 ", "new_grad");
   await screen.findByText(/見つけられませんでした/);
   const [url, init] = fetcher.mock.calls[0]!;
@@ -107,6 +113,7 @@ test("ambiguous results let the user pick; nothing is analyzed until then", asyn
         candidate("法人営業（東京）", 1),
         candidate("法人営業（大阪）", 2),
       ],
+      hasMore: false,
       partial: true,
     }),
   );
@@ -157,4 +164,86 @@ test("the API client maps statuses and rejects malformed answers", async () => {
       }),
     ),
   ).toBe("unavailable");
+});
+
+function renderRouted(
+  route: (path: string) => Response,
+  options: { timeoutMs?: number } = {},
+) {
+  const onAnalyze = vi.fn();
+  const fetcher = vi.fn<typeof fetch>(async (input) => route(String(input)));
+  render(
+    <JobFinder
+      getAccessToken={async () => "token"}
+      onAnalyze={onAnalyze}
+      fetcher={fetcher}
+      pollIntervalMs={10}
+      {...options}
+    />,
+    { wrapper: createQueryWrapper() },
+  );
+  return { onAnalyze, fetcher };
+}
+
+const discoveryId = "47000000-0000-4000-8000-0000000000d1";
+
+test("a company-only search waits for web discovery, then lists postings without picking one", async () => {
+  let polls = 0;
+  const { onAnalyze, fetcher } = renderRouted((path) => {
+    if (path === "/api/v1/job-resolver/search")
+      return json({ status: "searching", discoveryId, partial: false });
+    polls += 1;
+    return polls < 2
+      ? json({ status: "searching", discoveryId, partial: false })
+      : json({
+          status: "candidates",
+          candidates: [
+            { ...candidate("Backend Developer", 1), source: "official" },
+            { ...candidate("法人営業", 2), source: "ats" },
+          ],
+          hasMore: true,
+          partial: false,
+        });
+  });
+  fireEvent.change(screen.getByLabelText("企業名"), {
+    target: { value: "サンプル" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "求人を探す" }));
+  expect(await screen.findByText(/Web上の公開求人を探して/)).toBeVisible();
+  const list = await screen.findByRole("list", { name: "求人の候補" });
+  expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+  expect(list).toHaveTextContent("企業の採用ページ");
+  expect(screen.getByText(/ほかにも求人があります/)).toBeVisible();
+  expect(onAnalyze).not.toHaveBeenCalled();
+  expect(JSON.parse(String(fetcher.mock.calls[0]![1]?.body))).toEqual({
+    company: "サンプル",
+  });
+  expect(String(fetcher.mock.calls[1]![0])).toBe(
+    `/api/v1/job-resolver/discoveries/${discoveryId}`,
+  );
+});
+
+test("a discovery that takes too long points to direct URL input", async () => {
+  renderRouted(
+    () => json({ status: "searching", discoveryId, partial: false }),
+    { timeoutMs: 50 },
+  );
+  fireEvent.change(screen.getByLabelText("企業名"), {
+    target: { value: "サンプル" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "求人を探す" }));
+  expect(
+    await screen.findByText(/時間内に見つけられませんでした/),
+  ).toBeVisible();
+});
+
+test("too many searches explain the limit and keep URL input available", async () => {
+  renderRouted(() => json({ code: "job_resolver_rate_limited" }, 429));
+  fireEvent.change(screen.getByLabelText("企業名"), {
+    target: { value: "サンプル" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "求人を探す" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "求人URLを直接入力",
+  );
 });

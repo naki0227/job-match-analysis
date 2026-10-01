@@ -21,6 +21,14 @@ export function createOtelApiMetrics(): ApiMetrics {
   const resolutions = meter.createCounter("job_match.job_resolver.searches", {
     description: "Job Resolver searches by outcome and whether Jev chose",
   });
+  const discoveries = meter.createCounter("job_match.job_resolver.discovery", {
+    description:
+      "Web discovery outcome per resolver search (cache hit = ready)",
+  });
+  const resolverLatency = meter.createHistogram(
+    "job_match.job_resolver.duration",
+    { unit: "s", description: "Job resolver response time" },
+  );
   return {
     request: ({ route, method, status, durationMs }) =>
       duration.record(durationMs / 1_000, {
@@ -32,5 +40,8 @@ export function createOtelApiMetrics(): ApiMetrics {
     workerTrigger: (outcome) => triggers.add(1, { outcome }),
     jobResolution: (outcome, selectorUsed) =>
       resolutions.add(1, { outcome, selector_used: selectorUsed }),
+    jobResolverDiscovery: (outcome) => discoveries.add(1, { outcome }),
+    jobResolverLatency: (durationMs) =>
+      resolverLatency.record(durationMs / 1_000),
   };
 }

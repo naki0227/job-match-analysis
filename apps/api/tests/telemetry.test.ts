@@ -21,6 +21,8 @@ function recorder() {
     analysisRequest: (outcome) => outcomes.push(outcome),
     workerTrigger: () => {},
     jobResolution: () => {},
+    jobResolverDiscovery: () => {},
+    jobResolverLatency: () => {},
   };
   return { requests, outcomes, metrics };
 }
@@ -60,6 +62,12 @@ test("telemetry failures never change responses", async () => {
       throw new Error("exporter down");
     },
     jobResolution: () => {
+      throw new Error("exporter down");
+    },
+    jobResolverDiscovery: () => {
+      throw new Error("exporter down");
+    },
+    jobResolverLatency: () => {
       throw new Error("exporter down");
     },
   };

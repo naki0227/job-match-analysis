@@ -173,3 +173,42 @@ describe("resolution policy", () => {
     ).toEqual(["c3", "c2", "c1"]);
   });
 });
+
+describe("company-only listing", () => {
+  const listing = rankCandidates(
+    { company: "マネーフォワード" },
+    [
+      candidate("フロントエンドエンジニア", { source: "web" }),
+      candidate("Backend Developer (Go)", { source: "official" }),
+      candidate("法人営業（中途）", { source: "ats" }),
+    ],
+    20,
+  );
+
+  it("lists official, then ATS, then other postings", () => {
+    expect(listing.map((item) => item.source)).toEqual([
+      "official",
+      "ats",
+      "web",
+    ]);
+  });
+
+  it("never resolves to one posting, even with a single candidate or a confident selection", () => {
+    expect(decideResolution(listing.slice(0, 1), null, 20)).toMatchObject({
+      status: "candidates",
+      reason: "company_listing",
+      hasMore: false,
+    });
+    expect(
+      decideResolution(
+        listing,
+        { choice: "c1", confidence: 0.99, probabilities: { c1: 0.99 } },
+        2,
+      ),
+    ).toMatchObject({
+      status: "candidates",
+      reason: "company_listing",
+      hasMore: true,
+    });
+  });
+});

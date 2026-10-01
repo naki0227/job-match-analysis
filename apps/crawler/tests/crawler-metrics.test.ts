@@ -44,6 +44,7 @@ describe("crawler metrics", () => {
       jevBudgetExhausted: down,
       jevBudgetMode: down,
       analysisJob: down,
+      discovery: down,
       evaluation: down,
     });
     expect(() =>

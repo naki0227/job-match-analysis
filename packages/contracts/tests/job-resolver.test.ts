@@ -27,6 +27,7 @@ describe("job resolver contract", () => {
     });
     for (const invalid of [
       { company: "", roleQuery: "営業" },
+      { company: "a", roleQuery: 1 },
       { company: "a", roleQuery: "b".repeat(101) },
       { company: "a", roleQuery: "b", employmentType: "freelance" },
       { company: "a", roleQuery: "b", url: "https://x.example" },
@@ -35,7 +36,18 @@ describe("job resolver contract", () => {
     }
   });
 
-  it("only carries https candidates and at most three choices", () => {
+  it("lets the role be omitted for a company-only listing", () => {
+    expect(jobSearchRequestSchema.parse({ company: "a" })).toEqual({
+      company: "a",
+    });
+    expect(
+      jobSearchRequestSchema.parse({ company: "a", roleQuery: "  " }),
+    ).toEqual({
+      company: "a",
+    });
+  });
+
+  it("only carries https candidates and a bounded list", () => {
     expect(
       jobSearchResponseSchema.safeParse({
         status: "resolved",
@@ -55,7 +67,8 @@ describe("job resolver contract", () => {
     expect(
       jobSearchResponseSchema.safeParse({
         status: "candidates",
-        candidates: [candidate, candidate, candidate, candidate],
+        candidates: Array.from({ length: 21 }, () => candidate),
+        hasMore: true,
         partial: false,
       }).success,
     ).toBe(false);
@@ -65,5 +78,24 @@ describe("job resolver contract", () => {
       status: "not_found",
       partial: true,
     });
+  });
+});
+
+describe("discovery polling", () => {
+  it("reports a running discovery by id only", () => {
+    expect(
+      jobSearchResponseSchema.safeParse({
+        status: "searching",
+        discoveryId: "46100000-0000-4000-8000-000000000001",
+        partial: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      jobSearchResponseSchema.safeParse({
+        status: "searching",
+        discoveryId: "x",
+        partial: false,
+      }).success,
+    ).toBe(false);
   });
 });

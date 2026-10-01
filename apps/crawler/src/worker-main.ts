@@ -15,6 +15,10 @@ import {
 import { createSupabaseSourceRetentionStore } from "./source-retention.js";
 import { startTelemetry } from "./telemetry/sdk.js";
 import { runUntilIdle, runWorkerLoop } from "./worker-loop.js";
+import { createDdgsProvider } from "./discovery/ddgs-provider.js";
+import { parseDiscoveryConfig } from "./discovery/discovery-config.js";
+import { createSupabaseDiscoveryStore } from "./discovery/discovery-store.js";
+import { createPublicPageFetcher } from "./fetch-source-document.js";
 
 const configSchema = z.object({
   SUPABASE_URL: z.url(),
@@ -53,7 +57,7 @@ export function parseWorkerConfig(env: NodeJS.ProcessEnv) {
       result.data.CRAWLER_DRAIN_MAX_JOBS === undefined)
   )
     throw new Error("Crawler worker configuration is invalid");
-  return result.data;
+  return { ...result.data, discovery: parseDiscoveryConfig(env) };
 }
 
 async function main(): Promise<void> {
@@ -93,8 +97,22 @@ async function main(): Promise<void> {
     ),
     crawlerMetrics,
   );
+  const discovery = config.discovery
+    ? {
+        store: createSupabaseDiscoveryStore(
+          config.SUPABASE_URL,
+          config.SUPABASE_SECRET_KEY,
+        ),
+        search: createDdgsProvider(config.discovery.ddgs),
+        createFetcher: () => createPublicPageFetcher({}),
+        limits: config.discovery.limits,
+        leaseSeconds: config.CRAWLER_LEASE_SECONDS,
+        maxAttempts: config.CRAWLER_MAX_ATTEMPTS,
+      }
+    : undefined;
   const cycle = () =>
     runCrawlerCycle({
+      discovery,
       jobStore,
       retentionStore,
       leaseSeconds: config.CRAWLER_LEASE_SECONDS,

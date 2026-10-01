@@ -43,7 +43,7 @@ export type DrainOutcome =
  * cycle stops the run and its lease lets a later run retry the job.
  */
 export async function runUntilIdle(args: {
-  cycle: () => Promise<{ analysis: { status: string } }>;
+  cycle: () => Promise<{ analysis: { status: string }; discovery?: string }>;
   maxJobs: number;
   signal: AbortSignal;
 }): Promise<DrainOutcome> {
@@ -52,7 +52,7 @@ export async function runUntilIdle(args: {
   let processed = 0;
   while (processed < args.maxJobs) {
     if (args.signal.aborted) return { status: "aborted", processed };
-    let result: { analysis: { status: string } };
+    let result: { analysis: { status: string }; discovery?: string };
     try {
       result = await args.cycle();
     } catch (error) {
@@ -62,7 +62,11 @@ export async function runUntilIdle(args: {
         errorName: error instanceof Error ? error.name : "UnknownError",
       };
     }
-    if (result.analysis.status === "idle") return { status: "idle", processed };
+    if (
+      result.analysis.status === "idle" &&
+      (result.discovery ?? "idle") === "idle"
+    )
+      return { status: "idle", processed };
     processed += 1;
   }
   return { status: "limit_reached", processed };

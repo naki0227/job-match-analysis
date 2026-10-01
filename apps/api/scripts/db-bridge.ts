@@ -39,7 +39,10 @@ export function literal(value: unknown): string {
 }
 
 /** Functions returning void cannot be wrapped in row_to_json/to_json. */
-const voidRpcs = new Set(["record_legal_acknowledgements"]);
+const voidRpcs = new Set([
+  "record_legal_acknowledgements",
+  "record_job_resolver_search",
+]);
 
 const scalarRpcs = new Set([
   "read_evaluation_for_match",

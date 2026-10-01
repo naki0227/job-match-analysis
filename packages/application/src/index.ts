@@ -29,6 +29,8 @@ export { resolveJob } from "./job-resolver.js";
 export type {
   CandidateSelector,
   CandidateSource,
+  DiscoveryOutcome,
+  JobDiscovery,
   JobResolution,
   JobResolverDeps,
 } from "./job-resolver.js";

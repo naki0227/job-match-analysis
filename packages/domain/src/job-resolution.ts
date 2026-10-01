@@ -9,7 +9,8 @@ export type EmploymentPreference =
 
 export type JobSearchQuery = {
   company: string;
-  roleQuery: string;
+  /** Absent for a company-only listing. */
+  roleQuery?: string;
   employmentType?: EmploymentPreference;
 };
 
@@ -17,6 +18,11 @@ export type JobCandidate = {
   companyName: string;
   title: string;
   url: string;
+  /**
+   * Where the posting was found: "official" (the employer's own site,
+   * verified), "ats" (an applicant tracking system), "known" (analyzed here
+   * before) or "web" (another public job page).
+   */
   source: string;
   /** schema.org style values when the source declares them. */
   employmentTypes: readonly string[];
@@ -37,13 +43,19 @@ export type RankedCandidate = JobCandidate & {
 };
 
 export type ResolutionReason =
-  "no_candidates" | "single_full_match" | "confident_selection" | "ambiguous";
+  | "company_listing"
+  | "no_candidates"
+  | "single_full_match"
+  | "confident_selection"
+  | "ambiguous";
 
 export type Resolution =
   | { status: "resolved"; candidate: RankedCandidate; reason: ResolutionReason }
   | {
       status: "candidates";
       candidates: readonly RankedCandidate[];
+      /** More candidates were found than are shown. */
+      hasMore: boolean;
       reason: ResolutionReason;
     }
   | { status: "not_found"; reason: ResolutionReason };
@@ -52,6 +64,17 @@ export type Resolution =
 export const MIN_SELECTION_CONFIDENCE = 0.8;
 export const MAX_RUNNER_UP_PROBABILITY = 0.15;
 export const MAX_CHOICES_SHOWN = 3;
+
+/** Official employer pages first, then ATS pages, then anything else. */
+const SOURCE_PRIORITY: Readonly<Record<string, number>> = {
+  official: 0,
+  ats: 1,
+  known: 2,
+};
+
+function sourcePriority(source: string): number {
+  return SOURCE_PRIORITY[source] ?? 3;
+}
 
 const LEGAL_FORMS =
   /株式会社|有限会社|合同会社|一般社団法人|（株）|\(株\)|㈱|inc\.?|co\.,?\s*ltd\.?|ltd\.?|corporation|corp\.?|llc|k\.k\./giu;
@@ -72,10 +95,10 @@ export function sameCompany(query: string, candidate: string): boolean {
   return a.length > 0 && b.length > 0 && (a.includes(b) || b.includes(a));
 }
 
-export function roleTerms(roleQuery: string): string[] {
+export function roleTerms(roleQuery: string | undefined): string[] {
   return [
     ...new Set(
-      fold(roleQuery)
+      fold(roleQuery ?? "")
         .split(/[\s、,，・/／()（）]+/u)
         .filter((term) => term.length > 0),
     ),
@@ -145,7 +168,13 @@ export function rankCandidates(
       matched: terms.filter((term) => fold(candidate.title).includes(term))
         .length,
     }))
-    .sort((a, b) => b.matched - a.matched || a.order - b.order)
+    .sort(
+      (a, b) =>
+        b.matched - a.matched ||
+        sourcePriority(a.candidate.source) -
+          sourcePriority(b.candidate.source) ||
+        a.order - b.order,
+    )
     .slice(0, limit)
     .map(({ candidate, matched }, index) => ({
       ...candidate,
@@ -174,9 +203,20 @@ export function fullMatch(candidate: RankedCandidate): boolean {
 export function decideResolution(
   ranked: readonly RankedCandidate[],
   selection: CandidateSelection | null,
+  listingLimit: number = MAX_CHOICES_SHOWN,
 ): Resolution {
   if (ranked.length === 0)
     return { status: "not_found", reason: "no_candidates" };
+  // Without a role there is nothing to match: the user chooses from a list,
+  // and no single posting is ever picked for them.
+  if (ranked[0]!.totalTerms === 0) {
+    return {
+      status: "candidates",
+      candidates: ranked.slice(0, listingLimit),
+      hasMore: ranked.length > listingLimit,
+      reason: "company_listing",
+    };
+  }
   const full = ranked.filter(fullMatch);
   const only = full.length === 1 ? full[0] : undefined;
   if (only) {
@@ -213,12 +253,14 @@ export function decideResolution(
     return {
       status: "candidates",
       candidates: byProbability.slice(0, MAX_CHOICES_SHOWN),
+      hasMore: ranked.length > MAX_CHOICES_SHOWN,
       reason: "ambiguous",
     };
   }
   return {
     status: "candidates",
     candidates: ranked.slice(0, MAX_CHOICES_SHOWN),
+    hasMore: ranked.length > MAX_CHOICES_SHOWN,
     reason: "ambiguous",
   };
 }

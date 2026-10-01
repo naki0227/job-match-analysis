@@ -277,6 +277,12 @@ importers:
 
   apps/crawler:
     dependencies:
+      '@job-match/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@job-match/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1

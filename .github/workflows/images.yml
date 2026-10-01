@@ -91,6 +91,9 @@ jobs:
             else
               docker run --rm --platform "$platform" -w /app/apps/crawler "$IMAGE" \
                 node -e "console.log(process.arch, process.env.CRAWLER_BROWSER_EXECUTABLE)"
+              # DDGS is the pinned version with its DuckDuckGo engine (no network).
+              docker run --rm --platform "$platform" --entrypoint /opt/ddgs/bin/python "$IMAGE" \
+                /app/apps/crawler/ddgs/search.py --self-check
             fi
             # A digest reference holds one platform locally at a time.
             docker image rm "$IMAGE"

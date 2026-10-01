@@ -39,6 +39,9 @@ export function literal(value: unknown): string {
 }
 
 /** Functions returning void cannot be wrapped in row_to_json/to_json. */
+const voidRpcs = new Set(["record_legal_acknowledgements"]);
+
+/** Functions returning void cannot be wrapped in row_to_json/to_json. */
 const voidRpcs = new Set([
   "record_legal_acknowledgements",
   "record_job_resolver_search",
@@ -59,6 +62,10 @@ export async function rpc(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const list = Object.values(args).map(literal).join(", ");
+  if (voidRpcs.has(name)) {
+    await psql(`set role service_role; select public.${name}(${list})`);
+    return null;
+  }
   if (voidRpcs.has(name)) {
     await psql(`set role service_role; select public.${name}(${list})`);
     return null;

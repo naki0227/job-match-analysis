@@ -30,6 +30,8 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20260930070000_issue42_jev_budget` | Jev日次予算 | なし |
 | `20260930080000_issue42_abuse_signals` | 不正利用signal（7日保持） | なし |
 | `20260930120544_service_role_core_privileges` | `service_role`の表権限（下記） | なし（GRANTのみ） |
+| `20260930160126_job_facts_employment_type` | job factsに`employmentType`を追加（ADR-044） | なし（CHECK制約の拡張のみ。rollbackは該当factを削除） |
+| `20260930161211_job_resolver_known_postings` | Job Resolverの既存求人検索RPC（ADR-045） | なし（読み取り関数の追加のみ） |
 | `20261001004539_legal_acknowledgement_rpcs` | 法的文書と確認記録のRPC（ADR-046） | なし（関数の追加のみ） |
 | `20261001014615_legal_documents_v1_0` | 利用規約・プライバシーポリシー v1.0の本文（2026-10-03 00:00 JSTから有効） | なし（追加のみ。同じ版が既にあれば失敗する。rollbackは確認記録がない間だけ可能） |
 

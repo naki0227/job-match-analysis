@@ -150,7 +150,8 @@ function location(text: string): string[][] {
   const value = match[1]!;
   if (/将来的|予定|相談|応相談|全国|可能性|変更/u.test(value)) return [];
   const names = PREFECTURES.filter((name) => value.includes(name));
-  if (value.includes("名古屋") && !names.includes("愛知県")) names.push("愛知県");
+  if (value.includes("名古屋") && !names.includes("愛知県"))
+    names.push("愛知県");
   return names.length ? [[...names]] : [];
 }
 
@@ -172,7 +173,9 @@ function weeklyOfficeDays(text: string): number[] {
   ].map((match) => Number(match[1]));
   if (required.length) return required;
   return [
-    ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu),
+    ...text.matchAll(
+      /週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu,
+    ),
   ].map((match) => Number(match[1]));
 }
 

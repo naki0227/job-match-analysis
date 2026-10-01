@@ -102,6 +102,7 @@ describe("worker cycle with discovery", () => {
     claim: async () => null,
     renew: async () => false,
     fail: async () => false,
+    requeue: async () => false,
     complete: async () => "",
   };
   const base = {

@@ -5,7 +5,7 @@ import {
   type StructuredJobPosting,
 } from "./json-ld-job-posting.js";
 
-export const EXTRACTOR_VERSION = "html-v1";
+export const EXTRACTOR_VERSION = "html-v2";
 export const MIN_JOB_CHARACTERS = 100;
 
 export type SourceSection = {
@@ -139,7 +139,7 @@ function collectFragments(
   root: Html.Element | undefined,
 ): SourceFragment[] {
   if (!root) return [];
-  const fragments: SourceFragment[] = [];
+  const semantic: SourceFragment[] = [];
   const visit = (node: Html.Node) => {
     if (!isElement(node)) return;
     if (
@@ -159,17 +159,51 @@ function collectFragments(
       const text = visibleText(node, scope === "job")
         .replace(/\s+/g, " ")
         .trim();
-      if (text) fragments.push({ scope, text, locator: locator(node) });
+      if (text) semantic.push({ scope, text, locator: locator(node) });
       return;
     }
     for (const child of node.childNodes) visit(child);
   };
   visit(root);
-  return fragments.length
-    ? fragments
-    : [section(scope, root)].filter(
-        (item): item is SourceFragment => item !== undefined,
-      );
+
+  const whole = section(scope, root);
+  if (!whole) return [];
+  if (semantic.length === 0) return [whole];
+
+  // ATS pages often render important labels/values in div/span elements while
+  // only a subset of prose uses p/li tags. Preserve the text between semantic
+  // fragments so deterministic rules and the evaluator can see the whole page.
+  const fragments: SourceFragment[] = [];
+  let cursor = 0;
+  let gap = 0;
+  for (const fragment of semantic) {
+    const index = whole.text.indexOf(fragment.text, cursor);
+    if (index < 0) {
+      fragments.push(fragment);
+      continue;
+    }
+    const uncovered = whole.text.slice(cursor, index).trim();
+    if (uncovered) {
+      gap += 1;
+      fragments.push({
+        scope,
+        text: uncovered,
+        locator: `${whole.locator}:gap-${gap}`,
+      });
+    }
+    fragments.push(fragment);
+    cursor = index + fragment.text.length;
+  }
+  const tail = whole.text.slice(cursor).trim();
+  if (tail) {
+    gap += 1;
+    fragments.push({
+      scope,
+      text: tail,
+      locator: `${whole.locator}:gap-${gap}`,
+    });
+  }
+  return fragments;
 }
 
 export function extractSourceDocument(

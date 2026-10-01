@@ -303,11 +303,28 @@ test("企業名と職種で求人を探し、候補から選んだ求人を分�
   const list = page.getByRole("list", { name: "求人の候補" });
   await expect(list.getByRole("listitem")).toHaveCount(2);
   expect(posted).toEqual([]);
+  await page.evaluate(() => {
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value(this: Element) {
+        if (this.classList.contains("analysis-scroll-target")) {
+          document.documentElement.dataset.analysisScrolled = "true";
+        }
+      },
+    });
+  });
   await list
     .getByRole("listitem")
     .nth(1)
     .getByRole("button", { name: "この求人を分析する" })
     .click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.dataset.analysisScrolled ?? "false",
+      ),
+    )
+    .toBe("true");
   await expect(
     page.getByRole("heading", { name: "解析済みの共有評価が見つかりました" }),
   ).toBeVisible({ timeout: 10_000 });

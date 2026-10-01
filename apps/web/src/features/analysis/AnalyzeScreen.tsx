@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { JobFinder } from "../job-resolver/JobFinder";
 import { MatchSection } from "../result/MatchSection";
 import type { AnalysisState } from "./analysis-state";
@@ -19,6 +20,20 @@ export function AnalyzeScreen({
   onEditProfile,
 }: Props) {
   const url = state.kind === "idle" ? "" : state.url;
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  function submitAndReveal(urlToAnalyze: string) {
+    onSubmit(urlToAnalyze);
+    requestAnimationFrame(() => {
+      const target = statusRef.current;
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    });
+  }
 
   return (
     <section className="narrow page-head" aria-labelledby="analyze-heading">
@@ -31,7 +46,10 @@ export function AnalyzeScreen({
         <p className="muted">
           企業名と職種から、その企業が公開している求人を探します。おすすめの企業を提案するものではありません。
         </p>
-        <JobFinder getAccessToken={getAccessToken} onAnalyze={onSubmit} />
+        <JobFinder
+          getAccessToken={getAccessToken}
+          onAnalyze={submitAndReveal}
+        />
         <details className="direct-url" open={url !== ""}>
           <summary>求人URLを直接入力</summary>
           <AnalyzeForm
@@ -39,21 +57,23 @@ export function AnalyzeScreen({
             initialUrl={url}
             busy={state.kind === "submitting"}
             invalid={state.kind === "error" && state.reason === "invalid_url"}
-            onSubmit={onSubmit}
+            onSubmit={submitAndReveal}
           />
         </details>
-        <AnalysisStatus
-          state={state}
-          onRetry={onSubmit}
-          renderResult={(evaluationId) => (
-            <MatchSection
-              key={evaluationId}
-              evaluationId={evaluationId}
-              getAccessToken={getAccessToken}
-              onEditProfile={onEditProfile}
-            />
-          )}
-        />
+        <div ref={statusRef} className="analysis-scroll-target">
+          <AnalysisStatus
+            state={state}
+            onRetry={submitAndReveal}
+            renderResult={(evaluationId) => (
+              <MatchSection
+                key={evaluationId}
+                evaluationId={evaluationId}
+                getAccessToken={getAccessToken}
+                onEditProfile={onEditProfile}
+              />
+            )}
+          />
+        </div>
       </div>
     </section>
   );

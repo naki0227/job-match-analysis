@@ -4,7 +4,7 @@ import type {
   DecisionEngineInput,
 } from "./decision-engine.js";
 
-export const RULE_ENGINE_VERSION = "public-rules-v2";
+export const RULE_ENGINE_VERSION = "public-rules-v3";
 
 /** Explicit wording that decides an axis without the evaluator. */
 function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
@@ -19,14 +19,22 @@ function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
     ];
   }
   if (axisKey === "work_location") {
-    const onsite = /出社必須|原則出社/u.test(text);
+    const requiredOfficeDays = [
+      ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社\s*必須/gu),
+    ].map((match) => Number(match[1]));
+    const officeDays = requiredOfficeDays.length
+      ? requiredOfficeDays
+      : [
+          ...text.matchAll(
+            /週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu,
+          ),
+        ].map((match) => Number(match[1]));
+    const onsite =
+      officeDays.length === 0 && /出社\s*必須|原則[、,\s]*出社/u.test(text);
     const remote =
       /フルリモート(?:可|可能|勤務|制度)|完全在宅(?:可|可能|勤務)|出社不要/u.test(
         text,
       );
-    const officeDays = [
-      ...text.matchAll(/週\s*([0-5])\s*日出社(?=$|[。．、，\s])/gu),
-    ].map((match) => Number(match[1]));
     return [
       ...(onsite ? [0 as const] : []),
       ...(remote ? [100 as const] : []),

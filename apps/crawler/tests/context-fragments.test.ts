@@ -36,11 +36,22 @@ describe("context fragments", () => {
     const { fragments, document } = build(
       `<main data-job><p>${long}</p></main>`,
     );
-    expect(fragments.map((item) => item.text.length)).toEqual([61, 80]);
+    expect(fragments.map((item) => item.text.length)).toEqual([61, 80, 21]);
     for (const item of fragments) {
       expect(document.extractedText).toContain(item.text);
       expect(item.locator).toMatch(/^p:line-1:fragment-1:part-\d$/);
     }
+  });
+
+  it("keeps the tail of long ATS text instead of truncating it", () => {
+    const prefix = "説明".repeat(120);
+    const { fragments } = build(
+      `<main data-job><div>${prefix} 働き方 ハイブリッドワークスタイル 週2出社必須</div></main>`,
+      { maxFragmentChars: 80 },
+    );
+    expect(fragments.some((item) => item.text.includes("週2出社必須"))).toBe(
+      true,
+    );
   });
 
   it("drops duplicates, tiny labels and fragments with contact data or secrets", () => {

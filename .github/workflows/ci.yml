@@ -150,6 +150,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared packages
+        run: pnpm --filter @job-match/contracts build && pnpm --filter @job-match/domain build
+
       - name: Lint Crawler
         run: pnpm exec oxlint apps/crawler/src apps/crawler/tests
 

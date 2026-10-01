@@ -1,0 +1,2 @@
+# Pinned: the adapter checks this exact version and its DuckDuckGo engine.
+ddgs==9.16.0

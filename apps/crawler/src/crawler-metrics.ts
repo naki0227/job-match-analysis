@@ -9,6 +9,21 @@ export type JevCallOutcome = "success" | "transient_error" | "provider_error";
 export type JobOutcome =
   "completed" | "retry_pending" | "failed" | "lease_lost" | "error";
 
+/** One web discovery (ADR-047): counts and bounded reasons only. */
+export type DiscoveryEvent = {
+  queries: number;
+  searchFailures: Partial<
+    Record<"timeout" | "blocked" | "unavailable", number>
+  >;
+  searchResults: number;
+  fetched: number;
+  listingsExpanded: number;
+  verified: number;
+  rejected: Partial<Record<string, number>>;
+  outcome: "completed" | "retry" | "failed";
+  durationMs: number;
+};
+
 export type CrawlerMetrics = {
   jevCall: (event: {
     candidates: number;
@@ -22,6 +37,7 @@ export type CrawlerMetrics = {
   jevBudgetMode: (mode: "finite" | "unlimited") => void;
   /** One claimed analysis job, from claim to its final state. */
   analysisJob: (event: { outcome: JobOutcome; durationMs: number }) => void;
+  discovery: (event: DiscoveryEvent) => void;
 };
 
 export const noopCrawlerMetrics: CrawlerMetrics = {
@@ -29,6 +45,7 @@ export const noopCrawlerMetrics: CrawlerMetrics = {
   jevBudgetExhausted: () => {},
   jevBudgetMode: () => {},
   analysisJob: () => {},
+  discovery: () => {},
 };
 
 /** Telemetry failures must never stop evaluation. */
@@ -47,5 +64,6 @@ export function safeCrawlerMetrics(inner: CrawlerMetrics): CrawlerMetrics {
     jevBudgetExhausted: guard(inner.jevBudgetExhausted),
     jevBudgetMode: guard(inner.jevBudgetMode),
     analysisJob: guard(inner.analysisJob),
+    discovery: guard(inner.discovery),
   };
 }

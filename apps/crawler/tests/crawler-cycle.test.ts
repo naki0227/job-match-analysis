@@ -94,6 +94,7 @@ describe("crawler cycle", () => {
     expect(result).toEqual({
       clearedSourceTexts: 0,
       analysis: { status: "idle" },
+      discovery: "idle",
     });
   });
 });

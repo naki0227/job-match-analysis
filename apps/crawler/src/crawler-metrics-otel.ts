@@ -31,6 +31,7 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     unit: "s",
     description: "Analysis job processing time by final outcome",
   });
+  const discovery = createDiscoveryInstruments(meter);
   return {
     jevCall: ({
       candidates: count,
@@ -55,5 +56,38 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     },
     analysisJob: ({ outcome, durationMs }) =>
       jobDuration.record(durationMs / 1_000, { outcome }),
+    discovery,
+  };
+}
+
+function createDiscoveryInstruments(
+  meter: ReturnType<typeof metrics.getMeter>,
+): CrawlerMetrics["discovery"] {
+  const counter = (name: string, description: string) =>
+    meter.createCounter(`job_match.discovery.${name}`, { description });
+  const runs = counter("runs", "Web discoveries by outcome");
+  const searches = counter("searches", "External search calls");
+  const failures = counter("search_failures", "Failed searches by kind");
+  const results = counter("search_results", "Search results (leads)");
+  const fetched = counter("fetched", "Pages fetched while verifying");
+  const listings = counter("listings_expanded", "Listings followed one hop");
+  const verified = counter("verified", "Verified job postings");
+  const rejected = counter("rejected", "Leads rejected by reason");
+  const duration = meter.createHistogram("job_match.discovery.duration", {
+    unit: "s",
+    description: "Web discovery time",
+  });
+  return (event) => {
+    runs.add(1, { outcome: event.outcome });
+    searches.add(event.queries);
+    for (const [kind, count] of Object.entries(event.searchFailures))
+      failures.add(count ?? 0, { kind });
+    results.add(event.searchResults);
+    fetched.add(event.fetched);
+    listings.add(event.listingsExpanded);
+    verified.add(event.verified);
+    for (const [reason, count] of Object.entries(event.rejected))
+      rejected.add(count ?? 0, { reason });
+    duration.record(event.durationMs / 1_000, { outcome: event.outcome });
   };
 }

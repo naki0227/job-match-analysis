@@ -23,6 +23,10 @@
   white-space: nowrap;
 }
 
+.analysis-scroll-target {
+  scroll-margin-top: 120px;
+}
+
 .analysis-status {
   margin-top: 18px;
 }

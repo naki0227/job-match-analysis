@@ -31,8 +31,8 @@ DuckDuckGoから得たURLやタイトル等は求人の候補としてのみ扱�
 
 '
   ),
-  '2026-10-01 00:00:00+09',
-  '2026-10-01 00:00:00+09'
+  '2026-10-01 00:00:01+09',
+  '2026-10-01 00:00:01+09'
 from public.legal_documents
 where document_type = 'privacy_policy' and version = '1.0';
 

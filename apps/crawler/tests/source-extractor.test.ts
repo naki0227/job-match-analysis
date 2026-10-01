@@ -38,9 +38,25 @@ describe("source document extraction", () => {
       sourceUrlId: "source-id",
       contentHash: document.contentHash,
       fetchedAt: document.fetchedAt,
-      extractorVersion: "html-v1",
+      extractorVersion: "html-v2",
       extractedText: document.extractedText,
     });
+  });
+
+  it("keeps visible ATS labels and values that are rendered outside semantic tags", () => {
+    const document = extractSourceDocument(
+      `<main data-job><p>業務内容です。</p>
+        <div>勤務地 東京都 働き方(出社・リモート) ハイブリッドワークスタイル ・原則、週2出社必須</div>
+        <p>応募条件です。</p></main>`,
+      "https://jobs.example/ats",
+      new Date("2026-09-29T00:00:00Z"),
+    );
+    const texts = document.fragments
+      .filter((item) => item.scope === "job")
+      .map((item) => item.text);
+    expect(texts).toContain("業務内容です。");
+    expect(texts).toContain("応募条件です。");
+    expect(texts.some((text) => text.includes("週2出社必須"))).toBe(true);
   });
 
   it("keeps content hash stable across fetch times and whitespace", () => {

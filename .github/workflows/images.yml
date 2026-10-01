@@ -47,7 +47,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
   # main publishes amd64 (Azure) and arm64 (future OCI) and reports digests;
-  # deployments reference the digest, not a mutable tag.
+  # deployments reference the digest, not a mutable tag. A successful main run
+  # hands that digest to the crawler-first production deploy chain.
   publish:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04

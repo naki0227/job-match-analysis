@@ -6,7 +6,7 @@ import type { ExtractedSourceDocument } from "./source-extractor.js";
  * Part of every evaluator version and source set hash: changing how the
  * context is built must never reuse evaluations made from another context.
  */
-export const CONTEXT_SELECTOR_VERSION = "context-fragments-v1";
+export const CONTEXT_SELECTOR_VERSION = "context-fragments-v2";
 
 export type ContextLimits = {
   /** Most fragments sent to the evaluator for one document. */
@@ -62,10 +62,17 @@ function sentences(text: string): string[] {
   );
 }
 
-/** Whole fragments when short; otherwise sentences cut to the limit. */
+/** Whole fragments when short; otherwise split every sentence without dropping its tail. */
 function pieces(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return [text];
-  return sentences(text).map((sentence) => sentence.slice(0, maxChars).trim());
+  return sentences(text).flatMap((sentence) => {
+    const result: string[] = [];
+    for (let offset = 0; offset < sentence.length; offset += maxChars) {
+      const piece = sentence.slice(offset, offset + maxChars).trim();
+      if (piece) result.push(piece);
+    }
+    return result;
+  });
 }
 
 function assertLimits(limits: ContextLimits): void {

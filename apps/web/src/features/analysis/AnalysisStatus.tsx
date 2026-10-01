@@ -64,7 +64,9 @@ export function AnalysisStatus({ state, onRetry, renderResult }: Props) {
           </h2>
           <Steps running={state.progress === "running"} />
           <p className="sub centered">
-            この画面を開いたまま待つと、完了時に表示が切り替わります。
+            {state.progress === "running"
+              ? "通常は1分程度です。処理に一時的な失敗があれば自動で再試行します。"
+              : "順番が来ると自動で処理を始め、完了時に表示が切り替わります。"}
           </p>
         </div>
       );
@@ -159,7 +161,7 @@ export function AnalysisStatus({ state, onRetry, renderResult }: Props) {
           </div>
           <h2 className="stage-title">解析に時間がかかっています</h2>
           <p className="sub centered">
-            解析は続いている可能性があります。少し時間をおいてから状態を確認してください。
+            2分以上かかっているため待機を止めました。解析は続いている可能性があるので、状態を確認できます。
           </p>
           <div className="actions centered">
             <button

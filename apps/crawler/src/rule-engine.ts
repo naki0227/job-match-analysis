@@ -20,7 +20,9 @@ function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
   }
   if (axisKey === "work_location") {
     const requiredOfficeDays = [
-      ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社\s*必須/gu),
+      ...text.matchAll(
+        /週\s*([0-5])\s*日?\s*(?:の)?\s*出社\s*必須/gu,
+      ),
     ].map((match) => Number(match[1]));
     const officeDays = requiredOfficeDays.length
       ? requiredOfficeDays

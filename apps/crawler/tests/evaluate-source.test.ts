@@ -51,6 +51,38 @@ describe("public source evaluation pipeline", () => {
     });
   });
 
+  it("reads HRMOS-style div conditions and resolves mandatory partial office days", async () => {
+    const document = extractSourceDocument(
+      `<main data-job>
+        <p>配属部署により業務内容は異なります。</p>
+        <div>勤務地 108-0023 東京都港区芝浦3-1-21 働き方(出社・リモート) ハイブリッドワークスタイル ・原則、週2出社必須・週3以上の出社推奨</div>
+        <p>応募条件を満たす方を募集します。</p>
+      </main>`,
+      "https://jobs.example/hrmos",
+      at,
+    );
+    const result = await evaluateSource({
+      sourceUrlId,
+      document,
+      scope: "job",
+      engine: createFakeDecisionEngine(),
+      limits,
+    });
+    expect(result.evaluation.axisValues[0]).toMatchObject({
+      observationStatus: "known",
+      anchorValue: 50,
+      evaluationMethod: "rule",
+    });
+    expect(result.evaluation.jobFacts?.weeklyOfficeDays).toMatchObject({
+      status: "known",
+      value: 2,
+    });
+    expect(result.evaluation.jobFacts?.location).toMatchObject({
+      status: "known",
+      value: ["東京都"],
+    });
+  });
+
   it("does not call Jev when rules resolve every axis or there is no text", async () => {
     const engine = {
       evaluate: vi.fn(async () => {

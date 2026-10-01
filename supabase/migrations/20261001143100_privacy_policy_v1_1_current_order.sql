@@ -16,7 +16,7 @@ begin
 end;
 $$;
 
-do $
+do $$
 declare
   v_updated integer;
 begin
@@ -24,11 +24,12 @@ begin
   set published_at = '2026-10-01 00:00:01+09',
       effective_at = '2026-10-01 00:00:01+09'
   where document_type = 'privacy_policy' and version = '1.1';
+
   get diagnostics v_updated = row_count;
   if v_updated <> 1 then
     raise exception 'privacy_policy v1.1 is missing or duplicated';
   end if;
 end;
-$;
+$$;
 
 commit;

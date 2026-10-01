@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PendingFeature } from "../../components/PendingFeature";
+import { LegalHistory } from "../legal/LegalHistory";
 import { prefectures } from "../career-profile/assessment-catalog";
 import { useCareerProfile } from "../career-profile/useCareerProfile";
 import { DeleteAccountSection } from "./DeleteAccountSection";
@@ -77,10 +78,7 @@ export function PrivacyPane() {
         title="Community Insights・匿名集計への参加"
         reason="参加同意の記録と集計の設計が未確定です（Issue #40）。現在は誰のデータも集計に使っていません。"
       />
-      <PendingFeature
-        title="利用規約・プライバシーポリシーの確認履歴"
-        reason="文書と確認履歴の保存先はありますが、表示・記録のAPIがまだありません（Issue #38）。"
-      />
+      <LegalHistory />
     </>
   );
 }

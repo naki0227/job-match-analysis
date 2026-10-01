@@ -98,3 +98,18 @@ export type {
   JobSearchRequest,
   JobSearchResponse,
 } from "./job-resolver.js";
+
+export {
+  currentLegalDocumentsSchema,
+  legalAcknowledgementStatusSchema,
+  legalDocumentSchema,
+  legalHistoryItemSchema,
+  recordLegalAcknowledgementsSchema,
+} from "./legal.js";
+export type {
+  CurrentLegalDocuments,
+  LegalAcknowledgementStatus,
+  LegalDocument,
+  LegalHistoryItem,
+  RecordLegalAcknowledgements,
+} from "./legal.js";

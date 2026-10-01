@@ -211,3 +211,23 @@ export const sampleProfile: CareerProfileResponse = {
     },
   },
 };
+
+/** Sample legal documents for the dev preview only; production text comes from the database. */
+export const sampleLegalDocuments = {
+  terms: {
+    id: "46100000-0000-4000-8000-000000000001",
+    version: "1.0",
+    bodyMarkdown:
+      "# 利用規約（プレビュー用サンプル）\n\n本番では、データベースに登録された本文を表示します。",
+    publishedAt: "2026-09-25T00:00:00Z",
+    effectiveAt: "2026-10-01T00:00:00Z",
+  },
+  privacyPolicy: {
+    id: "46100000-0000-4000-8000-000000000002",
+    version: "1.0",
+    bodyMarkdown:
+      "# プライバシーポリシー（プレビュー用サンプル）\n\n本番では、データベースに登録された本文を表示します。",
+    publishedAt: "2026-09-25T00:00:00Z",
+    effectiveAt: "2026-10-01T00:00:00Z",
+  },
+};

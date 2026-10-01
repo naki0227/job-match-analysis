@@ -38,6 +38,9 @@ export function literal(value: unknown): string {
   return `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
 }
 
+/** Functions returning void cannot be wrapped in row_to_json/to_json. */
+const voidRpcs = new Set(["record_legal_acknowledgements"]);
+
 const scalarRpcs = new Set([
   "read_evaluation_for_match",
   "read_match_result",
@@ -53,6 +56,10 @@ export async function rpc(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const list = Object.values(args).map(literal).join(", ");
+  if (voidRpcs.has(name)) {
+    await psql(`set role service_role; select public.${name}(${list})`);
+    return null;
+  }
   const text = scalarRpcs.has(name)
     ? await psql(
         `set role service_role; select to_json(public.${name}(${list}))::text`,

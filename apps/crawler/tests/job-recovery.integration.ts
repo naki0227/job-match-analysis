@@ -105,6 +105,12 @@ const store: AnalysisJobStore = {
         '${uuid(id)}', '${uuid(token)}')`)) === "t"
     );
   },
+  async requeue(id, token) {
+    return (
+      (await query(`select public.requeue_analysis_job(
+        '${uuid(id)}', '${uuid(token)}')`)) === "t"
+    );
+  },
   async complete(id, token, result) {
     return query(`select public.commit_analysis_evaluation_v2(
       '${uuid(id)}', '${uuid(token)}', '${uuid(result.targetId)}',

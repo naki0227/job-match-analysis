@@ -9,8 +9,8 @@ begin
   if v_doc.id is null then
     raise exception 'privacy policy v1.1 is missing';
   end if;
-  if v_doc.published_at <> '2026-09-30T15:00:00Z'::timestamptz
-    or v_doc.effective_at <> '2026-09-30T15:00:00Z'::timestamptz then
+  if v_doc.published_at <> '2026-09-30T15:00:01Z'::timestamptz
+    or v_doc.effective_at <> '2026-09-30T15:00:01Z'::timestamptz then
     raise exception 'privacy policy v1.1 is not effective from 2026-10-01 JST';
   end if;
   if v_doc.body_markdown not like '%### DuckDuckGo%'

@@ -158,7 +158,10 @@ describe("Supabase job store adapter", () => {
           ],
           error: null,
         };
-      if (name === "renew_analysis_job_lease" || name === "requeue_analysis_job")
+      if (
+        name === "renew_analysis_job_lease" ||
+        name === "requeue_analysis_job"
+      )
         return { data: true, error: null };
       return { data: evaluationId, error: null };
     });

@@ -60,6 +60,23 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Resolve crawler subscription
+        run: |
+          crawler_subscription=$(az containerapp show \
+            --name job-match-api \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query "properties.template.containers[0].env[?name=='AZURE_SUBSCRIPTION_ID'].value | [0]" \
+            -o tsv)
+          if [ -z "$crawler_subscription" ]; then
+            echo "API does not expose the crawler subscription configuration" >&2
+            exit 1
+          fi
+          az account set --subscription "$crawler_subscription"
+          az containerapp job show \
+            --name "$AZURE_CONTAINER_APP_JOB" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --only-show-errors > /dev/null
+
       - name: Deploy crawler and enable DDGS discovery
         env:
           DIGEST: ${{ steps.digest.outputs.digest }}

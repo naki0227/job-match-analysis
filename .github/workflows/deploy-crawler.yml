@@ -1,0 +1,107 @@
+name: Deploy Crawler
+
+on:
+  workflow_run:
+    workflows: [Images]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Existing job-match-crawler digest to deploy or roll back to (sha256:...)"
+        required: true
+
+concurrency:
+  group: deploy-crawler-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/job-match-crawler
+  AZURE_RESOURCE_GROUP: job-match-prod
+  AZURE_CONTAINER_APP_JOB: job-match-crawler
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Resolve image digest
+        id: digest
+        env:
+          INPUT_DIGEST: ${{ inputs.digest }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -n "$INPUT_DIGEST" ]; then
+            digest="$INPUT_DIGEST"
+          else
+            digest=$(docker buildx imagetools inspect "${IMAGE}:sha-${HEAD_SHA}" \
+              --format '{{json .Manifest}}' | jq -r .digest)
+          fi
+          if ! printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "Invalid image digest" >&2
+            exit 1
+          fi
+          docker buildx imagetools inspect "${IMAGE}@${digest}" > /dev/null
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy crawler and enable DDGS discovery
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: |
+          az containerapp job update \
+            --name "$AZURE_CONTAINER_APP_JOB" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --image "${IMAGE}@${DIGEST}" \
+            --set-env-vars \
+              CRAWLER_LEASE_SECONDS=120 \
+              CRAWLER_MAX_ATTEMPTS=2 \
+              CRAWLER_DRAIN_MAX_JOBS=10 \
+              CRAWLER_JEV_MAX_FRAGMENTS=60 \
+              CRAWLER_JEV_MAX_CONTEXT_CHARS=12000 \
+              CRAWLER_MAX_EXCERPT_CHARS=200 \
+              CRAWLER_MAX_EVIDENCE_PER_AXIS=3 \
+              CRAWLER_WEB_SEARCH_PROVIDER=ddgs \
+              CRAWLER_DDGS_REGION=jp-jp \
+              CRAWLER_DDGS_TIMEOUT_MS=10000 \
+              CRAWLER_DISCOVERY_MAX_QUERIES=2 \
+              CRAWLER_DISCOVERY_RESULTS_PER_QUERY=10 \
+              CRAWLER_DISCOVERY_MAX_FETCHES=12 \
+              CRAWLER_DISCOVERY_MAX_LINKS_PER_LISTING=10 \
+              CRAWLER_DISCOVERY_MAX_RESULTS=20
+
+      - name: Verify deployed digest
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: |
+          deployed=$(az containerapp job show \
+            --name "$AZURE_CONTAINER_APP_JOB" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query 'properties.template.containers[0].image' -o tsv)
+          if [ "$deployed" != "${IMAGE}@${DIGEST}" ]; then
+            echo "Container Apps Job runs $deployed" >&2
+            exit 1
+          fi
+          echo "### Deployed ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Kick one drain run
+        run: |
+          az containerapp job start \
+            --name "$AZURE_CONTAINER_APP_JOB" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --no-wait

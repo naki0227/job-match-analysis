@@ -1,14 +1,14 @@
 import type {
   AxisDecision,
+  ContextFragment,
   DecisionEngineInput,
-  EvidenceCandidate,
 } from "./decision-engine.js";
 
-export const RULE_ENGINE_VERSION = "public-rules-v1";
+export const RULE_ENGINE_VERSION = "public-rules-v2";
 
-function valuesFor(candidate: EvidenceCandidate): (0 | 50 | 100)[] {
-  const text = candidate.excerpt;
-  if (candidate.axisKey === "schedule_flexibility") {
+/** Explicit wording that decides an axis without the evaluator. */
+function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
+  if (axisKey === "schedule_flexibility") {
     const fixed = /フレックスなし|固定勤務時間|勤務時間固定/u.test(text);
     const full = /フルフレックス|コアタイムなし/u.test(text);
     const partial = /フレックスタイム制|コアタイムあり/u.test(text);
@@ -18,7 +18,7 @@ function valuesFor(candidate: EvidenceCandidate): (0 | 50 | 100)[] {
       ...(partial && !full ? [50 as const] : []),
     ];
   }
-  if (candidate.axisKey === "work_location") {
+  if (axisKey === "work_location") {
     const onsite = /出社必須|原則出社/u.test(text);
     const remote =
       /フルリモート(?:可|可能|勤務|制度)|完全在宅(?:可|可能|勤務)|出社不要/u.test(
@@ -38,17 +38,25 @@ function valuesFor(candidate: EvidenceCandidate): (0 | 50 | 100)[] {
   return [];
 }
 
-export function ruleDecisions(input: DecisionEngineInput): AxisDecision[] {
+/**
+ * Decides the axes whose explicit wording is unambiguous. Every matching
+ * fragment becomes evidence; disagreeing fragments make the axis conflicting.
+ */
+export function ruleDecisions(
+  input: Pick<DecisionEngineInput, "rubrics"> & {
+    fragments: readonly ContextFragment[];
+  },
+): AxisDecision[] {
   return input.rubrics.flatMap((rubric): AxisDecision[] => {
-    const matching = input.candidates.filter(
-      (candidate) => candidate.axisKey === rubric.axisKey,
-    );
-    const classified = matching.flatMap((candidate) =>
-      valuesFor(candidate).map((value) => ({ candidate, value })),
+    const classified = input.fragments.flatMap((fragment) =>
+      valuesFor(rubric.axisKey, fragment.text).map((value) => ({
+        fragment,
+        value,
+      })),
     );
     if (classified.length === 0) return [];
     const evidenceIds = [
-      ...new Set(classified.map(({ candidate }) => candidate.id)),
+      ...new Set(classified.map(({ fragment }) => fragment.id)),
     ];
     const anchors = new Set(classified.map(({ value }) => value));
     return anchors.size === 1

@@ -1,9 +1,13 @@
-export type EvidenceCandidate = {
+/**
+ * A piece of the public source text that the evaluator may read and cite.
+ * `text` is an exact substring of the extracted document, so stored evidence
+ * can always be found again at `locator`.
+ */
+export type ContextFragment = {
   id: string;
-  axisKey: string;
   scope: "company" | "job";
   documentIndex: number;
-  excerpt: string;
+  text: string;
   locator: string;
 };
 
@@ -17,7 +21,7 @@ export type DecisionEngineInput = {
   rubricVersion: string;
   scope: "company" | "job";
   rubrics: readonly AxisRubric[];
-  candidates: readonly EvidenceCandidate[];
+  fragments: readonly ContextFragment[];
 };
 
 export type AxisDecision =
@@ -75,12 +79,11 @@ export function validateDecisionInput(input: DecisionEngineInput): void {
     input.rubrics.length === 0 ||
     new Set(input.rubrics.map((item) => item.axisKey)).size !==
       input.rubrics.length ||
-    new Set(input.candidates.map((item) => item.id)).size !==
-      input.candidates.length
+    new Set(input.fragments.map((item) => item.id)).size !==
+      input.fragments.length
   ) {
     throw new DecisionEngineInputError();
   }
-  const axes = new Set(input.rubrics.map((item) => item.axisKey));
   for (const rubric of input.rubrics) {
     if (
       !rubric.axisKey.trim() ||
@@ -91,15 +94,14 @@ export function validateDecisionInput(input: DecisionEngineInput): void {
       throw new DecisionEngineInputError();
     }
   }
-  for (const candidate of input.candidates) {
+  for (const fragment of input.fragments) {
     if (
-      !candidate.id.trim() ||
-      !axes.has(candidate.axisKey) ||
-      candidate.scope !== input.scope ||
-      !Number.isInteger(candidate.documentIndex) ||
-      candidate.documentIndex < 0 ||
-      !candidate.excerpt.trim() ||
-      !candidate.locator.trim()
+      !fragment.id.trim() ||
+      fragment.scope !== input.scope ||
+      !Number.isInteger(fragment.documentIndex) ||
+      fragment.documentIndex < 0 ||
+      !fragment.text.trim() ||
+      !fragment.locator.trim()
     ) {
       throw new DecisionEngineInputError();
     }
@@ -113,46 +115,4 @@ export function unknownDecisions(input: DecisionEngineInput): AxisDecision[] {
     anchorValue: null,
     evidenceIds: [],
   }));
-}
-
-export function decisionsFromEvidence(
-  input: DecisionEngineInput,
-  accepted: ReadonlyMap<string, 0 | 50 | 100>,
-): AxisDecision[] {
-  return input.rubrics.map((rubric): AxisDecision => {
-    const evidence = input.candidates.filter(
-      (candidate) =>
-        candidate.axisKey === rubric.axisKey && accepted.has(candidate.id),
-    );
-    const values = new Set(
-      evidence.flatMap((candidate) => {
-        const value = accepted.get(candidate.id);
-        return value === undefined ? [] : [value];
-      }),
-    );
-    if (values.size === 0) {
-      return {
-        axisKey: rubric.axisKey,
-        status: "unknown",
-        anchorValue: null,
-        evidenceIds: [],
-      };
-    }
-    if (values.size > 1) {
-      return {
-        axisKey: rubric.axisKey,
-        status: "conflicting",
-        anchorValue: null,
-        evidenceIds: evidence.map((candidate) => candidate.id),
-      };
-    }
-    const value = values.values().next().value;
-    if (value === undefined) throw new DecisionEngineProviderError();
-    return {
-      axisKey: rubric.axisKey,
-      status: "known",
-      anchorValue: value,
-      evidenceIds: evidence.map((candidate) => candidate.id),
-    };
-  });
 }

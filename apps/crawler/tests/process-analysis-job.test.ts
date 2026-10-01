@@ -52,8 +52,11 @@ describe("analysis job processor", () => {
       }),
       resolveJobTarget,
       engine: createFakeDecisionEngine(),
-      maxCandidates: 8,
-      maxExcerptChars: 120,
+      limits: {
+        maxFragments: 40,
+        maxContextChars: 8_000,
+        maxFragmentChars: 200,
+      },
       resolve: async () => ["8.8.8.8"],
       send,
     });
@@ -81,8 +84,11 @@ describe("analysis job processor", () => {
         }),
         resolveJobTarget: async () => targetId,
         engine,
-        maxCandidates: 8,
-        maxExcerptChars: 120,
+        limits: {
+          maxFragments: 40,
+          maxContextChars: 8_000,
+          maxFragmentChars: 200,
+        },
         resolve: async () => ["8.8.8.8"],
         send,
       }),
@@ -110,8 +116,11 @@ describe("analysis job processor", () => {
         scope: "job",
       }),
       engine: createFakeDecisionEngine(),
-      maxCandidates: 16,
-      maxExcerptChars: 120,
+      limits: {
+        maxFragments: 40,
+        maxContextChars: 8_000,
+        maxFragmentChars: 200,
+      },
       resolve: async () => ["8.8.8.8"],
       send,
       now: () => new Date("2026-09-30T00:00:00Z"),
@@ -136,8 +145,11 @@ describe("analysis job processor", () => {
     const base = {
       siteAllowed: async () => false,
       engine: createFakeDecisionEngine(),
-      maxCandidates: 8,
-      maxExcerptChars: 120,
+      limits: {
+        maxFragments: 40,
+        maxContextChars: 8_000,
+        maxFragmentChars: 200,
+      },
       send,
     };
     await expect(
@@ -179,8 +191,11 @@ describe("analysis job processor", () => {
           }),
           siteAllowed: async () => true,
           engine,
-          maxCandidates: 8,
-          maxExcerptChars: 120,
+          limits: {
+            maxFragments: 40,
+            maxContextChars: 8_000,
+            maxFragmentChars: 200,
+          },
           resolve: async () => ["8.8.8.8"],
           send,
         },

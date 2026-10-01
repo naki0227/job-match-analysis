@@ -25,7 +25,7 @@ it("keeps all eight published axes in one versioned rubric", () => {
       rubricVersion: PUBLIC_RUBRIC_VERSION,
       scope: "job",
       rubrics: PUBLIC_AXIS_RUBRICS,
-      candidates: [],
+      fragments: [],
     }),
   ).not.toThrow();
 });

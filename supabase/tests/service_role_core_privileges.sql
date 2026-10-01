@@ -29,7 +29,10 @@ begin
     ('evaluation_targets', '{SELECT,INSERT,UPDATE}'),
     ('evaluations', '{SELECT,INSERT}'),
     ('jev_daily_usage', '{SELECT,INSERT,UPDATE}'),
+    ('job_discovery_requests', '{SELECT,INSERT,UPDATE,DELETE}'),
+    ('job_discovery_results', '{SELECT,INSERT}'),
     ('job_postings', '{SELECT,INSERT}'),
+    ('job_resolver_events', '{SELECT,INSERT,DELETE}'),
     ('legal_documents', '{SELECT,INSERT}'),
     ('match_axis_results', '{SELECT,INSERT}'),
     ('match_constraint_results', '{SELECT,INSERT}'),
@@ -58,7 +61,8 @@ begin
   from expected_service_privileges e
   cross join (values ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'),
     ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')) p(priv)
-  where has_table_privilege('service_role', 'public.' || e.table_name, p.priv)
+  where to_regclass('public.' || e.table_name) is not null
+    and has_table_privilege('service_role', 'public.' || e.table_name, p.priv)
     is distinct from (p.priv = any(e.privileges));
   if v_violation is not null then
     raise exception 'service_role privileges differ: %', v_violation;

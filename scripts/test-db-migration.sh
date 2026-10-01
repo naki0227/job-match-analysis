@@ -192,6 +192,9 @@ psql_cmd < supabase/migrations/20260930120544_service_role_core_privileges.sql
 psql_cmd < supabase/tests/service_role_core_privileges.sql
 psql_cmd < supabase/migrations/20260930161211_job_resolver_known_postings.sql
 psql_cmd < supabase/tests/job_resolver_known_postings.sql
+psql_cmd < supabase/migrations/20261001020540_job_discovery.sql
+psql_cmd < supabase/tests/job_discovery.sql
+psql_cmd < supabase/tests/service_role_core_privileges.sql
 psql_cmd < supabase/tests/issue29_security.sql
 pnpm --filter @job-match/contracts build
 pnpm --filter @job-match/domain build
@@ -201,6 +204,8 @@ JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-match-share-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-account-deletion-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-job-resolver-db.ts
+psql_cmd < supabase/rollback/20261001020540_job_discovery.sql
+psql_cmd < supabase/tests/job_discovery_rollback.sql
 psql_cmd < supabase/rollback/20260930161211_job_resolver_known_postings.sql
 psql_cmd < supabase/tests/job_resolver_known_postings_rollback.sql
 psql_cmd < supabase/rollback/20260930120544_service_role_core_privileges.sql

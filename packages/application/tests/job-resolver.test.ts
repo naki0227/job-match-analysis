@@ -104,3 +104,110 @@ describe("resolveJob", () => {
     });
   });
 });
+
+describe("web discovery", () => {
+  const web = (title: string, n: number): JobCandidate => ({
+    ...posting(title, `https://careers.sample.example/jobs/${n}`),
+    source: "official",
+  });
+
+  it("does not search the web when known postings answer the role", async () => {
+    const discovery = vi.fn();
+    const result = await resolveJob(query, {
+      sources: [
+        source("known", [posting("法人営業", "https://ats.example/1")]),
+      ],
+      discovery,
+      maxCandidates: 20,
+    });
+    expect(result.status).toBe("resolved");
+    expect(discovery).not.toHaveBeenCalled();
+  });
+
+  it("starts a discovery when known postings miss, and reports it as searching", async () => {
+    const result = await resolveJob(query, {
+      sources: [source("known", [])],
+      discovery: async () => ({ status: "pending", discoveryId: "d1" }),
+      maxCandidates: 20,
+    });
+    expect(result).toEqual({
+      status: "searching",
+      discoveryId: "d1",
+      failedSources: [],
+      selectorUsed: false,
+    });
+  });
+
+  it("uses finished discovery results like known ones", async () => {
+    const result = await resolveJob(query, {
+      sources: [source("known", [])],
+      discovery: async () => ({
+        status: "ready",
+        cached: true,
+        candidates: [web("法人営業", 1), web("採用担当", 2)],
+      }),
+      maxCandidates: 20,
+    });
+    expect(result).toMatchObject({
+      status: "resolved",
+      candidate: { url: "https://careers.sample.example/jobs/1" },
+    });
+  });
+
+  it("falls back to known postings when discovery is unavailable or throws", async () => {
+    for (const discovery of [
+      async () => ({
+        status: "unavailable" as const,
+        reason: "rate_limited" as const,
+      }),
+      async () => Promise.reject(new Error("provider blocked")),
+    ]) {
+      const result = await resolveJob(query, {
+        sources: [
+          source("known", [
+            posting("カスタマーサクセス", "https://ats.example/1"),
+          ]),
+        ],
+        discovery,
+        maxCandidates: 20,
+      });
+      expect(result).toMatchObject({
+        status: "candidates",
+        failedSources: ["discovery"],
+      });
+    }
+  });
+
+  it("lists every found posting for a company-only search and never asks the selector", async () => {
+    const selector = vi.fn();
+    const result = await resolveJob(
+      { company: "サンプル" },
+      {
+        sources: [
+          source("known", [posting("法人営業", "https://ats.example/1")]),
+        ],
+        discovery: async () => ({
+          status: "ready",
+          cached: false,
+          candidates: [web("Backend Engineer", 1), web("Product Manager", 2)],
+        }),
+        selector,
+        maxCandidates: 20,
+        listingLimit: 2,
+        knownListingMinimum: 5,
+      },
+    );
+    expect(selector).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: "candidates",
+      reason: "company_listing",
+      hasMore: true,
+    });
+    if (result.status === "candidates") {
+      expect(result.candidates.map((item) => item.source)).toEqual([
+        "official",
+        "official",
+      ]);
+    }
+  });
+});

@@ -33,6 +33,8 @@ export async function psql(statement: string): Promise<string> {
 export function literal(value: unknown): string {
   if (value === null || value === undefined) return "null";
   if (typeof value === "string") return `'${value.replaceAll("'", "''")}'`;
+  if (typeof value === "number" && Number.isSafeInteger(value))
+    return String(value);
   return `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
 }
 

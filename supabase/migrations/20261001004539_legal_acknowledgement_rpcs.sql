@@ -5,8 +5,9 @@
 begin;
 
 -- The latest version of each document type that is both published and in
--- effect. A version published or effective in the future is not current.
-create function public.current_legal_documents()
+-- effect at p_at. A version published or effective later is not current.
+-- Taking the time as a parameter lets tests check a release date exactly.
+create function public.legal_documents_current_at(p_at timestamptz)
 returns table (
   id uuid,
   document_type text,
@@ -24,8 +25,25 @@ as $$
     d.id, d.document_type, d.version, d.body_markdown,
     d.published_at, d.effective_at
   from public.legal_documents d
-  where d.published_at <= now() and d.effective_at <= now()
+  where d.published_at <= p_at and d.effective_at <= p_at
   order by d.document_type, d.effective_at desc, d.published_at desc, d.id desc;
+$$;
+
+create function public.current_legal_documents()
+returns table (
+  id uuid,
+  document_type text,
+  version text,
+  body_markdown text,
+  published_at timestamptz,
+  effective_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from public.legal_documents_current_at(now());
 $$;
 
 -- For each current document: whether this user recorded the required action
@@ -111,6 +129,8 @@ as $$
   limit 100;
 $$;
 
+revoke all on function public.legal_documents_current_at(timestamptz)
+  from public, anon, authenticated;
 revoke all on function public.current_legal_documents()
   from public, anon, authenticated;
 revoke all on function public.legal_acknowledgement_status(uuid)
@@ -119,6 +139,8 @@ revoke all on function public.record_legal_acknowledgements(uuid, uuid, uuid)
   from public, anon, authenticated;
 revoke all on function public.list_legal_acknowledgements(uuid)
   from public, anon, authenticated;
+grant execute on function public.legal_documents_current_at(timestamptz)
+  to service_role;
 grant execute on function public.current_legal_documents() to service_role;
 grant execute on function public.legal_acknowledgement_status(uuid) to service_role;
 grant execute on function public.record_legal_acknowledgements(uuid, uuid, uuid)

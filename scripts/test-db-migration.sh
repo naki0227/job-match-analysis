@@ -192,6 +192,19 @@ psql_cmd < supabase/migrations/20260930120544_service_role_core_privileges.sql
 psql_cmd < supabase/tests/service_role_core_privileges.sql
 psql_cmd < supabase/migrations/20261001004539_legal_acknowledgement_rpcs.sql
 psql_cmd < supabase/tests/legal_acknowledgement_rpcs.sql
+psql_cmd < supabase/migrations/20261001014615_legal_documents_v1_0.sql
+psql_cmd < supabase/tests/legal_documents_v1_0.sql
+legal_rerun_log=$(mktemp)
+if psql_cmd < supabase/migrations/20261001014615_legal_documents_v1_0.sql >"$legal_rerun_log" 2>&1; then
+  printf '%s\n' 'Re-applying the v1.0 legal documents did not fail' >&2
+  exit 1
+fi
+if ! grep -Fq 'legal_documents v1.0 already exists' "$legal_rerun_log"; then
+  cat "$legal_rerun_log" >&2
+  printf '%s\n' 'Re-applying the v1.0 legal documents failed for an unexpected reason' >&2
+  exit 1
+fi
+rm -f "$legal_rerun_log"
 psql_cmd < supabase/tests/issue29_security.sql
 pnpm --filter @job-match/contracts build
 pnpm --filter @job-match/domain build
@@ -201,6 +214,8 @@ JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-match-share-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-account-deletion-db.ts
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-legal-db.ts
+psql_cmd < supabase/rollback/20261001014615_legal_documents_v1_0.sql
+psql_cmd < supabase/tests/legal_documents_v1_0_rollback.sql
 psql_cmd < supabase/rollback/20261001004539_legal_acknowledgement_rpcs.sql
 psql_cmd < supabase/tests/legal_acknowledgement_rpcs_rollback.sql
 psql_cmd < supabase/rollback/20260930120544_service_role_core_privileges.sql

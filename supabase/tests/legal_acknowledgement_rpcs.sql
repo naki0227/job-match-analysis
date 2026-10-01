@@ -132,6 +132,7 @@ declare
   v_fn text;
 begin
   foreach v_fn in array array[
+    'public.legal_documents_current_at(timestamptz)',
     'public.current_legal_documents()',
     'public.legal_acknowledgement_status(uuid)',
     'public.record_legal_acknowledgements(uuid,uuid,uuid)',

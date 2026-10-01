@@ -19,83 +19,49 @@ const input: DecisionEngineInput = {
       anchors: { 0: "fixed", 50: "partial", 100: "own policy" },
     },
   ],
-  candidates: [
+  fragments: [
     {
-      id: "c1",
-      axisKey: "work_location",
+      id: "f1",
       scope: "job",
       documentIndex: 0,
-      excerpt: "Office only",
+      text: "Office only",
       locator: "main:p1",
     },
     {
-      id: "c2",
-      axisKey: "work_location",
+      id: "f2",
       scope: "job",
       documentIndex: 0,
-      excerpt: "Remote allowed",
+      text: "Remote allowed",
       locator: "main:p2",
     },
   ],
 };
 
 describe("DecisionEngine contract and fake", () => {
-  it("returns unknown without evidence and preserves version fields", async () => {
-    const result = await createFakeDecisionEngine().evaluate({
-      ...input,
-      candidates: [],
-    });
+  it("leaves every axis unknown by default and preserves version fields", async () => {
+    const result = await createFakeDecisionEngine().evaluate(input);
     expect(result).toMatchObject({
       axisCatalogVersion: 1,
       rubricVersion: "fixture-rubric-v1",
-      evaluatorVersion: "fake-choice-v1",
+      evaluatorVersion: "fake-context-v1",
       modelVersion: "fake",
     });
-    expect(result.decisions).toEqual([
-      {
-        axisKey: "work_location",
-        status: "unknown",
-        anchorValue: null,
-        evidenceIds: [],
-      },
-      {
-        axisKey: "autonomy",
-        status: "unknown",
-        anchorValue: null,
-        evidenceIds: [],
-      },
+    expect(result.decisions.map((item) => item.status)).toEqual([
+      "unknown",
+      "unknown",
     ]);
   });
 
-  it("keeps conflicting anchors separate from unknown axes", async () => {
-    const result = await createFakeDecisionEngine(
-      new Map([
-        ["c1", 0],
-        ["c2", 100],
-      ]),
-    ).evaluate(input);
-    expect(result.decisions[0]).toEqual({
-      axisKey: "work_location",
-      status: "conflicting",
-      anchorValue: null,
-      evidenceIds: ["c1", "c2"],
-    });
-    expect(result.decisions[1]?.status).toBe("unknown");
-  });
-
-  it("rejects evidence for another scope or duplicate IDs", async () => {
+  it("rejects fragments for another scope, duplicate IDs and empty text", async () => {
     const engine = createFakeDecisionEngine();
-    await expect(
-      engine.evaluate({
-        ...input,
-        candidates: [{ ...input.candidates[0]!, scope: "company" }],
-      }),
-    ).rejects.toBeInstanceOf(DecisionEngineInputError);
-    await expect(
-      engine.evaluate({
-        ...input,
-        candidates: [input.candidates[0]!, input.candidates[0]!],
-      }),
-    ).rejects.toBeInstanceOf(DecisionEngineInputError);
+    for (const fragments of [
+      [{ ...input.fragments[0]!, scope: "company" as const }],
+      [input.fragments[0]!, input.fragments[0]!],
+      [{ ...input.fragments[0]!, text: " " }],
+    ]) {
+      await expect(
+        engine.evaluate({ ...input, fragments }),
+      ).rejects.toBeInstanceOf(DecisionEngineInputError);
+    }
   });
 });

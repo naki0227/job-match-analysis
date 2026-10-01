@@ -116,7 +116,12 @@ assert.deepEqual(Object.keys(projection).sort(), [
   "evaluatedAt",
   "jobTitle",
 ]);
-assert.doesNotMatch(stored, /83|61|preference|importance|constraint/);
+// The owner's own values (83, 61) must not be copied into the projection.
+// evaluatedAt is excluded: a timestamp can contain those digits by chance.
+assert.doesNotMatch(
+  JSON.stringify({ ...projection, evaluatedAt: null }),
+  /83|61|preference|importance|constraint/,
+);
 
 const publicPath = `/v1/public/shares/${first.token}`;
 const visible = await app.request(publicPath);

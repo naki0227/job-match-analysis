@@ -39,7 +39,7 @@ export function buildEvaluationPayload(args: {
   ) {
     throw new EvaluationPayloadError();
   }
-  const candidates = new Map(input.candidates.map((item) => [item.id, item]));
+  const fragments = new Map(input.fragments.map((item) => [item.id, item]));
   const decisions = new Map(
     output.decisions.map((item) => [item.axisKey, item]),
   );
@@ -65,22 +65,21 @@ export function buildEvaluationPayload(args: {
       anchorValue: decision.anchorValue,
       evaluationMethod: args.methods?.get(rubric.axisKey) ?? "jev",
     });
+    // One axis may cite several fragments; each is stored once.
     for (const id of new Set(decision.evidenceIds)) {
-      const candidate = candidates.get(id);
-      if (!candidate || candidate.axisKey !== rubric.axisKey) {
-        throw new EvaluationPayloadError();
-      }
+      const fragment = fragments.get(id);
+      if (!fragment) throw new EvaluationPayloadError();
       evidence.push({
-        documentIndex: candidate.documentIndex,
+        documentIndex: fragment.documentIndex,
         axisKey: rubric.axisKey,
-        excerpt: candidate.excerpt,
-        locator: candidate.locator,
+        excerpt: fragment.text,
+        locator: fragment.locator,
       });
     }
   }
   const hash = sourceSetHash({
     documents,
-    candidates: input.candidates,
+    fragments: input.fragments,
     scope: input.scope,
   });
   return {

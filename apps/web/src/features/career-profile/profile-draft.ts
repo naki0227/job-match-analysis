@@ -25,15 +25,6 @@ export const importanceLevels = [
   { value: 100, label: "とても重視" },
 ] as const;
 
-export const suggestedRoles = [
-  "Backend Engineer",
-  "Frontend Engineer",
-  "Mobile Engineer",
-  "Product Manager",
-  "Designer",
-  "Sales",
-] as const;
-
 export function emptyDraft(): ProfileDraft {
   return {
     targetRoles: [],

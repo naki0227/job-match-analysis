@@ -17,8 +17,7 @@ export type AzureJobConfig = {
   execution: {
     image: string;
     environment: Array<
-      | { name: string; value: string }
-      | { name: string; secretRef: string }
+      { name: string; value: string } | { name: string; secretRef: string }
     >;
   } | null;
 };

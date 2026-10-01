@@ -184,10 +184,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check formatting
-        run: |
-          pnpm exec prettier --write apps/api/src/worker-trigger/azure-container-apps-job.ts
-          git diff -- apps/api/src/worker-trigger/azure-container-apps-job.ts
-          git diff --quiet -- apps/api/src/worker-trigger/azure-container-apps-job.ts
+        run: pnpm format:check
 
   docker:
     runs-on: ubuntu-24.04

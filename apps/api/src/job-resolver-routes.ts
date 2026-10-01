@@ -190,8 +190,12 @@ export function createJobResolverRoutes(
       const resolver = runtime();
       if (!resolver)
         return fail("service_unavailable", "Service unavailable", 503);
-      const query = await resolver.store.readQuery(id.data);
-      const current = query ? await resolver.store.read(id.data) : null;
+      // Authorized by the user's own association with the discovery, not by
+      // knowing its ID. Someone else's discovery looks like a missing one.
+      const query = await resolver.store.readQuery(user.userId, id.data);
+      const current = query
+        ? await resolver.store.read(user.userId, id.data)
+        : null;
       if (!query || !current)
         return fail("not_found", "Discovery not found", 404);
       if (current.status === "queued" || current.status === "running") {

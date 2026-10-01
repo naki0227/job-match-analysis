@@ -9,9 +9,10 @@ import { psql, requireContainer, rpc } from "./db-bridge.js";
 // ADR-045/047: Job Resolver over PostgreSQL with RPCs called as service_role.
 requireContainer();
 const user = "47100000-0000-4000-8000-000000000001";
+const other = "47100000-0000-4000-8000-000000000002";
 await psql(`
-  insert into auth.users(id) values ('${user}');
-  insert into public.profiles(id) values ('${user}');
+  insert into auth.users(id) values ('${user}'), ('${other}');
+  insert into public.profiles(id) values ('${user}'), ('${other}');
   with company as (
     insert into public.companies(name) values ('株式会社リゾルバー結合') returning id
   ), urls as (
@@ -50,35 +51,34 @@ const runtime: ResolverRuntime = {
 };
 const app = createJobResolverRoutes(
   () => ({
-    verifyToken: async () => ({
+    // The bearer token is the user id in this test.
+    verifyToken: async (token) => ({
       status: "ok",
-      user: { id: user, hasGoogleIdentity: true },
+      user: { id: token, hasGoogleIdentity: true },
     }),
     ensureProfile: async () => true,
   }),
   () => runtime,
 );
-const search = async (company: string, roleQuery?: string) =>
+const search = async (company: string, roleQuery?: string, as = user) =>
   jobSearchResponseSchema.parse(
     await (
       await app.request("/v1/job-resolver/search", {
         method: "POST",
         headers: {
-          Authorization: "Bearer t",
+          Authorization: `Bearer ${as}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ company, ...(roleQuery ? { roleQuery } : {}) }),
       })
     ).json(),
   );
-const poll = async (id: string) =>
-  jobSearchResponseSchema.parse(
-    await (
-      await app.request(`/v1/job-resolver/discoveries/${id}`, {
-        headers: { Authorization: "Bearer t" },
-      })
-    ).json(),
-  );
+const pollAs = (id: string, as: string) =>
+  app.request(`/v1/job-resolver/discoveries/${id}`, {
+    headers: { Authorization: `Bearer ${as}` },
+  });
+const poll = async (id: string, as = user) =>
+  jobSearchResponseSchema.parse(await (await pollAs(id, as)).json());
 
 // Known postings answer a role without any discovery.
 const resolved = await search("リゾルバー結合", "採用担当");
@@ -94,6 +94,12 @@ assert.equal(searching.status, "searching");
 const discoveryId =
   searching.status === "searching" ? searching.discoveryId : "";
 assert.equal((await poll(discoveryId)).status, "searching");
+// Another user who only knows the ID cannot see it.
+assert.equal((await pollAs(discoveryId, other)).status, 404);
+// Searching the same query joins the running discovery and grants access.
+const joined = await search("リゾルバー結合", undefined, other);
+assert.equal(joined.status === "searching" && joined.discoveryId, discoveryId);
+assert.equal((await poll(discoveryId, other)).status, "searching");
 
 // The worker side, as the crawler would call it.
 const token = "47100000-0000-4000-8000-0000000000aa";
@@ -127,6 +133,22 @@ assert.equal(
   "1",
 );
 
+// Deleting the account removes only that user's access and events.
+await psql(`delete from auth.users where id = '${user}'`);
+assert.equal(
+  await psql(
+    `select count(*) from public.job_discovery_access where user_id = '${user}'`,
+  ),
+  "0",
+);
+assert.equal(
+  await psql(
+    `select count(*) from public.job_discovery_requests where id = '${discoveryId}'`,
+  ),
+  "1",
+);
+assert.equal((await poll(discoveryId, other)).status, "candidates");
+
 process.stdout.write(
-  "Job Resolver HTTP + PostgreSQL: known first, queued discovery, worker completion, polling and cache reuse passed\n",
+  "Job Resolver HTTP + PostgreSQL: known first, queued discovery, per-user poll access, join, worker completion, cache reuse and account deletion passed\n",
 );

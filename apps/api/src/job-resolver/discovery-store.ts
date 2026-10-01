@@ -99,9 +99,16 @@ export function createDiscoveryStore(rpc: ResolverRpc, now: () => Date) {
     });
   }
 
-  async function read(discoveryId: string): Promise<DiscoveryRead | null> {
+  /** Only a discovery this user started, joined or reused; else null. */
+  async function read(
+    userId: string,
+    discoveryId: string,
+  ): Promise<DiscoveryRead | null> {
     const rows = resultsSchema.parse(
-      await rpc("read_job_discovery", { p_discovery_id: discoveryId }),
+      await rpc("read_job_discovery", {
+        p_user_id: userId,
+        p_discovery_id: discoveryId,
+      }),
     );
     const first = rows[0];
     if (!first) return null;
@@ -125,10 +132,14 @@ export function createDiscoveryStore(rpc: ResolverRpc, now: () => Date) {
   }
 
   async function readQuery(
+    userId: string,
     discoveryId: string,
   ): Promise<JobSearchQuery | null> {
     const row = querySchema.parse(
-      await rpc("read_job_discovery_query", { p_discovery_id: discoveryId }),
+      await rpc("read_job_discovery_query", {
+        p_user_id: userId,
+        p_discovery_id: discoveryId,
+      }),
     )[0];
     if (!row) return null;
     return {
@@ -172,7 +183,7 @@ export function createDiscoveryStore(rpc: ResolverRpc, now: () => Date) {
         if (started.discovery_status === "queued") wake();
         return { status: "pending", discoveryId: started.discovery_id };
       }
-      const finished = await read(started.discovery_id);
+      const finished = await read(userId, started.discovery_id);
       return {
         status: "ready",
         cached: started.cached,

@@ -20,8 +20,11 @@ import { createKnownPostingsSource } from "../src/job-resolver/known-postings-so
 
 const auth = () => ({
   verifyToken: async (token: string) =>
-    token === "ok"
-      ? { status: "ok" as const, user: { id: "u1", hasGoogleIdentity: true } }
+    token === "ok" || token === "ok-b"
+      ? {
+          status: "ok" as const,
+          user: { id: token === "ok" ? "u1" : "u2", hasGoogleIdentity: true },
+        }
       : { status: "invalid" as const },
   ensureProfile: async () => true,
 });
@@ -53,8 +56,10 @@ function fakeRpc(state: {
   discovery?: DiscoveryRow;
   rateLimited?: boolean;
   busy?: boolean;
+  access?: Set<unknown>;
 }) {
   const calls: { name: string; args: Record<string, unknown> }[] = [];
+  const access = (state.access ??= new Set());
   const rpc: ResolverRpc = async (name, args) => {
     calls.push({ name, args });
     if (name === "record_job_resolver_search") {
@@ -65,6 +70,7 @@ function fakeRpc(state: {
       if (state.busy) throw new DiscoveryBusyError();
       const cached = state.discovery?.status === "completed";
       state.discovery ??= { status: "queued", results: [] };
+      access.add(args.p_user_id);
       return [
         {
           discovery_id: discoveryId,
@@ -74,7 +80,7 @@ function fakeRpc(state: {
       ];
     }
     if (name === "read_job_discovery_query") {
-      return state.discovery
+      return state.discovery && access.has(args.p_user_id)
         ? [
             {
               company: "サンプル",
@@ -86,7 +92,7 @@ function fakeRpc(state: {
         : [];
     }
     if (name === "read_job_discovery") {
-      if (!state.discovery) return [];
+      if (!state.discovery || !access.has(args.p_user_id)) return [];
       const base = { discovery_status: state.discovery.status };
       const empty = {
         company_name: null,
@@ -157,9 +163,10 @@ function request(
 const poll = (
   app: ReturnType<typeof createJobResolverRoutes>,
   id = discoveryId,
+  token = "ok",
 ) =>
   app.request(`/v1/job-resolver/discoveries/${id}`, {
-    headers: { Authorization: "Bearer ok" },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
 test("the route needs a Google login, a valid query, a configured resolver and stays within the user's limit", async () => {
@@ -293,7 +300,10 @@ test("a fresh cached discovery is reused immediately, and an unknown id is 404",
 test("unavailable discovery falls back to known postings or not_found", async () => {
   for (const state of [
     { busy: true },
-    { discovery: { status: "failed" as const, results: [] } },
+    {
+      discovery: { status: "failed" as const, results: [] },
+      access: new Set<unknown>(["u1"]),
+    },
   ]) {
     const { runtime } = runtimeWith([posting("カスタマーサクセス", 1)], state);
     const app = createJobResolverRoutes(auth, () => runtime);
@@ -466,4 +476,40 @@ test("resolver configuration is explicit and fails closed", () => {
       JOB_RESOLVER_JEV_TIMEOUT_MS: "8000",
     })?.deps.selector,
   );
+});
+
+test("only users who started, joined or reused a discovery can poll it", async () => {
+  const state: { discovery?: DiscoveryRow; access?: Set<unknown> } = {};
+  const { runtime } = runtimeWith([], state);
+  const app = createJobResolverRoutes(auth, () => runtime);
+  // User A starts a discovery.
+  assert.equal(
+    (
+      (await (await request(app, { company: "サンプル" })).json()) as {
+        status: string;
+      }
+    ).status,
+    "searching",
+  );
+  // User B knows the ID but has not joined: indistinguishable from missing.
+  const before = await poll(app, discoveryId, "ok-b");
+  assert.equal(before.status, 404);
+  assert.doesNotMatch(await before.text(), /サンプル|searching/);
+  // B searches the same query, joins, and may now poll.
+  await request(app, { company: "サンプル" }, "ok-b");
+  assert.equal((await poll(app, discoveryId, "ok-b")).status, 200);
+
+  // A finished, cached discovery reused by B also grants access.
+  const cachedState: { discovery?: DiscoveryRow; access?: Set<unknown> } = {
+    discovery: {
+      status: "completed",
+      results: [posting("法人営業", 1, "official")],
+    },
+    access: new Set(["u1"]),
+  };
+  const cached = runtimeWith([], cachedState);
+  const cachedApp = createJobResolverRoutes(auth, () => cached.runtime);
+  assert.equal((await poll(cachedApp, discoveryId, "ok-b")).status, 404);
+  await request(cachedApp, { company: "サンプル" }, "ok-b");
+  assert.equal((await poll(cachedApp, discoveryId, "ok-b")).status, 200);
 });

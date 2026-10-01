@@ -66,7 +66,7 @@ describe("HTTP to browser source fetch", () => {
           return response(url, "User-agent: *\nAllow: /");
         return response(
           url,
-          `<main data-job></main><script>document.querySelector('main').textContent = ${JSON.stringify(jobText)};<\/script>`,
+          `<main data-job></main><script>document.querySelector('main').textContent = ${JSON.stringify(jobText)};</script>`,
         );
       };
       const result = await fetchSourceDocument({

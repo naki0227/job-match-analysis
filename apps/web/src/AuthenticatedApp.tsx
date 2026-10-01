@@ -6,6 +6,7 @@ import { useToast } from "./components/useToast";
 import { AnalyzeScreen } from "./features/analysis/AnalyzeScreen";
 import { useAnalysisRequest } from "./features/analysis/useAnalysisRequest";
 import { AccessTokenProvider } from "./features/auth/access-token";
+import { LegalGate } from "./features/legal/LegalGate";
 import { CareerProfileWizard } from "./features/career-profile/CareerProfileWizard";
 import { useCareerProfile } from "./features/career-profile/useCareerProfile";
 import { HistoryScreen } from "./features/history/HistoryScreen";
@@ -30,7 +31,9 @@ type Props = {
 export function AuthenticatedApp(props: Props) {
   return (
     <AccessTokenProvider getAccessToken={props.getAccessToken}>
-      <Screens {...props} />
+      <LegalGate onSignOut={props.onSignOut}>
+        <Screens {...props} />
+      </LegalGate>
     </AccessTokenProvider>
   );
 }

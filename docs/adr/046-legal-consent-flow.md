@@ -1,0 +1,46 @@
+# ADR-046: 利用規約・プライバシーポリシーの確認を利用開始の条件にする
+
+> 状態: 決定（2026年10月01日）。ADR-022（文書と確認履歴の表）を実際の導線へ接続する。10/3リリースのblocker。
+
+## 背景・課題
+
+`legal_documents`と`user_legal_acknowledgements`、およびプレビュー用の`LegalConsent`はあったが、記録するAPIがなかった。そのため、利用者は文書を一度も確認しないまま利用を始められた。チェックボックスを置くだけでは、どの版の文書に誰がいつ同意したのかを示せない。
+
+## 決定
+
+一連の流れは「表示した文書版 → 本人の明示操作 → サーバー側での記録 → 次回アクセス時の版確認」とする。
+
+- **現在の版**は、`published_at <= now()`かつ`effective_at <= now()`を満たす文書のうち、種類ごとに最新の`effective_at`を持つもの（`current_legal_documents()`）。公開前や適用前の版は対象外。判定は時刻を引数に取る`legal_documents_current_at(時刻)`で行い、テストで公開日時の前後を確かめられるようにした。
+- **v1.0**（利用規約・プライバシーポリシー）は、2026-10-03 00:00 JSTに公開・適用するmigrationとして登録する。
+- **本文の正**は`legal_documents.body_markdown`だけとする。Web bundleに本文を持たない。画面ではMarkdownを**プレーンテキストとして**表示し、HTMLとしては解釈しない（注入を防ぐため）。
+- **API**（既存の命名規約に合わせる）:
+  - `GET /api/v1/legal-documents/current`（認証不要）: 現在の利用規約とプライバシーポリシー（id・版・本文・公開日時・適用日時）。
+  - `GET /api/v1/me/legal-acknowledgements`（Google認証）: 現在の各版について、本人が記録した日時（なければnull）、`complete`、本人の履歴。
+  - `POST /api/v1/me/legal-acknowledgements`（Google認証）: `{termsDocumentId, privacyPolicyDocumentId}`だけを受け取る（strict）。
+- **記録**（`record_legal_acknowledgements`）:
+  - user_idはtokenから取り、bodyでは受け取らない。
+  - 動作はサーバーが固定する（利用規約は`accepted`、プライバシーポリシーは`acknowledged`。ADR-022の意味のとおり）。
+  - 送られたidが現在の版と一致しなければ409（`legal_document_outdated`）。
+  - 同じ版の再送は重複せず、何もしない（idempotent）。
+  - 文書・記録はADR-022どおり更新・削除しない。
+- **判定**: 「現在の版」への記録だけを有効とする。新しい版が適用されれば、過去の版への同意は数えない。利用規約だけ改定された場合は、利用規約だけを再確認すればよい。
+- **Web**:
+  - ログイン後、すべての画面の手前に`LegalGate`を置く。
+    - 確認済み → 従来の画面（プロフィール未作成ならonboarding）。
+    - 未確認 → `LegalConsent`（本文を読む導線、版の表示、2つのチェック）。
+  - 記録後は既存のCareer ProfileとMatchのまま戻る。データは消さない。
+  - 設定画面に、現在の版の同意・確認日時と過去の記録を表示する。
+- **fail closed**: 現在の文書が存在しない場合や読めない場合は、503（`legal_documents_unavailable`）を返し、「現在利用できません」と再試行を表示する。運用者向けには、どの種類が欠けているかだけをlogに出す（本文は出さない）。
+- **権限**:
+  - 4つのRPCはservice_roleだけが実行できる。
+  - 表の権限は変えない（anonとauthenticatedは公開済み文書のSELECTのみ、記録は本人のSELECTのみ、クライアントから書き込めない）。
+  - 退会すると、記録はprofileからのCASCADEで消える。
+  - CSRF対策は既存APIと同じBearer token方式なので追加の対策は要らない。
+
+## メリット・デメリット
+
+誰がどの版にいつ同意したかを示せ、改定後の再同意も自動で求められる。一方、本番に有効な文書が登録されていなければ誰も利用を始められない（意図したfail closed）。文書の登録は運用作業として確実に行う必要がある。
+
+## 見直し条件
+
+文書の訂正要件、未成年者の扱い、同意撤回の要件が出た時。analytics consent（#40）は別の目的と履歴として扱う。

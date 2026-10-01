@@ -493,3 +493,46 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.legal-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.legal-link {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--blue-ink);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.legal-document {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.legal-document-body {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.legal-history {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--muted);
+}

@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import App from "../src/App";
 import { createQueryClient } from "../src/lib/query-client";
+import { consented } from "./legal-consented";
 import { createQueryWrapper } from "./render-with-query";
 
 const session = vi.hoisted(() => ({ current: null as unknown }));
@@ -53,11 +54,13 @@ afterEach(() => {
 test("APIのステータスがOKと表示される。", async () => {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ status: "ok" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    consented(
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ status: "ok" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
     ),
   );
 
@@ -72,11 +75,13 @@ test("APIのステータスがOKと表示される。", async () => {
 test("health応答が契約違反ならエラーを表示する", async () => {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ status: "unexpected" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    consented(
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ status: "unexpected" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
     ),
   );
 
@@ -89,9 +94,11 @@ test("auth configuration failures show the sign-in error state", async () => {
   authEvents.failSubscribe = true;
   vi.stubGlobal(
     "fetch",
-    vi.fn(
-      async () =>
-        new Response(JSON.stringify({ status: "ok" }), { status: 200 }),
+    consented(
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ status: "ok" }), { status: 200 }),
+      ),
     ),
   );
   render(<App />, { wrapper: createQueryWrapper() });
@@ -108,10 +115,14 @@ test("signed-in users can log out from settings", async () => {
   };
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: RequestInfo | URL) =>
-      String(input) === "/api/health"
-        ? new Response(JSON.stringify({ status: "ok" }), { status: 200 })
-        : new Response(JSON.stringify({ code: "not_found" }), { status: 404 }),
+    consented(
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input) === "/api/health"
+          ? new Response(JSON.stringify({ status: "ok" }), { status: 200 })
+          : new Response(JSON.stringify({ code: "not_found" }), {
+              status: 404,
+            }),
+      ),
     ),
   );
   render(<App />, { wrapper: createQueryWrapper() });
@@ -133,10 +144,14 @@ test("account changes clear personal cached matches before showing the next user
   };
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: RequestInfo | URL) =>
-      String(input) === "/api/health"
-        ? new Response(JSON.stringify({ status: "ok" }), { status: 200 })
-        : new Response(JSON.stringify({ code: "not_found" }), { status: 404 }),
+    consented(
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input) === "/api/health"
+          ? new Response(JSON.stringify({ status: "ok" }), { status: 200 })
+          : new Response(JSON.stringify({ code: "not_found" }), {
+              status: 404,
+            }),
+      ),
     ),
   );
   const client = createQueryClient();
@@ -169,13 +184,16 @@ test("deleting the account returns to sign-in with a confirmation", async () => 
   const requests: string[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      requests.push(`${init?.method ?? "GET"} ${String(input)}`);
-      if (String(input) === "/api/health")
-        return Response.json({ status: "ok" });
-      if (init?.method === "DELETE") return new Response(null, { status: 204 });
-      return Response.json({ code: "not_found" }, { status: 404 });
-    }),
+    consented(
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        requests.push(`${init?.method ?? "GET"} ${String(input)}`);
+        if (String(input) === "/api/health")
+          return Response.json({ status: "ok" });
+        if (init?.method === "DELETE")
+          return new Response(null, { status: 204 });
+        return Response.json({ code: "not_found" }, { status: 404 });
+      }),
+    ),
   );
   render(<App />, { wrapper: createQueryWrapper() });
   fireEvent.click(await screen.findByRole("button", { name: "あとで" }));

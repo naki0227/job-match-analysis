@@ -19,7 +19,12 @@ import { ShareDialog } from "../features/share/ShareDialog";
 import { shareLinkQueryKey } from "../features/share/useShareLink";
 import { createQueryClient } from "../lib/query-client";
 import { HomeScreen } from "../screens/HomeScreen";
-import { historyItems, sampleProfile, sampleReport } from "./fixtures";
+import {
+  historyItems,
+  sampleLegalDocuments,
+  sampleProfile,
+  sampleReport,
+} from "./fixtures";
 import "./preview.css";
 
 const url = "https://jobs.example.com/sample-tech/backend";
@@ -74,7 +79,9 @@ const analysisStates: Record<string, AnalysisState> = {
 
 const screens: Record<string, () => ReactNode> = {
   サインイン: () => <SignInScreen failed={false} onSignIn={noop} />,
-  利用規約の確認: () => <LegalConsent onAccept={noop} />,
+  利用規約の確認: () => (
+    <LegalConsent documents={sampleLegalDocuments} onAccept={noop} />
+  ),
   オンボーディング: () => <OnboardingIntro onStart={noop} onSkip={noop} />,
   ホーム: () => (
     <HomeScreen

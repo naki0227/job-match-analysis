@@ -65,6 +65,7 @@ export const jobSearchResponseSchema = z.discriminatedUnion("status", [
 ]);
 
 export type EmploymentPreference = z.infer<typeof employmentPreferenceSchema>;
-export type JobSearchRequest = z.infer<typeof jobSearchRequestSchema>;
+/** What a client sends (the role may be omitted or blank). */
+export type JobSearchRequest = z.input<typeof jobSearchRequestSchema>;
 export type JobCandidateView = z.infer<typeof jobCandidateSchema>;
 export type JobSearchResponse = z.infer<typeof jobSearchResponseSchema>;

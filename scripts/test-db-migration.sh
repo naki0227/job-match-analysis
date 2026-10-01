@@ -163,7 +163,6 @@ psql_cmd < supabase/migrations/20260930010000_resolve_job_evaluation_target.sql
 psql_cmd < supabase/tests/issue22_target_resolution.sql
 psql_cmd < supabase/migrations/20260930020000_issue43_evaluation_provenance.sql
 psql_cmd < supabase/tests/issue43_evaluation_provenance.sql
-JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx ../crawler/tests/job-recovery.integration.ts
 psql_cmd < supabase/tests/issue22_evaluation_versions.sql
 psql_cmd < supabase/migrations/20260929093000_match_result_rpc.sql
 psql_cmd < supabase/tests/match_result_rpc.sql
@@ -190,6 +189,12 @@ psql_cmd < supabase/migrations/20260930080000_issue42_abuse_signals.sql
 psql_cmd < supabase/tests/issue42_abuse_signals.sql
 psql_cmd < supabase/migrations/20260930120544_service_role_core_privileges.sql
 psql_cmd < supabase/tests/service_role_core_privileges.sql
+psql_cmd < supabase/migrations/20260930160126_job_facts_employment_type.sql
+psql_cmd < supabase/tests/job_facts_employment_type.sql
+# The worker writes every current fact kind, so it runs on the latest schema.
+# Earlier tests leave queued jobs; retire them so the worker claims its own.
+psql_cmd -c "update public.analysis_jobs set status = 'failed', lease_until = null, worker_token = null where status = 'queued';"
+JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx ../crawler/tests/job-recovery.integration.ts
 psql_cmd < supabase/migrations/20260930161211_job_resolver_known_postings.sql
 psql_cmd < supabase/tests/job_resolver_known_postings.sql
 psql_cmd < supabase/migrations/20261001020540_job_discovery.sql
@@ -229,6 +234,8 @@ psql_cmd < supabase/rollback/20261001020540_job_discovery.sql
 psql_cmd < supabase/tests/job_discovery_rollback.sql
 psql_cmd < supabase/rollback/20260930161211_job_resolver_known_postings.sql
 psql_cmd < supabase/tests/job_resolver_known_postings_rollback.sql
+psql_cmd < supabase/rollback/20260930160126_job_facts_employment_type.sql
+psql_cmd < supabase/tests/job_facts_employment_type_rollback.sql
 psql_cmd < supabase/rollback/20260930120544_service_role_core_privileges.sql
 psql_cmd < supabase/tests/service_role_core_privileges_rollback.sql
 psql_cmd < supabase/rollback/20260930080000_issue42_abuse_signals.sql

@@ -30,6 +30,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20260930070000_issue42_jev_budget` | Jev日次予算 | なし |
 | `20260930080000_issue42_abuse_signals` | 不正利用signal（7日保持） | なし |
 | `20260930120544_service_role_core_privileges` | `service_role`の表権限（下記） | なし（GRANTのみ） |
+| `20260930160126_job_facts_employment_type` | job factsに`employmentType`を追加（ADR-044） | なし（CHECK制約の拡張のみ。rollbackは該当factを削除） |
 | `20260930161211_job_resolver_known_postings` | Job Resolverの既存求人検索RPC（ADR-045） | なし（読み取り関数の追加のみ） |
 | `20261001020540_job_discovery` | Web探索のjob・結果・利用者ごとの回数記録とRPC（ADR-047） | なし（表と関数の追加のみ。rollbackは探索記録を消すが、保存済みの求人は残る） |
 

@@ -9,6 +9,27 @@ export type JevCallOutcome = "success" | "transient_error" | "provider_error";
 export type JobOutcome =
   "completed" | "retry_pending" | "failed" | "lease_lost" | "error";
 
+/**
+ * Quality of one source evaluation (Issue #44 follow-up): counts only, so
+ * "too many unknowns" can be measured instead of guessed.
+ */
+export type EvaluationEvent = {
+  scope: "company" | "job";
+  extractedChars: number;
+  /** Usable fragments on the page, and those sent within the limits. */
+  fragmentsAvailable: number;
+  fragmentsSent: number;
+  /** Axes left after deterministic rules, and those actually sent to Jev. */
+  unresolvedAfterRules: number;
+  axesSentToJev: number;
+  known: number;
+  unknown: number;
+  conflicting: number;
+  /** Evidence fragments stored for each axis that has any. */
+  evidencePerAxis: readonly number[];
+  durationMs: number;
+};
+
 /** One web discovery (ADR-047): counts and bounded reasons only. */
 export type DiscoveryEvent = {
   queries: number;
@@ -26,18 +47,20 @@ export type DiscoveryEvent = {
 
 export type CrawlerMetrics = {
   jevCall: (event: {
-    candidates: number;
+    fragments: number;
+    axes: number;
     inputTokens: number | null;
     outputTokens: number | null;
     outcome: JevCallOutcome;
     durationMs: number;
   }) => void;
-  jevBudgetExhausted: (event: { candidates: number }) => void;
+  jevBudgetExhausted: (event: { fragments: number }) => void;
   /** Recorded once per process so dashboards always show the active mode. */
   jevBudgetMode: (mode: "finite" | "unlimited") => void;
   /** One claimed analysis job, from claim to its final state. */
   analysisJob: (event: { outcome: JobOutcome; durationMs: number }) => void;
   discovery: (event: DiscoveryEvent) => void;
+  evaluation: (event: EvaluationEvent) => void;
 };
 
 export const noopCrawlerMetrics: CrawlerMetrics = {
@@ -46,6 +69,7 @@ export const noopCrawlerMetrics: CrawlerMetrics = {
   jevBudgetMode: () => {},
   analysisJob: () => {},
   discovery: () => {},
+  evaluation: () => {},
 };
 
 /** Telemetry failures must never stop evaluation. */
@@ -65,5 +89,6 @@ export function safeCrawlerMetrics(inner: CrawlerMetrics): CrawlerMetrics {
     jevBudgetMode: guard(inner.jevBudgetMode),
     analysisJob: guard(inner.analysisJob),
     discovery: guard(inner.discovery),
+    evaluation: guard(inner.evaluation),
   };
 }

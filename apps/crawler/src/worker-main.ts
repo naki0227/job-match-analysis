@@ -28,13 +28,17 @@ const configSchema = z.object({
   CRAWLER_LEASE_SECONDS: z.coerce.number().int().min(1).max(3600),
   CRAWLER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100),
   CRAWLER_RETENTION_BATCH_SIZE: z.coerce.number().int().min(1).max(1000),
-  CRAWLER_MAX_CANDIDATES: z.coerce.number().int().positive(),
+  /** Evaluator context limits per document (ADR-044). */
+  CRAWLER_JEV_MAX_FRAGMENTS: z.coerce.number().int().positive(),
+  CRAWLER_JEV_MAX_CONTEXT_CHARS: z.coerce.number().int().positive(),
+  /** Longest fragment, and so the longest stored evidence quote. */
   CRAWLER_MAX_EXCERPT_CHARS: z.coerce.number().int().positive(),
+  CRAWLER_MAX_EVIDENCE_PER_AXIS: z.coerce.number().int().positive(),
   CRAWLER_POLL_INTERVAL_MS: z.coerce.number().int().positive(),
   /** loop: long-running worker. drain: exit once the queue is idle (ADR-040). */
   CRAWLER_RUN_MODE: z.enum(["loop", "drain"]).default("loop"),
   CRAWLER_DRAIN_MAX_JOBS: z.coerce.number().int().min(1).max(1000).optional(),
-  /** Jev evidence candidates per UTC day, or "unlimited" (Issue #42). */
+  /** Jev context fragments per UTC day, or "unlimited" (Issue #42). */
   CRAWLER_JEV_DAILY_CANDIDATE_BUDGET: z.string().transform((value, context) => {
     try {
       return parseJevBudgetSetting(value);
@@ -83,8 +87,7 @@ async function main(): Promise<void> {
   crawlerMetrics.jevBudgetMode(config.CRAWLER_JEV_DAILY_CANDIDATE_BUDGET.mode);
   const engine = createBudgetedDecisionEngine(
     createJevDecisionEngine({
-      maxCandidates: config.CRAWLER_MAX_CANDIDATES,
-      maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
+      maxEvidencePerAxis: config.CRAWLER_MAX_EVIDENCE_PER_AXIS,
       metrics: crawlerMetrics,
     }),
     createSupabaseJevBudget(
@@ -121,8 +124,12 @@ async function main(): Promise<void> {
         resolveJobTarget: sourceStore.resolveJobTarget,
         engine,
         browser,
-        maxCandidates: config.CRAWLER_MAX_CANDIDATES,
-        maxExcerptChars: config.CRAWLER_MAX_EXCERPT_CHARS,
+        limits: {
+          maxFragments: config.CRAWLER_JEV_MAX_FRAGMENTS,
+          maxContextChars: config.CRAWLER_JEV_MAX_CONTEXT_CHARS,
+          maxFragmentChars: config.CRAWLER_MAX_EXCERPT_CHARS,
+        },
+        metrics: crawlerMetrics,
       },
     });
   try {

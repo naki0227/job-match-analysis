@@ -46,6 +46,7 @@
 | [ADR-040](adr/040-free-mvp-hosting-split.md) | 月額0円MVPはWebをCloudflare Pages、APIをAzure Container Apps、crawlerをContainer Apps Job、DB/AuthをSupabase Free、imageをGHCRに置く。OCI/k3sは後続 | 既存のNode API・Playwright crawler・DBのjob管理をそのまま使え、無料枠内で動く | scale to zeroの初回遅延、Job起動待ち、egress制御の限定 |
 | [ADR-041](adr/041-operational-observability-boundary.md) | 運用観測はOTelで計装し、Grafana Cloud FreeへOTLPで直接送る。Datadogは将来の追加候補 | ベンダー非依存、送信失敗でも本体が止まらない、0円で運用観測できる | Grafana Cloud Freeの上限と保持14日 |
 | [ADR-042](adr/042-abuse-signals.md) | 不正利用signalは生IP/UAを保存せず、日次HMACの仮名を7日だけ保持し、security用途に限る | 利用者ID上限の回避を仮名で検知しつつ追跡を難しくする | 日をまたぐ追跡不可、信頼proxy境界がない時はIP signalなし |
+| [ADR-044](adr/044-whole-context-evaluation.md) | 求人評価はkeyword事前選別をやめ、上限付きの本文断片を1回のJev requestで全未解決軸について判定し、根拠断片を複数保存する。根拠を特定できない判定はunknown | 言い回しに依存せず判定でき、根拠が複数残る。1求人1回の上限でコストを抑える | 入力tokenの増加、上限超過時の優先付けは語彙依存が残る |
 | [ADR-045](adr/045-job-resolver.md) | 企業名＋職種から既存の求人を特定するJob Resolverを、機械的なdiscovery（既存DB、opt-inのATS公開一覧）→domainによる絞り込み→Jevによる候補IDの選択（URLは生成させない）で構成する。曖昧なら上位3件を利用者に選ばせる | 存在しない求人を指さない。判定基準を説明でき、URL入力も残る | 初期は解析済み企業のみ。公式採用ページは未対応。検索回数の制限なし |
 | [ADR-047](adr/047-web-job-discovery-ddgs.md) | 既知の求人で足りない時だけ、crawler workerで非同期にWeb探索する。検索（初期βはDDGSのDuckDuckGo backendをbest-effort、`WebSearchProvider`で差し替え可能）は手がかりにとどめ、安全な取得とJobPosting JSON-LDの検証を通った求人だけを既存の表へ保存する | URLを知らなくても実在する求人に届き、API requestは外部へ出ない。検証済みの求人は全利用者で再利用される | 結果まで数十秒。JSON-LDのない求人は見つからない。DDGSは非公式でblockされうる |
 

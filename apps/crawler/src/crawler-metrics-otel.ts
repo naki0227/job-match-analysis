@@ -11,8 +11,11 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
   const calls = meter.createCounter("job_match.jev.calls", {
     description: "Jev evaluation calls by outcome",
   });
-  const candidates = meter.createCounter("job_match.jev.candidates", {
-    description: "Evidence candidates sent to Jev",
+  const fragments = meter.createCounter("job_match.jev.fragments", {
+    description: "Context fragments sent to Jev",
+  });
+  const axes = meter.createCounter("job_match.jev.axes", {
+    description: "Axes judged by Jev",
   });
   const tokens = meter.createCounter("job_match.jev.tokens", {
     description: "Jev tokens reported by the provider",
@@ -32,9 +35,11 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     description: "Analysis job processing time by final outcome",
   });
   const discovery = createDiscoveryInstruments(meter);
+  const quality = createEvaluationInstruments(meter);
   return {
     jevCall: ({
-      candidates: count,
+      fragments: fragmentCount,
+      axes: axisCount,
       inputTokens,
       outputTokens,
       outcome,
@@ -42,14 +47,14 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     }) => {
       calls.add(1, { outcome });
       jevDuration.record(durationMs / 1_000, { outcome });
-      candidates.add(count, { outcome });
+      fragments.add(fragmentCount, { outcome });
+      axes.add(axisCount, { outcome });
       if (inputTokens !== null) tokens.add(inputTokens, { direction: "input" });
       if (outputTokens !== null) {
         tokens.add(outputTokens, { direction: "output" });
       }
     },
-    jevBudgetExhausted: ({ candidates: count }) =>
-      exhausted.add(1, { candidates_bucket: count > 8 ? "9+" : String(count) }),
+    jevBudgetExhausted: () => exhausted.add(1),
     jevBudgetMode: (mode) => {
       budgetMode.record(mode === "finite" ? 1 : 0, { mode: "finite" });
       budgetMode.record(mode === "unlimited" ? 1 : 0, { mode: "unlimited" });
@@ -57,6 +62,7 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     analysisJob: ({ outcome, durationMs }) =>
       jobDuration.record(durationMs / 1_000, { outcome }),
     discovery,
+    evaluation: quality,
   };
 }
 
@@ -89,5 +95,41 @@ function createDiscoveryInstruments(
     for (const [reason, count] of Object.entries(event.rejected))
       rejected.add(count ?? 0, { reason });
     duration.record(event.durationMs / 1_000, { outcome: event.outcome });
+  };
+}
+
+function createEvaluationInstruments(
+  meter: ReturnType<typeof metrics.getMeter>,
+): CrawlerMetrics["evaluation"] {
+  const histogram = (name: string, description: string, unit?: string) =>
+    meter.createHistogram(`job_match.evaluation.${name}`, {
+      description,
+      ...(unit ? { unit } : {}),
+    });
+  const chars = histogram("extracted_chars", "Extracted text length");
+  const available = histogram("fragments_available", "Usable fragments");
+  const sent = histogram("fragments_sent", "Fragments sent within limits");
+  const unresolved = histogram(
+    "unresolved_after_rules",
+    "Axes left after deterministic rules",
+  );
+  const toJev = histogram("axes_sent_to_jev", "Axes sent to Jev");
+  const evidence = histogram("evidence_per_axis", "Evidence per cited axis");
+  const duration = histogram("duration", "Source evaluation time", "s");
+  const axes = meter.createCounter("job_match.evaluation.axes", {
+    description: "Evaluated axes by observation status",
+  });
+  return (event) => {
+    const labels = { scope: event.scope };
+    chars.record(event.extractedChars, labels);
+    available.record(event.fragmentsAvailable, labels);
+    sent.record(event.fragmentsSent, labels);
+    unresolved.record(event.unresolvedAfterRules, labels);
+    toJev.record(event.axesSentToJev, labels);
+    for (const count of event.evidencePerAxis) evidence.record(count, labels);
+    duration.record(event.durationMs / 1_000, labels);
+    axes.add(event.known, { ...labels, status: "known" });
+    axes.add(event.unknown, { ...labels, status: "unknown" });
+    axes.add(event.conflicting, { ...labels, status: "conflicting" });
   };
 }

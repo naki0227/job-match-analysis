@@ -140,8 +140,11 @@ async function runWorker(mode: "hold" | "recover"): Promise<void> {
         },
         siteAllowed: async (origin) => origin === "https://example.org",
         engine: createFakeDecisionEngine(),
-        maxCandidates: 16,
-        maxExcerptChars: 120,
+        limits: {
+          maxFragments: 40,
+          maxContextChars: 8_000,
+          maxFragmentChars: 200,
+        },
         resolve: async () => ["8.8.8.8"],
         send,
         now: () => new Date("2026-09-30T00:00:00Z"),

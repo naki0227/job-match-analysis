@@ -107,6 +107,7 @@ test("ambiguous results let the user pick; nothing is analyzed until then", asyn
         candidate("法人営業（東京）", 1),
         candidate("法人営業（大阪）", 2),
       ],
+      hasMore: false,
       partial: true,
     }),
   );

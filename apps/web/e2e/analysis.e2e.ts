@@ -262,6 +262,7 @@ test("企業名と職種で求人を探し、候補から選んだ求人を分�
           source: "known",
           employmentTypes: [],
         })),
+        hasMore: false,
         partial: false,
       }),
     });

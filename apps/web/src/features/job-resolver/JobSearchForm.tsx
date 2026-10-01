@@ -23,14 +23,14 @@ export function JobSearchForm({ busy, onSearch }: Props) {
   const [company, setCompany] = useState("");
   const [roleQuery, setRoleQuery] = useState("");
   const [employment, setEmployment] = useState<EmploymentPreference | "">("");
-  const ready = company.trim() !== "" && roleQuery.trim() !== "";
+  const ready = company.trim() !== "";
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || !ready) return;
     onSearch({
       company: company.trim(),
-      roleQuery: roleQuery.trim(),
+      ...(roleQuery.trim() ? { roleQuery: roleQuery.trim() } : {}),
       ...(employment ? { employmentType: employment } : {}),
     });
   }
@@ -50,7 +50,7 @@ export function JobSearchForm({ busy, onSearch }: Props) {
         onChange={(event) => setCompany(event.target.value)}
       />
       <label className="field-label" htmlFor="job-search-role">
-        職種
+        職種（任意）
       </label>
       <input
         id="job-search-role"
@@ -58,9 +58,13 @@ export function JobSearchForm({ busy, onSearch }: Props) {
         type="text"
         maxLength={100}
         placeholder="例: 法人営業、採用担当、バックエンド Go"
+        aria-describedby="job-search-role-hint"
         value={roleQuery}
         onChange={(event) => setRoleQuery(event.target.value)}
       />
+      <p id="job-search-role-hint" className="meta">
+        空欄なら、その企業の求人一覧から選べます。
+      </p>
       <label className="field-label" htmlFor="job-search-employment">
         雇用形態
       </label>

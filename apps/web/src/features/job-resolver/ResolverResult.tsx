@@ -5,6 +5,13 @@ type Props = {
   onAnalyze: (url: string) => void;
 };
 
+const sourceLabels: Record<string, string> = {
+  official: "企業の採用ページ",
+  ats: "企業の採用管理サービス",
+  known: "解析済みの求人",
+  web: "公開求人ページ",
+};
+
 function CandidateCard({
   candidate,
   onAnalyze,
@@ -15,7 +22,11 @@ function CandidateCard({
   return (
     <li className="panel candidate-card">
       <strong>{candidate.title}</strong>
-      <span className="muted">{candidate.companyName}</span>
+      <span className="muted">
+        {candidate.companyName}・
+        {sourceLabels[candidate.source] ?? "公開求人ページ"}
+        {candidate.location ? `・${candidate.location}` : ""}
+      </span>
       <a href={candidate.url} target="_blank" rel="noopener noreferrer">
         求人ページを開く
       </a>
@@ -51,7 +62,8 @@ export function ResolverResult({ result, onAnalyze }: Props) {
       {result.status === "candidates" && (
         <>
           <p role="status">
-            候補が複数見つかりました。分析する求人を選んでください。
+            {result.candidates.length}
+            件の求人が見つかりました。分析する求人を選んでください。
           </p>
           <ul className="candidate-list" aria-label="求人の候補">
             {result.candidates.map((candidate) => (
@@ -62,6 +74,11 @@ export function ResolverResult({ result, onAnalyze }: Props) {
               />
             ))}
           </ul>
+          {result.hasMore && (
+            <p className="muted">
+              ほかにも求人があります。職種を入れると絞り込めます。
+            </p>
+          )}
         </>
       )}
       {result.status === "not_found" && (

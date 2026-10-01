@@ -298,7 +298,7 @@ test("企業名と職種で求人を探し、候補から選んだ求人を分�
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /企業名と職種から探す/ }).click();
   await page.getByLabel("企業名").fill("サンプル");
-  await page.getByLabel("職種", { exact: true }).fill("法人営業");
+  await page.getByLabel("職種（任意）").fill("法人営業");
   await page.getByRole("button", { name: "求人を探す" }).click();
   const list = page.getByRole("list", { name: "求人の候補" });
   await expect(list.getByRole("listitem")).toHaveCount(2);

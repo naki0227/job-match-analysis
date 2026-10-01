@@ -19,12 +19,18 @@ export type ApiMetrics = {
   analysisRequest: (outcome: AnalysisOutcome) => void;
   /** Azure worker invocation attempts by outcome. */
   workerTrigger: (outcome: WorkerTriggerOutcome) => void;
+  /** Job Resolver searches by outcome, and whether Jev chose (ADR-045). */
+  jobResolution: (
+    outcome: "resolved" | "candidates" | "not_found" | "failed",
+    selectorUsed: boolean,
+  ) => void;
 };
 
 export const noopApiMetrics: ApiMetrics = {
   request: () => {},
   analysisRequest: () => {},
   workerTrigger: () => {},
+  jobResolution: () => {},
 };
 
 /** Telemetry failures must never break a request. */
@@ -47,6 +53,13 @@ export function safeApiMetrics(inner: ApiMetrics): ApiMetrics {
     workerTrigger: (outcome) => {
       try {
         inner.workerTrigger(outcome);
+      } catch {
+        // See above.
+      }
+    },
+    jobResolution: (outcome, selectorUsed) => {
+      try {
+        inner.jobResolution(outcome, selectorUsed);
       } catch {
         // See above.
       }

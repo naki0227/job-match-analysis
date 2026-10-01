@@ -1,9 +1,12 @@
+import { techStackParser, type DomainFacts } from "./domain-facts.js";
 import type {
   ExtractedSourceDocument,
   SourceFragment,
 } from "./source-extractor.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v1";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v2";
+
+const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
 export type ParsedFact<T> =
   | { status: "known"; value: T; excerpt: string; locator: string }
@@ -16,6 +19,7 @@ export type SalaryRange = {
   period: "year";
 };
 
+/** Generic facts of any posting, plus optional occupation-specific ones. */
 export type ParsedJobFacts = {
   salary: ParsedFact<SalaryRange>;
   location: ParsedFact<readonly string[]>;
@@ -23,8 +27,8 @@ export type ParsedJobFacts = {
   weeklyOfficeDays: ParsedFact<number>;
   scheduleFlexibility: ParsedFact<0 | 50 | 100>;
   targetRole: ParsedFact<string>;
-  techStack: ParsedFact<readonly string[]>;
-};
+  employmentType: ParsedFact<readonly string[]>;
+} & DomainFacts;
 
 const PREFECTURES = [
   "北海道",
@@ -147,19 +151,6 @@ function location(text: string): string[][] {
   return names.length && !remainder ? [[...names]] : [];
 }
 
-function techStack(text: string): string[][] {
-  const match = /^技術スタック\s*[:：]\s*(.+)$/u.exec(text);
-  if (!match) return [];
-  const names = match[1]!.split(/[、,，／/]/u).map((item) => item.trim());
-  if (
-    names.length === 0 ||
-    names.length > 20 ||
-    names.some((name) => !/^[A-Za-z][A-Za-z0-9+#. -]{0,39}$/u.test(name))
-  )
-    return [];
-  return [names];
-}
-
 function fullRemote(text: string): boolean[] {
   const negative = /フルリモート不可|完全在宅不可|出社必須|原則出社/u.test(
     text,
@@ -188,25 +179,70 @@ function scheduleFlexibility(text: string): (0 | 50 | 100)[] {
   ];
 }
 
+/**
+ * Structured JobPosting data is the most reliable source; text parsing only
+ * fills what it does not declare. When both declare different values the
+ * fact is conflicting rather than silently picking one.
+ */
+function preferStructured<T>(
+  structured: Known<T> | undefined,
+  text: ParsedFact<T>,
+): ParsedFact<T> {
+  if (!structured) return text;
+  if (
+    text.status === "known" &&
+    JSON.stringify(text.value) !== JSON.stringify(structured.value)
+  )
+    return { status: "conflicting" };
+  return structured;
+}
+
+function known<T>(value: T, excerpt: string, field: string): Known<T> {
+  return {
+    status: "known",
+    value,
+    excerpt: safeExcerpt(excerpt),
+    locator: `${JSON_LD}.${field}`,
+  };
+}
+
 export function parseDeterministicJobFacts(
   document: ExtractedSourceDocument,
 ): ParsedJobFacts {
   const fragments = document.fragments.filter((item) => item.scope === "job");
-  const role = document.jobIdentity
-    ? {
-        status: "known" as const,
-        value: document.jobIdentity.title,
-        excerpt: document.jobIdentity.title,
-        locator: "script[type='application/ld+json']:JobPosting.title",
-      }
-    : { status: "unknown" as const };
+  const structured = document.structuredJob;
+  const regions = structured
+    ? PREFECTURES.filter((name) =>
+        structured.regions.some((region) => region.includes(name)),
+      )
+    : [];
   return {
     salary: collect(fragments, salary),
-    location: collect(fragments, location),
-    fullRemote: collect(fragments, fullRemote),
+    location: preferStructured(
+      regions.length && structured
+        ? known([...regions], structured.regions.join(" / "), "jobLocation")
+        : undefined,
+      collect(fragments, location),
+    ),
+    fullRemote: preferStructured(
+      structured?.telecommute
+        ? known(true, "TELECOMMUTE", "jobLocationType")
+        : undefined,
+      collect(fragments, fullRemote),
+    ),
     weeklyOfficeDays: collect(fragments, weeklyOfficeDays),
     scheduleFlexibility: collect(fragments, scheduleFlexibility),
-    targetRole: role,
-    techStack: collect(fragments, techStack),
+    targetRole: document.jobIdentity
+      ? known(document.jobIdentity.title, document.jobIdentity.title, "title")
+      : { status: "unknown" },
+    employmentType:
+      structured && structured.employmentTypes.length
+        ? known(
+            [...structured.employmentTypes],
+            structured.employmentTypes.join(", "),
+            "employmentType",
+          )
+        : { status: "unknown" },
+    techStack: collect(fragments, techStackParser.parse),
   };
 }

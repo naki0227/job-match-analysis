@@ -41,3 +41,24 @@ export type { Observation } from "./observation.js";
 export { parsePercentage } from "./percentage.js";
 export { PREFECTURE_CODES, parsePrefectureCode } from "./prefecture.js";
 export type { PrefectureCode } from "./prefecture.js";
+export {
+  MAX_CHOICES_SHOWN,
+  MAX_RUNNER_UP_PROBABILITY,
+  MIN_SELECTION_CONFIDENCE,
+  decideResolution,
+  employmentFits,
+  fullMatch,
+  normalizeCompanyName,
+  rankCandidates,
+  roleTerms,
+  sameCompany,
+} from "./job-resolution.js";
+export type {
+  CandidateSelection,
+  EmploymentPreference,
+  JobCandidate,
+  JobSearchQuery,
+  RankedCandidate,
+  Resolution,
+  ResolutionReason,
+} from "./job-resolution.js";

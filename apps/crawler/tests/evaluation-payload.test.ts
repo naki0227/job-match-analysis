@@ -4,11 +4,11 @@ import {
   PUBLIC_AXIS_RUBRICS,
   PUBLIC_RUBRIC_VERSION,
 } from "../src/assessment-rubric.js";
+import { buildContextFragments } from "../src/context-fragments.js";
 import {
   buildEvaluationPayload,
   EvaluationPayloadError,
 } from "../src/evaluation-payload.js";
-import { selectEvidenceCandidates } from "../src/evidence-candidates.js";
 import { createFakeDecisionEngine } from "../src/fake-decision-engine.js";
 import { extractSourceDocument } from "../src/source-extractor.js";
 
@@ -16,7 +16,7 @@ const SOURCE_URL_ID = "33333333-3333-4333-8333-333333333333";
 
 function source() {
   const document = extractSourceDocument(
-    "<main data-job><p>週2日在宅勤務が可能です。</p></main>",
+    "<main data-job><p>週2日在宅勤務が可能です。</p><p>在宅と出社を組み合わせて働きます。</p></main>",
     "https://jobs.example/1",
     new Date("2026-09-29T00:00:00Z"),
   );
@@ -25,23 +25,39 @@ function source() {
     rubricVersion: PUBLIC_RUBRIC_VERSION,
     scope: "job" as const,
     rubrics: PUBLIC_AXIS_RUBRICS,
-    candidates: selectEvidenceCandidates({
+    fragments: buildContextFragments({
       documents: [document],
       scope: "job",
-      rubrics: PUBLIC_AXIS_RUBRICS,
-      maxCandidates: 8,
-      maxExcerptChars: 120,
-    }),
+      limits: {
+        maxFragments: 40,
+        maxContextChars: 8_000,
+        maxFragmentChars: 200,
+      },
+    }).fragments,
   };
   return { document, input };
 }
 
 describe("evaluation persistence payload", () => {
-  it("maps only accepted source IDs to the existing atomic RPC contract", async () => {
+  it("stores every cited fragment of an axis once, with its exact text and locator", async () => {
     const { document, input } = source();
-    const candidate = input.candidates[0]!;
-    const output = await createFakeDecisionEngine(
-      new Map([[candidate.id, 50]]),
+    const [first, second] = input.fragments;
+    const output = await createFakeDecisionEngine((engineInput) =>
+      engineInput.rubrics.map((rubric) =>
+        rubric.axisKey === "work_location"
+          ? {
+              axisKey: rubric.axisKey,
+              status: "known",
+              anchorValue: 50,
+              evidenceIds: [first!.id, second!.id, first!.id],
+            }
+          : {
+              axisKey: rubric.axisKey,
+              status: "unknown",
+              anchorValue: null,
+              evidenceIds: [],
+            },
+      ),
     ).evaluate(input);
     const payload = buildEvaluationPayload({
       sourceUrlIds: [SOURCE_URL_ID],
@@ -58,7 +74,6 @@ describe("evaluation persistence payload", () => {
         extractedText: document.extractedText,
       },
     ]);
-    expect(payload.evaluation.axisValues).toHaveLength(8);
     expect(payload.evaluation.axisValues[0]).toEqual({
       axisKey: "work_location",
       axisVersion: 1,
@@ -66,19 +81,21 @@ describe("evaluation persistence payload", () => {
       anchorValue: 50,
       evaluationMethod: "jev",
     });
-    expect(payload.evaluation.axisValues[1]?.observationStatus).toBe("unknown");
-    expect(payload.evaluation.evidence).toEqual([
-      {
+    expect(payload.evaluation.evidence).toEqual(
+      [first!, second!].map((fragment) => ({
         documentIndex: 0,
         axisKey: "work_location",
-        excerpt: candidate.excerpt,
-        locator: candidate.locator,
-      },
-    ]);
+        excerpt: fragment.text,
+        locator: fragment.locator,
+      })),
+    );
+    for (const item of payload.evaluation.evidence) {
+      expect(document.extractedText).toContain(item.excerpt);
+    }
     expect(payload.evaluation.sourceSetHash).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("rejects fabricated evidence and a mismatched evaluator result", async () => {
+  it("rejects fabricated evidence, known without evidence and mismatched results", async () => {
     const { document, input } = source();
     const output = await createFakeDecisionEngine().evaluate(input);
     const args = {
@@ -86,16 +103,28 @@ describe("evaluation persistence payload", () => {
       documents: [document],
       input,
     };
+    const withFirst = (decision: (typeof output.decisions)[number]) => ({
+      ...output,
+      decisions: [decision, ...output.decisions.slice(1)],
+    });
     expect(() =>
       buildEvaluationPayload({
         ...args,
-        output: {
-          ...output,
-          decisions: [
-            { ...output.decisions[0]!, evidenceIds: ["fabricated"] },
-            ...output.decisions.slice(1),
-          ],
-        },
+        output: withFirst({
+          ...output.decisions[0]!,
+          evidenceIds: ["fabricated"],
+        }),
+      }),
+    ).toThrow(EvaluationPayloadError);
+    expect(() =>
+      buildEvaluationPayload({
+        ...args,
+        output: withFirst({
+          axisKey: "work_location",
+          status: "known",
+          anchorValue: 100,
+          evidenceIds: [],
+        }),
       }),
     ).toThrow(EvaluationPayloadError);
     expect(() =>

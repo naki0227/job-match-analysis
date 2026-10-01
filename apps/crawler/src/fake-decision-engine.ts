@@ -1,11 +1,14 @@
 import {
-  decisionsFromEvidence,
+  unknownDecisions,
   validateDecisionInput,
+  type AxisDecision,
   type DecisionEngine,
+  type DecisionEngineInput,
 } from "./decision-engine.js";
 
+/** Test double: decides with `decide`, or leaves every axis unknown. */
 export function createFakeDecisionEngine(
-  accepted: ReadonlyMap<string, 0 | 50 | 100> = new Map(),
+  decide: (input: DecisionEngineInput) => AxisDecision[] = unknownDecisions,
 ): DecisionEngine {
   return {
     async evaluate(input) {
@@ -13,9 +16,9 @@ export function createFakeDecisionEngine(
       return {
         axisCatalogVersion: input.axisCatalogVersion,
         rubricVersion: input.rubricVersion,
-        evaluatorVersion: "fake-choice-v1",
+        evaluatorVersion: "fake-context-v1",
         modelVersion: "fake",
-        decisions: decisionsFromEvidence(input, accepted),
+        decisions: decide(input),
       };
     },
   };

@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import {
   careerAxisKeys,
@@ -72,7 +73,12 @@ test("a new user answers every step before saving the first version", async () =
 
   expect(await screen.findByText(/現在の確定版: 未保存/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: "Backend Engineer" }));
+  fireEvent.click(screen.getByRole("button", { name: "IT・エンジニア" }));
+  fireEvent.click(
+    within(
+      screen.getByRole("group", { name: "IT・エンジニアの職種の例" }),
+    ).getByRole("button", { name: "バックエンドエンジニア" }),
+  );
   next();
 
   for (const [index] of careerAxisKeys.entries()) {
@@ -101,7 +107,7 @@ test("a new user answers every step before saving the first version", async () =
     expectedVersion: 0,
     idempotencyKey: key,
     profile: {
-      targetRoles: ["Backend Engineer"],
+      targetRoles: ["バックエンドエンジニア"],
       constraints: { minSalary: { amount: 5_000_000 } },
     },
   });
@@ -127,10 +133,12 @@ test("a saved profile loads, keeps non-standard importance and saves a new versi
     wrapper: createQueryWrapper(),
   });
   expect(await screen.findByText(/現在の確定版: 第1版/)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "エンジニア" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  expect(
+    within(screen.getByRole("group", { name: "選んだ職種" })).getByRole(
+      "button",
+      { name: "エンジニア" },
+    ),
+  ).toHaveAttribute("aria-pressed", "true");
   next();
   next();
   expect(screen.getByText(/保存済みの重要度: 60/)).toBeInTheDocument();

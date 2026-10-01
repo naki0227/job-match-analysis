@@ -39,8 +39,8 @@ export function parseJevBudgetSetting(
 export const unlimitedJevBudget: JevBudget = { reserve: async () => true };
 
 /**
- * Calls the inner engine only after reserving one unit per evidence
- * candidate. Without budget the remaining axes are explicitly unknown, so
+ * Calls the inner engine only after reserving one unit per context fragment
+ * sent. Without budget the remaining axes are explicitly unknown, so
  * cached and deterministic results keep working (Issue #42).
  */
 export function createBudgetedDecisionEngine(
@@ -50,11 +50,11 @@ export function createBudgetedDecisionEngine(
 ): DecisionEngine {
   return {
     async evaluate(input) {
-      if (input.candidates.length === 0) return inner.evaluate(input);
-      if (await budget.reserve(input.candidates.length)) {
+      if (input.fragments.length === 0) return inner.evaluate(input);
+      if (await budget.reserve(input.fragments.length)) {
         return inner.evaluate(input);
       }
-      metrics.jevBudgetExhausted({ candidates: input.candidates.length });
+      metrics.jevBudgetExhausted({ fragments: input.fragments.length });
       return {
         axisCatalogVersion: input.axisCatalogVersion,
         rubricVersion: input.rubricVersion,

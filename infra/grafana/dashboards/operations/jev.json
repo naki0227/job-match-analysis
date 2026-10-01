@@ -99,7 +99,7 @@
     {
       "id": 3,
       "type": "timeseries",
-      "title": "Candidates sent (per day)",
+      "title": "Context fragments sent (per day)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -123,8 +123,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(job_match_jev_candidates_total{deployment_environment_name=\"$env\"}[1d]))",
-          "legendFormat": "candidates"
+          "expr": "sum(increase(job_match_jev_fragments_total{deployment_environment_name=\"$env\"}[1d]))",
+          "legendFormat": "fragments"
         }
       ]
     },

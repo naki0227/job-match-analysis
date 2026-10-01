@@ -30,6 +30,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20260930070000_issue42_jev_budget` | Jev日次予算 | なし |
 | `20260930080000_issue42_abuse_signals` | 不正利用signal（7日保持） | なし |
 | `20260930120544_service_role_core_privileges` | `service_role`の表権限（下記） | なし（GRANTのみ） |
+| `20261001004539_legal_acknowledgement_rpcs` | 法的文書と確認記録のRPC（ADR-046） | なし（関数の追加のみ） |
 
 rollbackは`supabase/rollback/`に同名のファイルがある。本番で戻すのは、アプリを1つ前のdigestへ戻した**後**に限る（新しいAPIは新しいRPCを前提にするため）。
 
@@ -94,3 +95,19 @@ API側の確認:
 2. Webでログイン→希望条件保存→求人URLを1件分析→`pending`になる
 3. 共有リンクを作成→`/s/<token>`が200、失効後に404
 4. `select count(*) from public.abuse_signal_events`が増える（`ABUSE_SIGNAL_SECRET`設定時のみ）
+
+## 法的文書の登録（ADR-046、リリース前に必須）
+
+APIの`legal-acknowledgements`は、有効な利用規約とプライバシーポリシーが両方そろうまで503を返し、誰もアプリを利用できない（fail closed）。本文の正は`legal_documents.body_markdown`で、更新・削除はできない（改定は新しい版の追加）。
+
+確定した本文をmigrationとして追加し（例: `supabase migration new legal_documents_v1_0`）、レビューを経て他のmigrationと同じ手順で適用する。本文がrepoにも履歴として残る。
+
+```sql
+insert into public.legal_documents
+  (document_type, version, body_markdown, published_at, effective_at)
+values
+  ('terms', '1.0', $terms$…確定した利用規約の本文…$terms$, '2026-10-03 00:00+09', '2026-10-03 00:00+09'),
+  ('privacy_policy', '1.0', $pp$…確定したプライバシーポリシーの本文…$pp$, '2026-10-03 00:00+09', '2026-10-03 00:00+09');
+```
+
+確認: `curl https://api.career.enludus.com/v1/legal-documents/current`（Web経由では`/api/v1/legal-documents/current`）が200を返し、ログイン後に同意画面が表示されること。改定時は新しい`version`を追加すれば、次回アクセス時に全員へ再確認を求める。

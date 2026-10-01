@@ -46,6 +46,7 @@
 | [ADR-040](adr/040-free-mvp-hosting-split.md) | 月額0円MVPはWebをCloudflare Pages、APIをAzure Container Apps、crawlerをContainer Apps Job、DB/AuthをSupabase Free、imageをGHCRに置く。OCI/k3sは後続 | 既存のNode API・Playwright crawler・DBのjob管理をそのまま使え、無料枠内で動く | scale to zeroの初回遅延、Job起動待ち、egress制御の限定 |
 | [ADR-041](adr/041-operational-observability-boundary.md) | 運用観測はOTelで計装し、Grafana Cloud FreeへOTLPで直接送る。Datadogは将来の追加候補 | ベンダー非依存、送信失敗でも本体が止まらない、0円で運用観測できる | Grafana Cloud Freeの上限と保持14日 |
 | [ADR-042](adr/042-abuse-signals.md) | 不正利用signalは生IP/UAを保存せず、日次HMACの仮名を7日だけ保持し、security用途に限る | 利用者ID上限の回避を仮名で検知しつつ追跡を難しくする | 日をまたぐ追跡不可、信頼proxy境界がない時はIP signalなし |
+| [ADR-046](adr/046-legal-consent-flow.md) | 利用規約（同意）とプライバシーポリシー（確認）の現在の版への記録を利用開始の条件にする。本文はDBが正、記録はserverが現在版だけを受け付け、文書未登録時はfail closed | 誰がどの版にいつ同意したかを示せ、改定時に再同意を求められる | 有効な文書が未登録だと誰も利用できない（意図どおり） |
 
 ## 技術スパイクで検証・継続確認する項目
 

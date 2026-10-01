@@ -25,10 +25,13 @@ export function AnalyzeScreen({
   function submitAndReveal(urlToAnalyze: string) {
     onSubmit(urlToAnalyze);
     requestAnimationFrame(() => {
-      statusRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      const target = statusRef.current;
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
     });
   }
 

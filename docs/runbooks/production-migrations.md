@@ -35,6 +35,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20261001004539_legal_acknowledgement_rpcs` | 法的文書と確認記録のRPC（ADR-046） | なし（関数の追加のみ） |
 | `20261001014615_legal_documents_v1_0` | 利用規約・プライバシーポリシー v1.0の本文（2026-10-03 00:00 JSTから有効） | なし（追加のみ。同じ版が既にあれば失敗する。rollbackは確認記録がない間だけ可能） |
 | `20261001020540_job_discovery` | Web探索のjob・結果・利用者ごとの回数記録とRPC（ADR-047） | なし（表と関数の追加のみ。rollbackは探索記録を消すが、保存済みの求人は残る） |
+| `20261001135230_legal_documents_v1_0_effective_20261001` | v1.0法的文書の公開・適用日を2026-10-01へ前倒し | **確認記録0件の時だけ可**。確認済みなら停止して新しい版を追加する |
 
 rollbackは`supabase/rollback/`に同名のファイルがある。本番で戻すのは、アプリを1つ前のdigestへ戻した**後**に限る（新しいAPIは新しいRPCを前提にするため）。
 
@@ -104,7 +105,7 @@ API側の確認:
 
 APIの`legal-acknowledgements`は、有効な利用規約とプライバシーポリシーが両方そろうまで503を返し、誰もアプリを利用できない（fail closed）。本文の正は`legal_documents.body_markdown`で、更新・削除はできない（改定は新しい版の追加）。
 
-v1.0は`20261001014615_legal_documents_v1_0`で登録する（公開・適用は2026-10-03 00:00 JST = 2026-10-02T15:00:00Z）。**この時刻より前は誰も利用を始められない**（fail closed）。リリース前にAPI・Webをdeployしてもよいが、10/3 0:00 JSTまでは「現在利用できません」と表示される。
+v1.0は`20261001014615_legal_documents_v1_0`で当初2026-10-03 00:00 JST公開・適用として登録した。その後、公開告知前に本番動作確認を行うため、確認記録が0件であることを確認したうえで`20261001135230_legal_documents_v1_0_effective_20261001`により公開・適用日を**2026-10-01 00:00 JST**へ前倒しした。以後はv1.0を更新せず、訂正が必要なら新しいversionを追加する。
 
 改定時は、新しい`version`をmigrationとして追加する（既存行は更新しない）。同じ種類・版が既にあるとmigrationは失敗する。
 

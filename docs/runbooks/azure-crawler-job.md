@@ -92,3 +92,27 @@ az containerapp update -g $RG -n job-match-api --set-env-vars \
 
 現時点ではJobのdeployは自動化していない。新しいdigestへ手動で更新する:
 `az containerapp job update -g $RG -n $JOB --image ghcr.io/naki0227/job-match-crawler@<digest>`
+
+## Web探索（ADR-047、任意）
+
+crawler Jobに次を設定すると、Job Resolverの探索jobも処理する（未設定なら無効）。DDGSのPythonとscriptのパスはimageの`ENV`で設定済み。
+
+```bash
+az containerapp job update -g $RG -n $JOB --set-env-vars \
+  CRAWLER_WEB_SEARCH_PROVIDER=ddgs CRAWLER_DDGS_REGION=jp-jp CRAWLER_DDGS_TIMEOUT_MS=10000 \
+  CRAWLER_DISCOVERY_MAX_QUERIES=2 CRAWLER_DISCOVERY_RESULTS_PER_QUERY=10 \
+  CRAWLER_DISCOVERY_MAX_FETCHES=12 CRAWLER_DISCOVERY_MAX_LINKS_PER_LISTING=10 \
+  CRAWLER_DISCOVERY_MAX_RESULTS=20
+```
+
+API側（Container App）にも次を設定する。値は運用値の目安。
+
+```bash
+az containerapp update -g $RG -n job-match-api --set-env-vars \
+  JOB_RESOLVER_MAX_CANDIDATES=20 JOB_RESOLVER_LISTING_LIMIT=20 JOB_RESOLVER_KNOWN_LISTING_MINIMUM=5 \
+  JOB_RESOLVER_SEARCH_LIMIT=30 JOB_RESOLVER_SEARCH_WINDOW_SECONDS=3600 \
+  JOB_DISCOVERY_FRESHNESS_SECONDS=86400 JOB_DISCOVERY_USER_LIMIT=10 JOB_DISCOVERY_WINDOW_SECONDS=86400 \
+  JOB_DISCOVERY_MAX_ACTIVE=20 JOB_DISCOVERY_RETENTION_SECONDS=2592000
+```
+
+DDGSがblockされた場合や失敗した場合でも、探索jobはretryののち`failed`になるだけで、解析jobには影響しない。利用者には既知の求人か「URLを直接入力」が表示される。

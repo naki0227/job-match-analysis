@@ -40,6 +40,14 @@ Node.js 24、pnpm 11、DB統合テスト用のDockerを用意する。ルート�
 
 **実装方針:** コードは開発者が手書きする。ここにある図には実装済み部分と設計案があり、実測・技術スパイクにより更新する。課題はGitHub Issuesの受け入れ条件を単位に進める。
 
+## 求人の探索について（DDGS）
+
+企業名（と職種）から求人を探す機能は、まず解析済みの求人を使います。足りないときだけ、crawler workerが非同期にWeb検索します。初期βでは、コストを抑えるために [DDGS](https://github.com/deedy5/ddgs)（DuckDuckGo backendのみ、9.16.0に固定）を**best-effortで**使っています。恒久的な基盤ではありません。
+
+- 検索結果は手がかりにとどめ、安全な取得とJobPosting JSON-LDの検証を通った求人だけを保存します。
+- 利用者の増加、rate limitやblockの頻発、検索品質の不足、提供側の仕様変更、SLAが必要になった時、商用規模への拡大のいずれかがあれば、正式なSearch API（Tavily、Brave Search API等）への移行を検討します。`WebSearchProvider`のadapterを差し替えるだけで移行できます。
+- 詳細は [ADR-047](docs/adr/047-web-job-discovery-ddgs.md) を参照してください。
+
 ## Issues / 進め方
 
 コミット前のローカル検証を有効にするには、初回に `git config --local core.hooksPath .githooks` を実行する。以後のコミットでは `pnpm precommit` が走り、format check・lint・typecheck・test・buildを確認する。必要なら同じコマンドを手動でも実行できる。

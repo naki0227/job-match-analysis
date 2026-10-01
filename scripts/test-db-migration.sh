@@ -220,6 +220,8 @@ psql_cmd < supabase/migrations/20261001142500_analysis_job_immediate_retry.sql
 psql_cmd < supabase/tests/20261001142500_analysis_job_immediate_retry.sql
 psql_cmd < supabase/migrations/20261001142600_privacy_policy_v1_1_ddgs.sql
 psql_cmd < supabase/tests/20261001142600_privacy_policy_v1_1_ddgs.sql
+psql_cmd < supabase/migrations/20261001143100_privacy_policy_v1_1_current_order.sql
+psql_cmd < supabase/tests/20261001143100_privacy_policy_v1_1_current_order.sql
 # Different queries started at once must not exceed the service-wide cap.
 psql_cmd -c "insert into auth.users(id) select ('47200000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid from generate_series(1, 20) n;
   insert into public.profiles(id) select id from auth.users where id::text like '47200000-%';"
@@ -257,6 +259,7 @@ psql_cmd < supabase/tests/legal_documents_v1_0_rollback.sql
 psql_cmd < supabase/rollback/20261001004539_legal_acknowledgement_rpcs.sql
 psql_cmd < supabase/tests/legal_acknowledgement_rpcs_rollback.sql
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-job-resolver-db.ts
+psql_cmd < supabase/rollback/20261001143100_privacy_policy_v1_1_current_order.sql
 psql_cmd < supabase/rollback/20261001142600_privacy_policy_v1_1_ddgs.sql
 psql_cmd < supabase/rollback/20261001142500_analysis_job_immediate_retry.sql
 psql_cmd < supabase/rollback/20261001020540_job_discovery.sql

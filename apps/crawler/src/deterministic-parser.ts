@@ -148,6 +148,7 @@ function location(text: string): string[][] {
     );
   if (!match) return [];
   const value = match[1]!;
+  if (/将来的|予定|相談|応相談|全国|可能性|変更/u.test(value)) return [];
   const names = PREFECTURES.filter((name) => value.includes(name));
   if (value.includes("名古屋") && !names.includes("愛知県")) names.push("愛知県");
   return names.length ? [[...names]] : [];

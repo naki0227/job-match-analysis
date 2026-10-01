@@ -21,9 +21,20 @@ export type ApiMetrics = {
   workerTrigger: (outcome: WorkerTriggerOutcome) => void;
   /** Job Resolver searches by outcome, and whether Jev chose (ADR-045). */
   jobResolution: (
-    outcome: "resolved" | "candidates" | "not_found" | "failed",
+    outcome:
+      | "resolved"
+      | "candidates"
+      | "not_found"
+      | "searching"
+      | "rate_limited"
+      | "failed",
     selectorUsed: boolean,
   ) => void;
+  /** What happened to web discovery for one search (ADR-047). */
+  jobResolverDiscovery: (
+    outcome: "ready" | "pending" | "unavailable" | "skipped",
+  ) => void;
+  jobResolverLatency: (durationMs: number) => void;
 };
 
 export const noopApiMetrics: ApiMetrics = {
@@ -31,6 +42,8 @@ export const noopApiMetrics: ApiMetrics = {
   analysisRequest: () => {},
   workerTrigger: () => {},
   jobResolution: () => {},
+  jobResolverDiscovery: () => {},
+  jobResolverLatency: () => {},
 };
 
 /** Telemetry failures must never break a request. */
@@ -60,6 +73,20 @@ export function safeApiMetrics(inner: ApiMetrics): ApiMetrics {
     jobResolution: (outcome, selectorUsed) => {
       try {
         inner.jobResolution(outcome, selectorUsed);
+      } catch {
+        // See above.
+      }
+    },
+    jobResolverDiscovery: (outcome) => {
+      try {
+        inner.jobResolverDiscovery(outcome);
+      } catch {
+        // See above.
+      }
+    },
+    jobResolverLatency: (durationMs) => {
+      try {
+        inner.jobResolverLatency(durationMs);
       } catch {
         // See above.
       }

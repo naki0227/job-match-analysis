@@ -143,6 +143,8 @@ test("queued and stale requests wake a worker; cache hits do not", async () => {
     analysisRequest: () => {},
     workerTrigger: (outcome: WorkerTriggerOutcome) => outcomes.push(outcome),
     jobResolution: () => {},
+    jobResolverDiscovery: () => {},
+    jobResolverLatency: () => {},
   };
   const sourceUrlId = randomUUID();
   const results = {

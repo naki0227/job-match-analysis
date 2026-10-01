@@ -92,7 +92,7 @@ export function createApp(
   app.route("/", createShareRoutes(deps, undefined, signals));
   app.route("/", createSharePageRoutes(createSupabaseSharePorts));
   app.route("/", createAccountRoutes(deps));
-  app.route("/", createJobResolverRoutes(deps, undefined, metrics));
+  app.route("/", createJobResolverRoutes(deps, undefined, metrics, trigger));
 
   return app;
 }

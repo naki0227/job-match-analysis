@@ -29,6 +29,7 @@ begin
     ('evaluation_targets', '{SELECT,INSERT,UPDATE}'),
     ('evaluations', '{SELECT,INSERT}'),
     ('jev_daily_usage', '{SELECT,INSERT,UPDATE}'),
+    ('job_discovery_access', '{SELECT,INSERT}'),
     ('job_discovery_requests', '{SELECT,INSERT,UPDATE,DELETE}'),
     ('job_discovery_results', '{SELECT,INSERT}'),
     ('job_postings', '{SELECT,INSERT}'),

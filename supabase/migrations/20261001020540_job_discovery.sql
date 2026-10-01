@@ -47,6 +47,19 @@ create table public.job_discovery_results (
   primary key (request_id, job_posting_id)
 );
 
+-- Which users may read which discovery: whoever started it, joined it while
+-- it ran, or reused its fresh result. Polling is authorized by this row,
+-- never by knowing the ID. Removed with the account; the discovery stays.
+create table public.job_discovery_access (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  discovery_id uuid not null
+    references public.job_discovery_requests(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, discovery_id)
+);
+create index job_discovery_access_discovery_idx
+  on public.job_discovery_access (discovery_id);
+
 -- Per-user resolver usage for rate limits; removed with the account.
 create table public.job_resolver_events (
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -59,8 +72,11 @@ create index job_resolver_events_user_idx
 alter table public.job_discovery_requests enable row level security;
 alter table public.job_discovery_results enable row level security;
 alter table public.job_resolver_events enable row level security;
+alter table public.job_discovery_access enable row level security;
 revoke all on public.job_discovery_requests, public.job_discovery_results,
-  public.job_resolver_events from public, anon, authenticated;
+  public.job_resolver_events, public.job_discovery_access
+  from public, anon, authenticated;
+grant select, insert on public.job_discovery_access to service_role;
 grant select, insert, update, delete on public.job_discovery_requests to service_role;
 grant select, insert on public.job_discovery_results to service_role;
 grant select, insert, delete on public.job_resolver_events to service_role;
@@ -129,6 +145,9 @@ begin
         or (r.status = 'completed' and r.completed_at >= p_fresh_after))
     order by r.created_at desc limit 1;
   if v_id is not null then
+    -- Joining a running discovery or reusing a fresh one grants read access.
+    insert into public.job_discovery_access(user_id, discovery_id)
+      values (p_user_id, v_id) on conflict do nothing;
     return query select v_id, v_status, v_status = 'completed';
     return;
   end if;
@@ -139,6 +158,10 @@ begin
       >= p_user_limit then
     raise exception 'job_discovery_rate_limited' using errcode = 'P0429';
   end if;
+  -- The service-wide cap is checked and used under one global lock, so
+  -- different queries started at once on any replica cannot exceed it. It is
+  -- always taken after the per-query lock, so the lock order is fixed.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('job_discovery:active_cap'));
   if (select count(*) from public.job_discovery_requests
       where status in ('queued', 'running')) >= p_max_active then
     raise exception 'job_discovery_busy' using errcode = 'P0503';
@@ -147,6 +170,7 @@ begin
   insert into public.job_discovery_requests(query_key, company, role_query, employment_type)
     values (p_query_key, p_company, p_role_query, p_employment_type)
     returning id into v_id;
+  insert into public.job_discovery_access(user_id, discovery_id) values (p_user_id, v_id);
   insert into public.job_resolver_events(user_id, kind) values (p_user_id, 'discovery');
   -- Old discoveries are only a cache; the postings they found stay.
   delete from public.job_discovery_requests
@@ -294,9 +318,9 @@ begin
 end;
 $$;
 
--- Status and verified postings of one discovery, for polling. The stored
--- query is not returned.
-create function public.read_job_discovery(p_discovery_id uuid)
+-- Status and verified postings of one discovery, for polling by a user who
+-- has access to it (nothing otherwise). The stored query is not returned.
+create function public.read_job_discovery(p_user_id uuid, p_discovery_id uuid)
 returns table (
   discovery_status text, company_name text, title text, url text,
   source_kind text, employment_types jsonb, location text,
@@ -315,19 +339,24 @@ as $$
   left join public.companies c on c.id = j.company_id
   left join public.source_urls s on s.id = j.source_url_id
   where r.id = p_discovery_id
+    and exists (select 1 from public.job_discovery_access a
+      where a.discovery_id = r.id and a.user_id = p_user_id)
   order by d.position nulls first;
 $$;
 
 -- The query a discovery was started for, so polling can finish resolving it.
-create function public.read_job_discovery_query(p_discovery_id uuid)
+create function public.read_job_discovery_query(p_user_id uuid, p_discovery_id uuid)
 returns table (company text, role_query text, employment_type text, discovery_status text)
 language sql
 stable
 security invoker
 set search_path = ''
 as $$
-  select company, role_query, employment_type, status
-  from public.job_discovery_requests where id = p_discovery_id;
+  select r.company, r.role_query, r.employment_type, r.status
+  from public.job_discovery_requests r
+  where r.id = p_discovery_id
+    and exists (select 1 from public.job_discovery_access a
+      where a.discovery_id = r.id and a.user_id = p_user_id);
 $$;
 
 do $$
@@ -340,8 +369,8 @@ begin
     'public.claim_job_discovery(uuid,integer,integer)',
     'public.complete_job_discovery(uuid,uuid,jsonb)',
     'public.fail_job_discovery(uuid,uuid,text,integer)',
-    'public.read_job_discovery(uuid)',
-    'public.read_job_discovery_query(uuid)'
+    'public.read_job_discovery(uuid,uuid)',
+    'public.read_job_discovery_query(uuid,uuid)'
   ] loop
     execute format('revoke all on function %s from public, anon, authenticated', v_fn);
     execute format('grant execute on function %s to service_role', v_fn);

@@ -194,6 +194,27 @@ psql_cmd < supabase/migrations/20260930161211_job_resolver_known_postings.sql
 psql_cmd < supabase/tests/job_resolver_known_postings.sql
 psql_cmd < supabase/migrations/20261001020540_job_discovery.sql
 psql_cmd < supabase/tests/job_discovery.sql
+# Different queries started at once must not exceed the service-wide cap.
+psql_cmd -c "insert into auth.users(id) select ('47200000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid from generate_series(1, 20) n;
+  insert into public.profiles(id) select id from auth.users where id::text like '47200000-%';"
+discovery_cap_log=$(mktemp)
+for n in $(seq 1 20); do
+  docker exec "$container_name" psql -X -q -At -U postgres -d postgres -c "set role service_role;
+    select discovery_id from public.request_job_discovery(
+      ('47200000-0000-4000-8000-' || lpad('$n', 12, '0'))::uuid, 'cap-$n||', 'Cap $n',
+      null, null, now() - interval '1 hour', now() - interval '1 day', 5, 3,
+      now() - interval '30 days')" >> "$discovery_cap_log" 2>/dev/null &
+done
+wait
+started=$(grep -Ec '^[0-9a-f-]{36}$' "$discovery_cap_log" || true)
+active=$(psql_cmd -Atc "select count(*) from public.job_discovery_requests where query_key like 'cap-%' and status in ('queued', 'running')")
+rm -f "$discovery_cap_log"
+if [ "$started" != '3' ] || [ "$active" != '3' ]; then
+  printf 'Concurrent discoveries started %s and left %s active with a cap of 3\n' "$started" "$active" >&2
+  exit 1
+fi
+psql_cmd -c "delete from public.job_discovery_requests where query_key like 'cap-%';
+  delete from auth.users where id::text like '47200000-%';"
 psql_cmd < supabase/tests/service_role_core_privileges.sql
 psql_cmd < supabase/tests/issue29_security.sql
 pnpm --filter @job-match/contracts build

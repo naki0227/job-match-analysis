@@ -157,9 +157,7 @@ function location(text: string): string[][] {
 
 function fullRemote(text: string): boolean[] {
   const negative =
-    /フルリモート不可|完全在宅不可|出社\s*必須|原則[、,\s]*出社/u.test(
-      text,
-    );
+    /フルリモート不可|完全在宅不可|出社\s*必須|原則[、,\s]*出社/u.test(text);
   const positive =
     /フルリモート(?:可|可能|勤務|制度)|完全在宅(?:可|可能|勤務)|出社不要/u.test(
       text,
@@ -173,9 +171,7 @@ function weeklyOfficeDays(text: string): number[] {
   ].map((match) => Number(match[1]));
   if (required.length) return required;
   return [
-    ...text.matchAll(
-      /週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu,
-    ),
+    ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu),
   ].map((match) => Number(match[1]));
 }
 

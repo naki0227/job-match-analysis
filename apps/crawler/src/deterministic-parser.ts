@@ -4,7 +4,7 @@ import type {
   SourceFragment,
 } from "./source-extractor.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v4";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v5";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
@@ -319,6 +319,23 @@ function known<T>(value: T, excerpt: string, field: string): Known<T> {
   };
 }
 
+function mergeLocations(
+  structured: Known<readonly string[]> | undefined,
+  text: ParsedFact<readonly string[]>,
+): ParsedFact<readonly string[]> {
+  if (!structured) return text;
+  if (text.status === "unknown") return structured;
+  if (text.status === "conflicting") return text;
+  const value = [...new Set([...structured.value, ...text.value])];
+  return {
+    status: "known",
+    value,
+    excerpt: safeExcerpt(`${structured.excerpt} / ${text.excerpt}`),
+    locator: text.locator,
+  };
+}
+
+
 export function parseDeterministicJobFacts(
   document: ExtractedSourceDocument,
 ): ParsedJobFacts {
@@ -329,7 +346,7 @@ export function parseDeterministicJobFacts(
     : [];
   return {
     salary: collect(fragments, salary),
-    location: preferStructured(
+    location: mergeLocations(
       regions.length && structured
         ? known([...regions], structured.regions.join(" / "), "jobLocation")
         : undefined,

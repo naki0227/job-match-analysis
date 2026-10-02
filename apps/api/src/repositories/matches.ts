@@ -6,7 +6,14 @@ import type {
   StoredMatch,
 } from "@job-match/application";
 import { careerAxisKeys } from "@job-match/contracts";
-import type { AxisComparison, AxisEvidence } from "@job-match/domain";
+import {
+  prefectureCodeFromName,
+  type AxisComparison,
+  type AxisEvidence,
+  type JobConditions,
+  type Observation,
+  type SalaryOffer,
+} from "@job-match/domain";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -110,6 +117,79 @@ export type MatchRpc = (
   args: Record<string, unknown>,
 ) => Promise<unknown>;
 
+export type JobFactsReader = (evaluationId: string) => Promise<unknown>;
+
+const factStatus = z.enum(["known", "unknown", "conflicting"]);
+const salaryValue = z.object({
+  minimum: z.number().int().nonnegative(),
+  maximum: z.number().int().nonnegative(),
+  currency: z.string().min(1),
+  period: z.string().min(1),
+});
+const salaryFact = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("known"), value: salaryValue }),
+  z.object({ status: z.literal("unknown") }),
+  z.object({ status: z.literal("conflicting") }),
+]);
+const locationFact = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("known"), value: z.array(z.string().min(1)).min(1) }),
+  z.object({ status: z.literal("unknown") }),
+  z.object({ status: z.literal("conflicting") }),
+]);
+const remoteFact = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("known"), value: z.boolean() }),
+  z.object({ status: z.literal("unknown") }),
+  z.object({ status: z.literal("conflicting") }),
+]);
+const jobFactRows = z.array(
+  z.object({
+    kind: z.enum(["salary", "location", "fullRemote"]),
+    payload: z.unknown(),
+  }),
+);
+
+function observation<T>(
+  parsed:
+    | { status: "known"; value: T }
+    | { status: "unknown" | "conflicting" },
+): Observation<T> {
+  return parsed.status === "known"
+    ? { status: "known", value: parsed.value }
+    : { status: parsed.status };
+}
+
+function toJobConditions(raw: unknown): JobConditions {
+  const rows = jobFactRows.safeParse(raw);
+  if (!rows.success) throw new MatchStoreError();
+  const conditions: {
+    salary?: Observation<SalaryOffer>;
+    availablePrefectureCodes?: Observation<readonly string[]>;
+    fullRemote?: Observation<boolean>;
+  } = {};
+  for (const row of rows.data) {
+    if (row.kind === "salary") {
+      const parsed = salaryFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      conditions.salary = observation(parsed.data);
+    } else if (row.kind === "location") {
+      const parsed = locationFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      conditions.availablePrefectureCodes =
+        parsed.data.status === "known"
+          ? {
+              status: "known",
+              value: parsed.data.value.map(prefectureCodeFromName),
+            }
+          : { status: parsed.data.status };
+    } else {
+      const parsed = remoteFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      conditions.fullRemote = observation(parsed.data);
+    }
+  }
+  return conditions;
+}
+
 export class MatchStoreError extends Error {
   constructor() {
     super("Match storage is unavailable");
@@ -187,7 +267,10 @@ async function call(
   }
 }
 
-export function createMatchRepository(rpc: MatchRpc) {
+export function createMatchRepository(
+  rpc: MatchRpc,
+  readJobFacts: JobFactsReader = async () => [],
+) {
   return {
     async readEvaluation(
       evaluationId: string,
@@ -199,11 +282,16 @@ export function createMatchRepository(rpc: MatchRpc) {
       const parsed = evaluationSourceSchema.safeParse(raw);
       if (!parsed.success) throw new MatchStoreError();
       const source = parsed.data;
+      const jobConditions =
+        source.targetType === "job"
+          ? toJobConditions(await readJobFacts(source.evaluation.evaluationId))
+          : {};
       return {
         targetType: source.targetType,
         companyName: source.companyName,
         jobTitle: source.jobTitle,
         evaluation: toSnapshot(source.evaluation),
+        jobConditions,
         companyEvaluation: source.companyEvaluation
           ? toSnapshot(source.companyEvaluation)
           : null,
@@ -270,9 +358,20 @@ export function createSupabaseMatchRepository(): MatchRepository {
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  return createMatchRepository(async (name, args) => {
-    const { data, error } = await client.rpc(name, args);
-    if (error) throw new MatchStoreError();
-    return data;
-  });
+  return createMatchRepository(
+    async (name, args) => {
+      const { data, error } = await client.rpc(name, args);
+      if (error) throw new MatchStoreError();
+      return data;
+    },
+    async (evaluationId) => {
+      const { data, error } = await client
+        .from("evaluation_job_facts")
+        .select("kind,payload")
+        .eq("evaluation_id", evaluationId)
+        .in("kind", ["salary", "location", "fullRemote"]);
+      if (error) throw new MatchStoreError();
+      return data ?? [];
+    },
+  );
 }

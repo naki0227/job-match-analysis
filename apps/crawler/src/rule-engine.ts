@@ -7,9 +7,15 @@ import type {
 export const RULE_ENGINE_VERSION = "public-rules-v4";
 
 function englishOfficeDays(text: string): number[] {
+  const required = [
+    ...text.matchAll(
+      /(?:required|must)[^.]{0,160}(?:office|on[- ]?site)[^.]{0,80}(?:a\s+)?(?:minimum\s+of|at\s+least)\s*([0-5])\s*days?\s*per\s*week/giu,
+    ),
+  ].map((match) => Number(match[1]));
+  if (required.length) return required;
   return [
     ...text.matchAll(
-      /(?:required|must)[^.]{0,140}(?:office|on[- ]?site)[^.]{0,100}(?:minimum\s+of|at\s+least)?\s*([0-5])\s*days?\s*per\s*week/giu,
+      /(?:office|on[- ]?site)[^.]{0,60}(?:a\s+)?(?:minimum\s+of|at\s+least)\s*([0-5])\s*days?\s*per\s*week/giu,
     ),
   ].map((match) => Number(match[1]));
 }

@@ -84,8 +84,6 @@ describe("crawler cycle", () => {
           },
         },
         limits: {
-          maxFragments: 40,
-          maxContextChars: 8_000,
           maxFragmentChars: 200,
         },
       },

@@ -29,8 +29,6 @@ function source() {
       documents: [document],
       scope: "job",
       limits: {
-        maxFragments: 40,
-        maxContextChars: 8_000,
         maxFragmentChars: 200,
       },
     }).fragments,

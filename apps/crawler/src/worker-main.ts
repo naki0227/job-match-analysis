@@ -28,9 +28,6 @@ const configSchema = z.object({
   CRAWLER_LEASE_SECONDS: z.coerce.number().int().min(1).max(3600),
   CRAWLER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100),
   CRAWLER_RETENTION_BATCH_SIZE: z.coerce.number().int().min(1).max(1000),
-  /** Evaluator context limits per document (ADR-044). */
-  CRAWLER_JEV_MAX_FRAGMENTS: z.coerce.number().int().positive(),
-  CRAWLER_JEV_MAX_CONTEXT_CHARS: z.coerce.number().int().positive(),
   /** Longest fragment, and so the longest stored evidence quote. */
   CRAWLER_MAX_EXCERPT_CHARS: z.coerce.number().int().positive(),
   CRAWLER_MAX_EVIDENCE_PER_AXIS: z.coerce.number().int().positive(),
@@ -125,8 +122,6 @@ async function main(): Promise<void> {
         engine,
         browser,
         limits: {
-          maxFragments: config.CRAWLER_JEV_MAX_FRAGMENTS,
-          maxContextChars: config.CRAWLER_JEV_MAX_CONTEXT_CHARS,
           maxFragmentChars: config.CRAWLER_MAX_EXCERPT_CHARS,
         },
         metrics: crawlerMetrics,

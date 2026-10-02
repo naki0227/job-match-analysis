@@ -12,10 +12,8 @@ import {
 import { oracleJev } from "./support/oracle-jev.js";
 
 const sourceUrlId = "33333333-3333-4333-8333-333333333333";
-// Production-like limits (see docs/runbooks/azure-crawler-job.md).
+// Production-like evidence fragment size (see docs/runbooks/azure-crawler-job.md).
 const limits = {
-  maxFragments: 60,
-  maxContextChars: 12_000,
   maxFragmentChars: 200,
 };
 
@@ -120,12 +118,10 @@ describe("production regression: keyword prefilter hid most axes", () => {
     const { document, result, jev } = await evaluate(productionRegression);
     expect(jev.requests).toHaveLength(1);
     const state = jev.requests[0]!.state;
-    // The page is larger than the context limit, so some text was left out,
-    // yet every explicit statement still reached Jev.
-    expect(document.fragments.length).toBeGreaterThan(limits.maxFragments);
-    expect(
-      (JSON.parse(state) as { fragments: unknown[] }).fragments,
-    ).toHaveLength(limits.maxFragments);
+    // The regression page exceeds the old 60-fragment guard. The complete
+    // extracted context now reaches Jev instead of being keyword-selected.
+    const sent = (JSON.parse(state) as { fragments: unknown[] }).fragments;
+    expect(sent.length).toBeGreaterThan(60);
     for (const truth of Object.values(productionRegression.truth)) {
       expect(state).toContain(truth.phrases[0]);
     }

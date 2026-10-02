@@ -87,8 +87,6 @@ describe("Jev daily budget", () => {
         reserve: async () => false,
       }),
       limits: {
-        maxFragments: 40,
-        maxContextChars: 8_000,
         maxFragmentChars: 200,
       },
     });

@@ -65,7 +65,8 @@ test("未確認の利用者は本文を読んで両方に同意・確認する�
   await next.click();
 
   // The saved profile is still there: the user lands on the normal home.
-  await expect(page.getByLabel("求人ページのURL")).toBeVisible();
+  await expect(page.getByLabel("企業名")).toBeVisible();
+  await expect(page.getByText("求人URLを直接入力")).toBeVisible();
   expect(recorded).toEqual({
     termsDocumentId: legalDocuments.terms.id,
     privacyPolicyDocumentId: legalDocuments.privacyPolicy.id,

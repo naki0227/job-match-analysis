@@ -12,6 +12,35 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+test("home shows company search before the direct URL fallback", async () => {
+  vi.stubGlobal(
+    "fetch",
+    consented(
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ items: [], nextCursor: null }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+      ),
+    ),
+  );
+  render(
+    <AuthenticatedApp
+      getAccessToken={async () => "token"}
+      email="sample@example.com"
+      onSignOut={async () => {}}
+      onAccountDeleted={() => {}}
+    />,
+    { wrapper: createQueryWrapper() },
+  );
+
+  expect(await screen.findByLabelText("企業名")).toBeVisible();
+  expect(screen.getByLabelText("職種（任意）")).toBeVisible();
+  expect(screen.getByRole("button", { name: "求人を探す" })).toBeVisible();
+  expect(screen.getByText("求人URLを直接入力")).toBeVisible();
+});
+
 test("home submission moves to the analysis screen and shows progress", async () => {
   const fetcher = vi.fn(
     async () =>
@@ -33,7 +62,8 @@ test("home submission moves to the analysis screen and shows progress", async ()
     },
   );
 
-  fireEvent.change(await screen.findByLabelText("求人ページのURL"), {
+  fireEvent.click(await screen.findByText("求人URLを直接入力"));
+  fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
   });
   fireEvent.click(screen.getByRole("button", { name: "分析する" }));
@@ -66,6 +96,7 @@ test("invalid URL is flagged without calling the API", async () => {
     },
   );
   fireEvent.click(await screen.findByRole("button", { name: "求人分析" }));
+  fireEvent.click(screen.getByText("求人URLを直接入力"));
   fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "jobs.example.com" },
   });
@@ -112,7 +143,8 @@ test("a cache hit shows the personal match report", async () => {
       wrapper: createQueryWrapper(),
     },
   );
-  fireEvent.change(await screen.findByLabelText("求人ページのURL"), {
+  fireEvent.click(await screen.findByText("求人URLを直接入力"));
+  fireEvent.change(screen.getByLabelText("求人ページのURL"), {
     target: { value: "https://jobs.example.com/1" },
   });
   fireEvent.click(screen.getByRole("button", { name: "分析する" }));

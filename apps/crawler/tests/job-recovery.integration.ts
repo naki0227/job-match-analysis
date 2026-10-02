@@ -147,8 +147,6 @@ async function runWorker(mode: "hold" | "recover"): Promise<void> {
         siteAllowed: async (origin) => origin === "https://example.org",
         engine: createFakeDecisionEngine(),
         limits: {
-          maxFragments: 40,
-          maxContextChars: 8_000,
           maxFragmentChars: 200,
         },
         resolve: async () => ["8.8.8.8"],
@@ -218,7 +216,7 @@ async function main(): Promise<void> {
   assert.equal(
     await query(`select count(*) from public.source_document_versions
       where source_url_id = '${sourceId}'
-        and extractor_version = 'html-v1'
+        and extractor_version = 'html-v2'
         and extracted_text like '%[job]%'
         and extracted_text like '%[company]%'`),
     "1",

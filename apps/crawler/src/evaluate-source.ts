@@ -20,7 +20,7 @@ import type { ExtractedSourceDocument } from "./source-extractor.js";
 
 /**
  * Structured facts and explicit rules decide what they can; the evaluator
- * reads the whole bounded context for the remaining axes only.
+ * reads the complete extracted context for the remaining axes only.
  */
 export async function evaluateSource(args: {
   sourceUrlId: string;

@@ -15,7 +15,7 @@ const processor = {
       throw new Error("unexpected");
     },
   },
-  limits: { maxFragments: 40, maxContextChars: 8_000, maxFragmentChars: 200 },
+  limits: { maxFragmentChars: 200 },
 };
 
 describe("crawler cycle", () => {
@@ -84,8 +84,6 @@ describe("crawler cycle", () => {
           },
         },
         limits: {
-          maxFragments: 40,
-          maxContextChars: 8_000,
           maxFragmentChars: 200,
         },
       },

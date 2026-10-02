@@ -69,6 +69,7 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
   );
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByText("求人URLを直接入力").click();
   await page
     .getByLabel("求人ページのURL")
     .fill("https://jobs.example.com/posting/1");
@@ -141,6 +142,7 @@ test("解析中にホームへ戻っても完了後の履歴が自動更新さ�
     }),
   );
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByText("求人URLを直接入力").click();
   await page
     .getByLabel("求人ページのURL")
     .fill("https://jobs.example.com/posting/1");
@@ -202,6 +204,7 @@ test("バックグラウンド中にサーバー側で完了した解析が、�
   );
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByText("求人URLを直接入力").click();
   await page
     .getByLabel("求人ページのURL")
     .fill("https://jobs.example.com/posting/1");
@@ -296,7 +299,6 @@ test("企業名と職種で求人を探し、候補から選んだ求人を分�
   );
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: /企業名と職種から探す/ }).click();
   await page.getByLabel("企業名").fill("サンプル");
   await page.getByLabel("職種（任意）").fill("法人営業");
   await page.getByRole("button", { name: "求人を探す" }).click();

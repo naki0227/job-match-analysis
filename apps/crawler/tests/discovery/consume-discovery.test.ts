@@ -114,7 +114,7 @@ describe("worker cycle with discovery", () => {
     processor: {
       loadSource: async () => null,
       engine: { evaluate: async () => Promise.reject(new Error("unused")) },
-      limits: { maxFragments: 1, maxContextChars: 1, maxFragmentChars: 1 },
+      limits: { maxFragmentChars: 1 },
     },
     leaseSeconds: 60,
     maxAttempts: 3,

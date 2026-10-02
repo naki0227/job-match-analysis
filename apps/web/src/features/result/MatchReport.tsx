@@ -2,6 +2,7 @@ import { Mascot } from "../../components/Mascot";
 import { ShareButton } from "../share/ShareButton";
 import { AxisResultItem } from "./AxisResultItem";
 import { JobOverview } from "./JobOverview";
+import { PostingSection } from "./PostingSection";
 import {
   constraintLabels,
   constraintReasonLabels,
@@ -96,6 +97,21 @@ export function MatchReport({ report }: Props) {
       )}
 
       <JobOverview overview={report.jobOverview} />
+      <PostingSection
+        id="posting-duties"
+        title="仕事内容・役割"
+        section={report.jobOverview.duties}
+      />
+      <PostingSection
+        id="posting-work-style"
+        title="働き方"
+        section={report.jobOverview.workStyle}
+      />
+      <PostingSection
+        id="posting-requirements"
+        title="求める人物・経験"
+        section={report.jobOverview.requirements}
+      />
 
       <section
         className="constraint-section"

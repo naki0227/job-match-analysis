@@ -64,6 +64,7 @@ export type {
   MatchConstraintResult,
   MatchEvidence,
   JobOverview,
+  JobSectionOverview,
   MatchReport,
   MatchTargetResult,
 } from "./matches.js";

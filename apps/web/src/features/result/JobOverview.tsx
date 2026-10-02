@@ -76,14 +76,38 @@ function techStack(value: JobOverviewData["techStack"]): string {
     : unavailable(value.status);
 }
 
+/** The page text a known fact was read from, when it was stored. */
+function evidence(fact: { status: string; evidence?: string }) {
+  return fact.status === "known" ? fact.evidence : undefined;
+}
+
+function workStyleEvidence(overview: JobOverviewData) {
+  return overview.weeklyOfficeDays.status === "known" &&
+    overview.weeklyOfficeDays.value > 0
+    ? evidence(overview.weeklyOfficeDays)
+    : evidence(overview.fullRemote);
+}
+
 export function JobOverview({ overview }: Props) {
   const items = [
-    ["給与", salary(overview.salary)],
-    ["雇用形態", employment(overview.employmentTypes)],
-    ["勤務地", locations(overview.locations)],
-    ["働き方", workStyle(overview)],
-    ["勤務時間", flexibility(overview.scheduleFlexibility)],
-    ["技術スタック", techStack(overview.techStack)],
+    ["給与", salary(overview.salary), evidence(overview.salary)],
+    [
+      "雇用形態",
+      employment(overview.employmentTypes),
+      evidence(overview.employmentTypes),
+    ],
+    ["勤務地", locations(overview.locations), evidence(overview.locations)],
+    ["働き方", workStyle(overview), workStyleEvidence(overview)],
+    [
+      "勤務時間",
+      flexibility(overview.scheduleFlexibility),
+      evidence(overview.scheduleFlexibility),
+    ],
+    [
+      "技術スタック",
+      techStack(overview.techStack),
+      evidence(overview.techStack),
+    ],
   ] as const;
 
   return (
@@ -95,10 +119,18 @@ export function JobOverview({ overview }: Props) {
         </p>
       </div>
       <dl className="job-overview-grid">
-        {items.map(([label, value]) => (
+        {items.map(([label, value, source]) => (
           <div className="job-overview-item" key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              {value}
+              {source && (
+                <span className="fact-evidence">
+                  <span className="visually-hidden">原文: </span>
+                  {source}
+                </span>
+              )}
+            </dd>
           </div>
         ))}
       </dl>

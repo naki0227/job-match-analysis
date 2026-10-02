@@ -57,8 +57,9 @@ alter table public.match_axis_results
       and observed_anchor is not null and observed_anchor_max is not null
       and observed_anchor in (0, 50) and observed_anchor_max = observed_anchor + 50)
   ),
-  -- difference is the smallest possible difference, difference_max the
-  -- largest (range only). close/different/partial follow from both ends.
+  -- difference is the distance to the nearer documented endpoint;
+  -- difference_max is the distance to the farther endpoint (range only).
+  -- No value inside the interval is inferred.
   add constraint match_axis_results_check1 check (
     (observation_status = 'known' and difference_max is null and (
       (comparison_status = 'close' and importance > 0 and difference is not null
@@ -69,10 +70,8 @@ alter table public.match_axis_results
     or (observation_status = 'range' and importance > 0
       and observed_anchor is not null and observed_anchor_max is not null
       and difference is not null and difference_max is not null
-      and difference = case
-        when preference between observed_anchor and observed_anchor_max then 0
-        else least(abs(preference - observed_anchor),
-          abs(preference - observed_anchor_max)) end
+      and difference = least(abs(preference - observed_anchor),
+        abs(preference - observed_anchor_max))
       and difference_max = greatest(abs(preference - observed_anchor),
         abs(preference - observed_anchor_max))
       and comparison_status = case

@@ -58,6 +58,8 @@ describe("browser network boundary", () => {
           "https://script.example/app.js",
         ]);
         expect(boundary.metrics.requests).toBeGreaterThanOrEqual(4);
+        // Refused third-party requests do not mark the page's render partial.
+        expect(boundary.metrics.blockedRendering).toBe(0);
       } finally {
         await boundary.context.close();
       }

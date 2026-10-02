@@ -21,7 +21,11 @@ export interface BrowserBoundary {
     requests: number;
     bytes: number;
     blocked: number;
-    /** Blocked document, script or data requests: the render may be partial. */
+    /**
+     * Blocked document, script or data requests from the page's own origin:
+     * the page's text may be partly unrendered. Third-party analytics and
+     * widgets are not counted.
+     */
     blockedRendering: number;
   };
 }
@@ -38,6 +42,7 @@ export async function createBrowserBoundary(
     permissions: [],
   });
   const metrics = { requests: 0, bytes: 0, blocked: 0, blockedRendering: 0 };
+  let pageOrigin: string | undefined;
   await context.routeWebSocket("**/*", (route) => {
     metrics.blocked += 1;
     return route.close();
@@ -45,6 +50,18 @@ export async function createBrowserBoundary(
   await context.route("**/*", async (route) => {
     const browserRequest = route.request();
     metrics.requests += 1;
+    let requestOrigin: string | undefined;
+    try {
+      requestOrigin = new URL(browserRequest.url()).origin;
+    } catch {
+      requestOrigin = undefined;
+    }
+    if (
+      pageOrigin === undefined &&
+      browserRequest.isNavigationRequest() &&
+      browserRequest.frame().parentFrame() === null
+    )
+      pageOrigin = requestOrigin;
     try {
       if (
         metrics.requests > BROWSER_LIMITS.maxRequests ||
@@ -75,7 +92,10 @@ export async function createBrowserBoundary(
       });
     } catch {
       metrics.blocked += 1;
-      if (RENDERING_RESOURCES.has(browserRequest.resourceType()))
+      if (
+        RENDERING_RESOURCES.has(browserRequest.resourceType()) &&
+        requestOrigin === pageOrigin
+      )
         metrics.blockedRendering += 1;
       await route.abort("blockedbyclient");
     }

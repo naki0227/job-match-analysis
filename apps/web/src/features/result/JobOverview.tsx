@@ -34,9 +34,7 @@ const employmentLabels: Record<string, string> = {
 
 function employment(value: JobOverviewData["employmentTypes"]): string {
   if (value.status !== "known") return unavailable(value.status);
-  return value.values
-    .map((item) => employmentLabels[item] ?? item)
-    .join(" / ");
+  return value.values.map((item) => employmentLabels[item] ?? item).join(" / ");
 }
 
 function locations(value: JobOverviewData["locations"]): string {

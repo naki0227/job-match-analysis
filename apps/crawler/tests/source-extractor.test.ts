@@ -4,6 +4,7 @@ import {
   extractSourceDocument,
   MIN_JOB_CHARACTERS,
 } from "../src/source-extractor.js";
+import { atsTablePosting } from "./fixtures/ats-table-posting.js";
 
 const jobText =
   "公開された求人の職務内容、勤務条件、応募に必要な経験を具体的に説明します。".repeat(
@@ -38,7 +39,7 @@ describe("source document extraction", () => {
       sourceUrlId: "source-id",
       contentHash: document.contentHash,
       fetchedAt: document.fetchedAt,
-      extractorVersion: "html-v2",
+      extractorVersion: "html-v3",
       extractedText: document.extractedText,
     });
   });
@@ -152,5 +153,50 @@ describe("source document extraction", () => {
         new Date(),
       ).jobIdentity,
     ).toBeUndefined();
+  });
+
+  it("keeps a label with its value and records the section of every fragment", () => {
+    const document = extractSourceDocument(
+      atsTablePosting,
+      "https://jobs.example/ats",
+      new Date(),
+    );
+    const find = (text: string) =>
+      document.fragments.find((item) => item.text.includes(text));
+    // th + td (with a nested dt/dd) stay together.
+    expect(find("600万円")).toMatchObject({
+      text: "給与 年収 600万円 〜 1600万円",
+      section: "給与",
+    });
+    expect(find("週2出社必須")?.text).toMatch(
+      /^働き方\(出社・リモート\) ハイブリッドワークスタイル/,
+    );
+    expect(find("福岡開発拠点")?.section).toBe("勤務地");
+    // Prose under a heading carries that heading.
+    expect(find("開発経験3年以上")?.section).toBe("求めるスキル・経験");
+    expect(find("テックリード業務")?.section).toBe("業務内容");
+    // Every fragment is an exact substring of the extracted text, in order.
+    let cursor = 0;
+    for (const fragment of document.fragments) {
+      const index = document.extractedText.indexOf(fragment.text, cursor);
+      expect(index, fragment.text).toBeGreaterThanOrEqual(0);
+      cursor = index + fragment.text.length;
+    }
+    expect(document.extractedText).not.toContain("採用トップ");
+    expect(document.extractedText).not.toContain("© Sample");
+  });
+
+  it("keeps standalone dt/dd pairs together and skips inline-hidden text", () => {
+    const document = extractSourceDocument(
+      `<main><p>${jobText}</p><dl><dt>勤務時間</dt><dd>フレックスタイム制</dd><dd>コアタイム 11:00〜15:00</dd><dt>試用期間</dt><dd>3か月</dd></dl><div style="display: none">非表示の古い給与 年収 100万円〜200万円</div></main>`,
+      "https://jobs.example/dl",
+      new Date(),
+    );
+    const texts = document.fragments.map((item) => item.text);
+    expect(texts).toContain(
+      "勤務時間 フレックスタイム制 コアタイム 11:00〜15:00",
+    );
+    expect(texts).toContain("試用期間 3か月");
+    expect(document.extractedText).not.toContain("非表示");
   });
 });

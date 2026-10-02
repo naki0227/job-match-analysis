@@ -5,7 +5,7 @@ import {
   type StructuredJobPosting,
 } from "./json-ld-job-posting.js";
 
-export const EXTRACTOR_VERSION = "html-v2";
+export const EXTRACTOR_VERSION = "html-v3";
 export const MIN_JOB_CHARACTERS = 100;
 
 export type SourceSection = {
@@ -14,7 +14,13 @@ export type SourceSection = {
   locator: string;
 };
 
-export type SourceFragment = SourceSection;
+/**
+ * One readable unit of the page in document order. A label and its value
+ * (a table row, a dt with its dd) stay in one fragment so "年収" is never
+ * separated from "600万円〜1600万円". `section` is the nearest heading or
+ * row label the text belongs to; it is page text, never a DOM path.
+ */
+export type SourceFragment = SourceSection & { section?: string };
 
 export type ExtractedSourceDocument = {
   url: string;
@@ -91,21 +97,32 @@ function collect(
   return undefined;
 }
 
+const SKIPPED = new Set([
+  "script",
+  "style",
+  "template",
+  "nav",
+  "footer",
+  "noscript",
+]);
+
+function skipped(node: Html.Element, omitCompany: boolean): boolean {
+  return (
+    SKIPPED.has(node.tagName) ||
+    attribute(node, "hidden") !== undefined ||
+    attribute(node, "aria-hidden") === "true" ||
+    /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(
+      attribute(node, "style") ?? "",
+    ) ||
+    (omitCompany &&
+      (attribute(node, "data-company") !== undefined ||
+        attribute(node, "itemtype")?.endsWith("/Organization") === true))
+  );
+}
+
 function visibleText(node: Html.Node, omitCompany: boolean): string {
   if ("value" in node) return node.value;
-  if (isElement(node)) {
-    if (
-      ["script", "style", "template", "nav", "footer", "noscript"].includes(
-        node.tagName,
-      ) ||
-      attribute(node, "hidden") !== undefined ||
-      attribute(node, "aria-hidden") === "true" ||
-      (omitCompany &&
-        (attribute(node, "data-company") !== undefined ||
-          attribute(node, "itemtype")?.endsWith("/Organization")))
-    )
-      return "";
-  }
+  if (isElement(node) && skipped(node, omitCompany)) return "";
   if (!("childNodes" in node)) return "";
   return node.childNodes
     .map((child) => visibleText(child, omitCompany))
@@ -134,48 +151,121 @@ function section(
   return text ? { scope, text, locator: locator(node) } : undefined;
 }
 
+const HEADINGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
+const BLOCKS = new Set([
+  "p",
+  "li",
+  "pre",
+  "blockquote",
+  "td",
+  "th",
+  "dd",
+  "dt",
+]);
+
+const clean = (text: string) => text.replace(/\s+/g, " ").trim();
+const elements = (node: Html.Element) => node.childNodes.filter(isElement);
+
+/**
+ * Semantic fragments in document order: headings, label/value pairs and
+ * text blocks. Text outside them is kept as "gap" fragments, so the
+ * fragments together cover the whole visible section.
+ */
+function semanticFragments(
+  scope: SourceSection["scope"],
+  root: Html.Element,
+): SourceFragment[] {
+  const omitCompany = scope === "job";
+  const result: SourceFragment[] = [];
+  let heading: string | undefined;
+  const push = (node: Html.Element, text: string, section = heading) => {
+    if (text)
+      result.push({
+        scope,
+        text,
+        locator: locator(node),
+        ...(section ? { section } : {}),
+      });
+  };
+  const visit = (node: Html.Node) => {
+    if (!isElement(node) || skipped(node, omitCompany)) return;
+    const text = () => clean(visibleText(node, omitCompany));
+    if (HEADINGS.has(node.tagName)) {
+      heading = text() || heading;
+      push(node, text(), heading);
+      return;
+    }
+    if (node.tagName === "tr") {
+      const cells = elements(node).filter((cell) =>
+        ["th", "td"].includes(cell.tagName),
+      );
+      const label = cells[0]?.tagName === "th" ? cells[0] : undefined;
+      push(
+        node,
+        text(),
+        label ? clean(visibleText(label, omitCompany)) : heading,
+      );
+      return;
+    }
+    if (node.tagName === "dl") {
+      // dt + its dd(s) form one fragment: "年収 600万円〜1600万円".
+      let pair: { node: Html.Element; label: string; parts: string[] } | null =
+        null;
+      const flush = () => {
+        if (pair) push(pair.node, clean(pair.parts.join(" ")), pair.label);
+        pair = null;
+      };
+      for (const child of elements(node)) {
+        if (skipped(child, omitCompany)) continue;
+        const value = clean(visibleText(child, omitCompany));
+        if (child.tagName === "dt") {
+          flush();
+          pair = { node: child, label: value, parts: [value] };
+        } else if (pair) {
+          pair.parts.push(value);
+        } else {
+          visit(child);
+        }
+      }
+      flush();
+      return;
+    }
+    if (BLOCKS.has(node.tagName)) {
+      push(node, text());
+      return;
+    }
+    for (const child of node.childNodes) visit(child);
+  };
+  for (const child of root.childNodes) visit(child);
+  return result;
+}
+
 function collectFragments(
   scope: SourceSection["scope"],
   root: Html.Element | undefined,
 ): SourceFragment[] {
   if (!root) return [];
-  const semantic: SourceFragment[] = [];
-  const visit = (node: Html.Node) => {
-    if (!isElement(node)) return;
-    if (
-      ["script", "style", "template", "nav", "footer", "noscript"].includes(
-        node.tagName,
-      ) ||
-      attribute(node, "hidden") !== undefined ||
-      attribute(node, "aria-hidden") === "true" ||
-      (scope === "job" &&
-        (attribute(node, "data-company") !== undefined ||
-          attribute(node, "itemtype")?.endsWith("/Organization")))
-    )
-      return;
-    if (
-      ["p", "h1", "h2", "h3", "h4", "li", "dt", "dd"].includes(node.tagName)
-    ) {
-      const text = visibleText(node, scope === "job")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (text) semantic.push({ scope, text, locator: locator(node) });
-      return;
-    }
-    for (const child of node.childNodes) visit(child);
-  };
-  visit(root);
-
   const whole = section(scope, root);
   if (!whole) return [];
+  const semantic = semanticFragments(scope, root);
   if (semantic.length === 0) return [whole];
 
   // ATS pages often render important labels/values in div/span elements while
-  // only a subset of prose uses p/li tags. Preserve the text between semantic
-  // fragments so deterministic rules and the evaluator can see the whole page.
+  // only a subset of prose uses semantic tags. Preserve the text between
+  // semantic fragments so the parser and the evaluator see the whole page.
   const fragments: SourceFragment[] = [];
   let cursor = 0;
   let gap = 0;
+  let current: string | undefined;
+  const pushGap = (text: string) => {
+    gap += 1;
+    fragments.push({
+      scope,
+      text,
+      locator: `${whole.locator}:gap-${gap}`,
+      ...(current ? { section: current } : {}),
+    });
+  };
   for (const fragment of semantic) {
     const index = whole.text.indexOf(fragment.text, cursor);
     if (index < 0) {
@@ -183,26 +273,13 @@ function collectFragments(
       continue;
     }
     const uncovered = whole.text.slice(cursor, index).trim();
-    if (uncovered) {
-      gap += 1;
-      fragments.push({
-        scope,
-        text: uncovered,
-        locator: `${whole.locator}:gap-${gap}`,
-      });
-    }
+    if (uncovered) pushGap(uncovered);
     fragments.push(fragment);
+    current = fragment.section;
     cursor = index + fragment.text.length;
   }
   const tail = whole.text.slice(cursor).trim();
-  if (tail) {
-    gap += 1;
-    fragments.push({
-      scope,
-      text: tail,
-      locator: `${whole.locator}:gap-${gap}`,
-    });
-  }
+  if (tail) pushGap(tail);
   return fragments;
 }
 

@@ -35,7 +35,7 @@ describe("public source evaluation pipeline", () => {
     expect(sent.rubrics.map((item) => item.axisKey)).not.toContain(
       "schedule_flexibility",
     );
-    // The whole bounded context goes along, not only keyword hits.
+    // The complete extracted context goes along, not only keyword hits.
     expect(sent.fragments).toHaveLength(3);
     expect(result.evaluation.axisValues[0]).toMatchObject({
       observationStatus: "known",
@@ -80,7 +80,6 @@ describe("public source evaluation pipeline", () => {
       value: ["東京都"],
     });
   });
-
 
   it("resolves English hybrid and discretionary-hour conditions by rule", async () => {
     const document = extractSourceDocument(

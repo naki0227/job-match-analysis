@@ -35,7 +35,7 @@ describe("public source evaluation pipeline", () => {
     expect(sent.rubrics.map((item) => item.axisKey)).not.toContain(
       "schedule_flexibility",
     );
-    // The whole bounded context goes along, not only keyword hits.
+    // The complete extracted context goes along, not only keyword hits.
     expect(sent.fragments).toHaveLength(3);
     expect(result.evaluation.axisValues[0]).toMatchObject({
       observationStatus: "known",
@@ -78,6 +78,42 @@ describe("public source evaluation pipeline", () => {
     expect(result.evaluation.jobFacts?.location).toMatchObject({
       status: "known",
       value: ["東京都"],
+    });
+  });
+
+  it("resolves English hybrid and discretionary-hour conditions by rule", async () => {
+    const document = extractSourceDocument(
+      `<main data-job><div>
+        Working Hour System Discretionary Labor System for Professional Work.
+        Employees are able to choose their working hours at their own discretion.
+        Work Style Policy Hybrid work style. Employees are required to work at the office a minimum of 2 days per week.
+      </div></main>`,
+      "https://jobs.example/hrmos-en",
+      at,
+    );
+    const engine = createFakeDecisionEngine();
+    const evaluate = vi.spyOn(engine, "evaluate");
+    const result = await evaluateSource({
+      sourceUrlId,
+      document,
+      scope: "job",
+      engine,
+      limits,
+    });
+    const sentAxes = evaluate.mock.calls[0]![0].rubrics.map(
+      (item) => item.axisKey,
+    );
+    expect(sentAxes).not.toContain("work_location");
+    expect(sentAxes).not.toContain("schedule_flexibility");
+    expect(result.evaluation.axisValues[0]).toMatchObject({
+      observationStatus: "known",
+      anchorValue: 50,
+      evaluationMethod: "rule",
+    });
+    expect(result.evaluation.axisValues[5]).toMatchObject({
+      observationStatus: "known",
+      anchorValue: 100,
+      evaluationMethod: "rule",
     });
   });
 

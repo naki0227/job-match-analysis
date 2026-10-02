@@ -6,7 +6,7 @@ import type { ExtractedSourceDocument } from "./source-extractor.js";
  * Part of every evaluator version and source set hash: changing how the
  * context is built must never reuse evaluations made from another context.
  */
-export const CONTEXT_SELECTOR_VERSION = "context-fragments-v3";
+export const CONTEXT_SELECTOR_VERSION = "context-fragments-v4";
 
 export type ContextLimits = {
   /** Longest fragment, and so the longest quote stored as evidence. */
@@ -22,12 +22,10 @@ export type ContextStats = {
 };
 
 function sentences(text: string): string[] {
-  return (
-    text
-      .match(/[^。！？\n]+[。！？]?/gu)
-      ?.map((item) => item.trim())
-      .filter(Boolean) ?? []
-  );
+  return text
+    .split(/(?<=[。！？])|(?<=[.!?])\s+/u)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 /**

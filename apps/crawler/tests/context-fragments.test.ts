@@ -39,6 +39,17 @@ describe("context fragments", () => {
     }
   });
 
+  it("keeps English sentences intact before evidence chunking", () => {
+    const first = "A".repeat(70) + ".";
+    const second =
+      "Employees are required to work at the office a minimum of 2 days per week.";
+    const { fragments } = build(
+      `<main data-job><div>${first} ${second}</div></main>`,
+      80,
+    );
+    expect(fragments.map((item) => item.text)).toEqual([first, second]);
+  });
+
   it("keeps the tail of long ATS text instead of truncating it", () => {
     const prefix = "説明".repeat(120);
     const { fragments } = build(

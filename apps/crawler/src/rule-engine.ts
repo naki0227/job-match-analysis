@@ -4,14 +4,37 @@ import type {
   DecisionEngineInput,
 } from "./decision-engine.js";
 
-export const RULE_ENGINE_VERSION = "public-rules-v3";
+export const RULE_ENGINE_VERSION = "public-rules-v4";
+
+function englishOfficeDays(text: string): number[] {
+  const required = [
+    ...text.matchAll(
+      /(?:required|must)[^.]{0,160}(?:office|on[- ]?site)[^.]{0,80}(?:a\s+)?(?:minimum\s+of|at\s+least)\s*([0-5])\s*days?\s*per\s*week/giu,
+    ),
+  ].map((match) => Number(match[1]));
+  if (required.length) return required;
+  return [
+    ...text.matchAll(
+      /(?:office|on[- ]?site)[^.]{0,60}(?:a\s+)?(?:minimum\s+of|at\s+least)\s*([0-5])\s*days?\s*per\s*week/giu,
+    ),
+  ].map((match) => Number(match[1]));
+}
 
 /** Explicit wording that decides an axis without the evaluator. */
 function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
   if (axisKey === "schedule_flexibility") {
-    const fixed = /フレックスなし|固定勤務時間|勤務時間固定/u.test(text);
-    const full = /フルフレックス|コアタイムなし/u.test(text);
-    const partial = /フレックスタイム制|コアタイムあり/u.test(text);
+    const fixed =
+      /フレックスなし|固定勤務時間|勤務時間固定|\bfixed\s+working\s+hours?\b/iu.test(
+        text,
+      );
+    const full =
+      /フルフレックス|コアタイムなし|\bno\s+core\s+time\b|\bdiscretionary\s+labor\s+system\b|choose[^.]{0,80}working\s+hours?[^.]{0,80}(?:own\s+discretion|their\s+own\s+discretion)/iu.test(
+        text,
+      );
+    const partial =
+      /フレックスタイム制|コアタイムあり|\bflextime\s+system\b|\bflexible\s+working\s+hours?\b/iu.test(
+        text,
+      );
     return [
       ...(fixed ? [0 as const] : []),
       ...(full ? [100 as const] : []),
@@ -19,9 +42,12 @@ function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
     ];
   }
   if (axisKey === "work_location") {
-    const requiredOfficeDays = [
+    const requiredJapanese = [
       ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社\s*必須/gu),
     ].map((match) => Number(match[1]));
+    const requiredOfficeDays = requiredJapanese.length
+      ? requiredJapanese
+      : englishOfficeDays(text);
     const officeDays = requiredOfficeDays.length
       ? requiredOfficeDays
       : [
@@ -30,9 +56,12 @@ function valuesFor(axisKey: string, text: string): (0 | 50 | 100)[] {
           ),
         ].map((match) => Number(match[1]));
     const onsite =
-      officeDays.length === 0 && /出社\s*必須|原則[、,\s]*出社/u.test(text);
+      officeDays.length === 0 &&
+      /出社\s*必須|原則[、,\s]*出社|(?:required|must)[^.]{0,140}(?:work|be)[^.]{0,100}(?:office|on[- ]?site)/iu.test(
+        text,
+      );
     const remote =
-      /フルリモート(?:可|可能|勤務|制度)|完全在宅(?:可|可能|勤務)|出社不要/u.test(
+      /フルリモート(?:可|可能|勤務|制度)|完全在宅(?:可|可能|勤務)|出社不要|\bfully?\s+remote\b|\bfull[- ]remote\b|\bwork\s+from\s+anywhere\b/iu.test(
         text,
       );
     return [

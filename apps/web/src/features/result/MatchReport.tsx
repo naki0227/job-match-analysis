@@ -54,6 +54,9 @@ export function MatchReport({ report }: Props) {
   const hasConflict = report.hardConstraints.some(
     (constraint) => constraint.status === "unmet",
   );
+  const isOpenPosition = /オープンポジション|open position/iu.test(
+    report.jobTitle,
+  );
 
   return (
     <article className="match-report" aria-labelledby="match-report-heading">
@@ -108,6 +111,12 @@ export function MatchReport({ report }: Props) {
       {hasConflict && (
         <p className="notice warn">
           必須条件に合わない項目があります。軸が近くても、この点は相殺されません。
+        </p>
+      )}
+
+      {isOpenPosition && (
+        <p className="notice">
+          この求人はオープンポジションのため、配属先によって変わる項目は不明になりやすいです。個別職種の求人では、より具体的に比較できます。
         </p>
       )}
 

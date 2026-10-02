@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseDeterministicJobFacts } from "../src/deterministic-parser.js";
 import { extractSourceDocument } from "../src/source-extractor.js";
+import { atsTablePosting } from "./fixtures/ats-table-posting.js";
 
 const url = "https://jobs.example/1";
 const now = new Date("2026-09-30T00:00:00Z");
@@ -176,5 +177,73 @@ describe("deterministic job parser", () => {
     const facts = parseDeterministicJobFacts(document);
     expect(facts.fullRemote.status).toBe("conflicting");
     expect(facts.weeklyOfficeDays.status).toBe("conflicting");
+  });
+
+  it("reads table-row conditions and quotes the row that states them", () => {
+    const facts = parseDeterministicJobFacts(
+      extractSourceDocument(atsTablePosting, url, now),
+    );
+    expect(facts.salary).toEqual({
+      status: "known",
+      value: {
+        minimum: 6_000_000,
+        maximum: 16_000_000,
+        currency: "JPY",
+        period: "year",
+      },
+      excerpt: "給与 年収 600万円 〜 1600万円",
+      locator: expect.stringMatching(/^tr:line-\d+$/),
+    });
+    expect(facts.location).toMatchObject({
+      status: "known",
+      value: ["東京都", "大阪府", "福岡県"],
+    });
+    expect(facts.weeklyOfficeDays).toMatchObject({
+      status: "known",
+      value: 2,
+      excerpt: expect.stringContaining("週2出社必須"),
+    });
+    expect(facts.fullRemote).toMatchObject({ status: "known", value: false });
+    expect(facts.employmentType).toMatchObject({
+      status: "known",
+      value: ["FULL_TIME"],
+      excerpt: "雇用形態 正社員",
+    });
+  });
+
+  it("joins a label and value split across elements under one heading", () => {
+    const facts = parseDeterministicJobFacts(
+      extractSourceDocument(
+        `<main><p>${"仕事の説明です。".repeat(20)}</p>
+          <h3>給与</h3><p>年収</p><p>650万円〜900万円</p>
+          <h3>勤務地</h3><p>東京都</p></main>`,
+        url,
+        now,
+      ),
+    );
+    expect(facts.salary).toMatchObject({
+      status: "known",
+      value: { minimum: 6_500_000, maximum: 9_000_000 },
+      excerpt: "給与 年収 650万円〜900万円",
+    });
+  });
+
+  it("quotes the shortest run when only the whole text states a value", () => {
+    const facts = parseDeterministicJobFacts(
+      extractSourceDocument(
+        `<main><p>${"仕事の説明です。".repeat(20)}</p>
+          <div><span>年収：</span></div><div><span>700万円〜1,000万円</span></div>
+          <p>${"福利厚生の説明です。".repeat(20)}</p></main>`,
+        url,
+        now,
+      ),
+    );
+    expect(facts.salary).toMatchObject({
+      status: "known",
+      value: { minimum: 7_000_000, maximum: 10_000_000 },
+    });
+    if (facts.salary.status !== "known") throw new Error("salary");
+    expect(facts.salary.excerpt).toContain("年収： 700万円〜1,000万円");
+    expect(facts.salary.excerpt).not.toContain("仕事の説明");
   });
 });

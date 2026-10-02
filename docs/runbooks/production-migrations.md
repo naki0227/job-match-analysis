@@ -36,6 +36,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20261001014615_legal_documents_v1_0` | 利用規約・プライバシーポリシー v1.0の本文（2026-10-03 00:00 JSTから有効） | なし（追加のみ。同じ版が既にあれば失敗する。rollbackは確認記録がない間だけ可能） |
 | `20261001020540_job_discovery` | Web探索のjob・結果・利用者ごとの回数記録とRPC（ADR-047） | なし（表と関数の追加のみ。rollbackは探索記録を消すが、保存済みの求人は残る） |
 | `20261001135230_legal_documents_v1_0_effective_20261001` | v1.0法的文書の公開・適用日を2026-10-01へ前倒し | **確認記録0件の時だけ可**。確認済みなら停止して新しい版を追加する |
+| `20261002053703_job_sections_facts` | job factsに`duties`・`requirements`・`workStyle`を追加（ADR-048）。**crawlerのdeploy前に適用する**（古い関数は新しい種類を拒否し、解析が失敗する） | なし（CHECK制約と関数のkey一覧の拡張のみ。rollbackは該当factを削除） |
 
 rollbackは`supabase/rollback/`に同名のファイルがある。本番で戻すのは、アプリを1つ前のdigestへ戻した**後**に限る（新しいAPIは新しいRPCを前提にするため）。
 

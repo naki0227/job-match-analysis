@@ -6,7 +6,11 @@ import type {
   StoredMatch,
 } from "@job-match/application";
 import { careerAxisKeys } from "@job-match/contracts";
-import { type AxisComparison, type AxisEvidence } from "@job-match/domain";
+import {
+  type AxisComparison,
+  type AxisEvidence,
+  type AxisObservation,
+} from "@job-match/domain";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { emptyJobOverview, JOB_FACT_KINDS, toJobFacts } from "./job-facts.js";
@@ -18,7 +22,13 @@ const uuid = z.uuid();
 const timestamp = z.iso.datetime({ offset: true });
 const axisKey = z.enum(careerAxisKeys);
 const anchor = z.union([z.literal(0), z.literal(50), z.literal(100)]);
-const observationStatus = z.enum(["known", "unknown", "conflicting", "stale"]);
+const observationStatus = z.enum([
+  "known",
+  "unknown",
+  "conflicting",
+  "stale",
+  "range",
+]);
 
 const snapshotSchema = z.object({
   evaluationId: uuid,
@@ -30,6 +40,8 @@ const snapshotSchema = z.object({
       axisVersion: z.number().int().positive(),
       observationStatus,
       anchorValue: anchor.nullable(),
+      // Absent from rows written before ranges existed.
+      anchorMax: anchor.nullable().optional(),
     }),
   ),
   evidence: z.array(
@@ -75,15 +87,18 @@ const storedMatchSchema = z.object({
         importance: z.number().int().min(0).max(100),
         observationStatus,
         observedAnchor: anchor.nullable(),
+        observedAnchorMax: anchor.nullable().optional(),
         comparisonStatus: z.enum([
           "close",
           "different",
+          "partial",
           "excluded",
           "unknown",
           "conflicting",
           "stale",
         ]),
         difference: z.number().int().min(0).max(100).nullable(),
+        differenceMax: z.number().int().min(0).max(100).nullable().optional(),
       }),
     )
     .length(careerAxisKeys.length),
@@ -118,21 +133,49 @@ export type JobFactsReader = (evaluationId: string) => Promise<unknown>;
 
 type Status = z.infer<typeof observationStatus>;
 
-/** DB rows keep the value only for known/stale; anything else is corrupt. */
-function toObservation(status: Status, value: 0 | 50 | 100 | null) {
+/**
+ * DB rows keep one value for known/stale and two adjacent anchors for a
+ * range; anything else is corrupt.
+ */
+function toObservation(
+  status: Status,
+  value: 0 | 50 | 100 | null,
+  maximum: 0 | 50 | 100 | null = null,
+): AxisObservation {
+  if (status === "range") {
+    if (value === 0 && maximum === 50)
+      return { status, minimum: 0, maximum: 50 };
+    if (value === 50 && maximum === 100)
+      return { status, minimum: 50, maximum: 100 };
+    throw new MatchStoreError();
+  }
+  if (maximum !== null) throw new MatchStoreError();
   if (status === "known" || status === "stale") {
     if (value === null) throw new MatchStoreError();
-    return { status, value } as const;
+    return { status, value };
   }
   if (value !== null) throw new MatchStoreError();
-  return { status } as const;
+  return { status };
+}
+
+/** The lower and upper anchors stored for an observation. */
+function anchorsOf(observation: AxisObservation) {
+  if (observation.status === "range")
+    return { anchor: observation.minimum, anchorMax: observation.maximum };
+  if (observation.status === "known" || observation.status === "stale")
+    return { anchor: observation.value, anchorMax: null };
+  return { anchor: null, anchorMax: null };
 }
 
 function toSnapshot(raw: z.infer<typeof snapshotSchema>): EvaluationSnapshot {
   const axisValues: AxisEvidence[] = raw.axisValues.map((axis) => ({
     axisKey: axis.axisKey,
     axisVersion: axis.axisVersion,
-    observation: toObservation(axis.observationStatus, axis.anchorValue),
+    observation: toObservation(
+      axis.observationStatus,
+      axis.anchorValue,
+      axis.anchorMax ?? null,
+    ),
   }));
   return {
     evaluationId: raw.evaluationId,
@@ -153,9 +196,16 @@ function toStoredMatch(raw: z.infer<typeof storedMatchSchema>): StoredMatch {
       source: "job",
       preference: axis.preference,
       importance: axis.importance,
-      observation: toObservation(axis.observationStatus, axis.observedAnchor),
+      observation: toObservation(
+        axis.observationStatus,
+        axis.observedAnchor,
+        axis.observedAnchorMax ?? null,
+      ),
       status: axis.comparisonStatus,
       ...(axis.difference === null ? {} : { difference: axis.difference }),
+      ...(axis.differenceMax == null
+        ? {}
+        : { differenceMax: axis.differenceMax }),
     };
   });
   return {
@@ -229,13 +279,11 @@ export function createMatchRepository(
           preference: axis.preference,
           importance: axis.importance,
           observationStatus: axis.observation.status,
-          observedAnchor:
-            axis.observation.status === "known" ||
-            axis.observation.status === "stale"
-              ? axis.observation.value
-              : null,
+          observedAnchor: anchorsOf(axis.observation).anchor,
+          observedAnchorMax: anchorsOf(axis.observation).anchorMax,
           comparisonStatus: axis.status,
           difference: axis.difference ?? null,
+          differenceMax: axis.differenceMax ?? null,
         })),
         p_constraints: input.constraints.map((constraint) => ({
           kind: constraint.kind,

@@ -132,3 +132,31 @@ test("the bundled font draws every label and common company-name kanji", async (
   );
   assert.deepEqual(missing, []);
 });
+
+test("a partial axis is counted as 一部近い, never as close or unknown", () => {
+  const partial: SharedMatch = {
+    ...projection,
+    axes: projection.axes.map((axis, index) =>
+      index === 0 ? { ...axis, status: "partial" } : axis,
+    ),
+  };
+  const html = renderShareHtml(
+    { sharedAt: share.sharedAt, projection: partial },
+    {
+      page: "https://share.example/s/x",
+      image: "https://share.example/s/x/og.png",
+      app: "https://app.example/",
+    },
+  );
+  assert.match(html, /<b>1<\/b><span>一部近い<\/span>/);
+  assert.match(html, /<li><span>働く場所<\/span><b>一部近い<\/b><\/li>/);
+  // Cards without partial axes keep their original stats.
+  assert.doesNotMatch(
+    renderShareHtml(share, {
+      page: "https://share.example/s/x",
+      image: "https://share.example/s/x/og.png",
+      app: "https://app.example/",
+    }),
+    /一部近い/,
+  );
+});

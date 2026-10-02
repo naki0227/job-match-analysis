@@ -174,7 +174,9 @@ function salary(text: string): SalaryRange[] {
   }
 
   if (/salary\s*range|給与|年収/iu.test(text)) {
-    const annual = [...text.matchAll(/([0-9][0-9,]{5,})\s*JPY\s*\/\s*year/giu)]
+    const annual = [
+      ...text.matchAll(/([0-9][0-9,]{5,})\s*JPY\s*\/\s*year/giu),
+    ]
       .map((match) => Number(match[1]!.replaceAll(",", "")))
       .filter((value) => Number.isSafeInteger(value) && value > 0);
     if (annual.length >= 2) {
@@ -189,7 +191,8 @@ function locationNames(value: string): (typeof PREFECTURES)[number][] {
     value.includes(name),
   );
   for (const [pattern, prefecture] of ENGLISH_LOCATIONS) {
-    if (pattern.test(value) && !names.includes(prefecture)) names.push(prefecture);
+    if (pattern.test(value) && !names.includes(prefecture))
+      names.push(prefecture);
   }
   if (value.includes("名古屋") && !names.includes("愛知県"))
     names.push("愛知県");
@@ -228,10 +231,17 @@ function weeklyOfficeDays(text: string): number[] {
 
   const requiredEnglish = [
     ...text.matchAll(
-      /(?:required|must)[^.]{0,140}(?:office|on[- ]?site)[^.]{0,100}(?:minimum\s+of|at\s+least)?\s*([0-5])\s*days?\s*per\s*week/giu,
+      /(?:required|must)[^.]{0,160}(?:office|on[- ]?site)[^.]{0,80}(?:a\s+)?(?:minimum\s+of|at\s+least)\s*([0-5])\s*days?\s*per\s*week/giu,
     ),
   ].map((match) => Number(match[1]));
   if (requiredEnglish.length) return requiredEnglish;
+
+  const minimumOfficeDays = [
+    ...text.matchAll(
+      /(?:office|on[- ]?site)[^.]{0,60}(?:a\s+)?(?:minimum\s+of|at\s+least)\s*([0-5])\s*days?\s*per\s*week/giu,
+    ),
+  ].map((match) => Number(match[1]));
+  if (minimumOfficeDays.length) return minimumOfficeDays;
 
   return [
     ...text.matchAll(/週\s*([0-5])\s*日?\s*(?:の)?\s*出社(?=$|[。．、，\s])/gu),
@@ -267,9 +277,10 @@ function targetRoleFromText(text: string): string[] {
 }
 
 function employmentType(text: string): string[][] {
-  const match = /雇用形態\s+(正社員|契約社員|業務委託|アルバイト|パート|インターン)/u.exec(
-    text,
-  );
+  const match =
+    /雇用形態\s+(正社員|契約社員|業務委託|アルバイト|パート|インターン)/u.exec(
+      text,
+    );
   if (!match) return [];
   const mapped: Record<string, string> = {
     正社員: "FULL_TIME",

@@ -192,22 +192,22 @@ function locationNames(value: string): (typeof PREFECTURES)[number][] {
     if (pattern.test(value) && !names.includes(prefecture))
       names.push(prefecture);
   }
-  const japaneseCities: readonly [string, (typeof PREFECTURES)[number]][] = [
-    ["札幌", "北海道"],
-    ["仙台", "宮城県"],
-    ["横浜", "神奈川県"],
-    ["名古屋", "愛知県"],
-    ["京都", "京都府"],
-    ["大阪", "大阪府"],
-    ["神戸", "兵庫県"],
-    ["広島", "広島県"],
-    ["福岡", "福岡県"],
+  const japaneseCities: readonly [RegExp, (typeof PREFECTURES)[number]][] = [
+    [/札幌(?:市|支社|開発拠点|$)/u, "北海道"],
+    [/仙台(?:市|支社|開発拠点|$)/u, "宮城県"],
+    [/横浜(?:市|支社|開発拠点|$)/u, "神奈川県"],
+    [/名古屋(?:市|支社|開発拠点|$)/u, "愛知県"],
+    [/京都(?:市|支社|開発拠点|$)/u, "京都府"],
+    [/大阪(?:市|支社|開発拠点|$)/u, "大阪府"],
+    [/神戸(?:市|支社|開発拠点|$)/u, "兵庫県"],
+    [/広島(?:市|支社|開発拠点|$)/u, "広島県"],
+    [/福岡(?:市|支社|開発拠点|$)/u, "福岡県"],
   ];
-  for (const [city, prefecture] of japaneseCities) {
-    if (value.includes(city) && !names.includes(prefecture))
+  for (const [pattern, prefecture] of japaneseCities) {
+    if (pattern.test(value) && !names.includes(prefecture))
       names.push(prefecture);
   }
-  return names;
+  return PREFECTURES.filter((name) => names.includes(name));
 }
 
 function location(text: string): string[][] {

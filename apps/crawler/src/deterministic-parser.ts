@@ -4,7 +4,7 @@ import type {
   SourceFragment,
 } from "./source-extractor.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v4";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v5";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
@@ -192,9 +192,22 @@ function locationNames(value: string): (typeof PREFECTURES)[number][] {
     if (pattern.test(value) && !names.includes(prefecture))
       names.push(prefecture);
   }
-  if (value.includes("名古屋") && !names.includes("愛知県"))
-    names.push("愛知県");
-  return names;
+  const japaneseCities: readonly [RegExp, (typeof PREFECTURES)[number]][] = [
+    [/札幌(?:市|支社|開発拠点|$)/u, "北海道"],
+    [/仙台(?:市|支社|開発拠点|$)/u, "宮城県"],
+    [/横浜(?:市|支社|開発拠点|$)/u, "神奈川県"],
+    [/名古屋(?:市|支社|開発拠点|$)/u, "愛知県"],
+    [/(?<!東)京都(?:市|支社|開発拠点|$)/u, "京都府"],
+    [/大阪(?:市|支社|開発拠点|$)/u, "大阪府"],
+    [/神戸(?:市|支社|開発拠点|$)/u, "兵庫県"],
+    [/広島(?:市|支社|開発拠点|$)/u, "広島県"],
+    [/福岡(?:市|支社|開発拠点|$)/u, "福岡県"],
+  ];
+  for (const [pattern, prefecture] of japaneseCities) {
+    if (pattern.test(value) && !names.includes(prefecture))
+      names.push(prefecture);
+  }
+  return PREFECTURES.filter((name) => names.includes(name));
 }
 
 function location(text: string): string[][] {
@@ -319,6 +332,22 @@ function known<T>(value: T, excerpt: string, field: string): Known<T> {
   };
 }
 
+function mergeLocations(
+  structured: Known<readonly string[]> | undefined,
+  text: ParsedFact<readonly string[]>,
+): ParsedFact<readonly string[]> {
+  if (!structured) return text;
+  if (text.status === "unknown") return structured;
+  if (text.status !== "known") return text;
+  const value = [...new Set([...structured.value, ...text.value])];
+  return {
+    status: "known",
+    value,
+    excerpt: safeExcerpt(`${structured.excerpt} / ${text.excerpt}`),
+    locator: text.locator,
+  };
+}
+
 export function parseDeterministicJobFacts(
   document: ExtractedSourceDocument,
 ): ParsedJobFacts {
@@ -329,7 +358,7 @@ export function parseDeterministicJobFacts(
     : [];
   return {
     salary: collect(fragments, salary),
-    location: preferStructured(
+    location: mergeLocations(
       regions.length && structured
         ? known([...regions], structured.regions.join(" / "), "jobLocation")
         : undefined,

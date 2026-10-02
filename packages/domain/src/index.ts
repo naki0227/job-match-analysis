@@ -39,7 +39,12 @@ export type { JobEvaluation, MatchInput, MatchResult } from "./match-engine.js";
 export { getKnownValue } from "./observation.js";
 export type { Observation } from "./observation.js";
 export { parsePercentage } from "./percentage.js";
-export { PREFECTURE_CODES, parsePrefectureCode } from "./prefecture.js";
+export {
+  PREFECTURE_CODES,
+  PREFECTURE_NAMES,
+  parsePrefectureCode,
+  prefectureCodeFromName,
+} from "./prefecture.js";
 export type { PrefectureCode } from "./prefecture.js";
 export {
   MAX_CHOICES_SHOWN,

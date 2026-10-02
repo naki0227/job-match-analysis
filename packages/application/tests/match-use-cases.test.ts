@@ -79,6 +79,17 @@ const jobSource: MatchEvaluationSource = {
       observation: { status: "known", value: 50 },
     },
   ]),
+  jobConditions: {
+    salary: {
+      status: "known",
+      value: {
+        minimum: 6_000_000,
+        maximum: 8_000_000,
+        currency: "JPY",
+        period: "year",
+      },
+    },
+  },
   companyEvaluation: snapshot(companyEvaluationId, [
     {
       axisKey: "schedule_flexibility",
@@ -144,7 +155,7 @@ describe("createMatch", () => {
       evaluationId: companyEvaluationId,
     });
     expect(report.hardConstraints).toEqual([
-      { kind: "min_salary", status: "unknown", reason: "missing_information" },
+      { kind: "min_salary", status: "met" },
       { kind: "location", status: "not_required" },
       { kind: "full_remote", status: "not_required" },
     ]);

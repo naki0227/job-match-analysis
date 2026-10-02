@@ -22,7 +22,7 @@ Issue #27で、Webが完了画面まで到達しない場合の補完経路を[A
 - `commit_match_result` RPCは本人のcompletedプロフィール版と求人評価を検査し、送られた軸snapshotが保存済みの希望値・評価値と一致しない場合は拒否する。Match・軸・必須条件を1回で保存し、既存の一意制約で再送・同時実行を1行にまとめる。読取は`read_evaluation_for_match`/`read_match_result`の各1往復。いずれもservice_role専用。
 - 本人プロフィールの読取は既存どおり本人JWTとRLSで行う。
 - `domain`パッケージはNode.js組込みの`domain`モジュールと名前が衝突するため`@job-match/domain`へ改名した。
-- アルゴリズム版は`match-engine-v1`。比較規則を変えたら版を上げ、旧Matchは残す。
+- アルゴリズム版は`match-engine-v2`。v2では評価に保存済みの給与・勤務地・フルリモート事実をHard Constraintへ渡す。比較規則を変えたら版を上げ、旧Matchは残す。
 
 ## メリット・デメリット
 

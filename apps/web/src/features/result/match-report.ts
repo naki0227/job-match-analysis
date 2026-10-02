@@ -27,7 +27,7 @@ export const axisStatusLabels: Record<AxisStatus, string> =
 export const constraintLabels: Record<ConstraintKind, string> = {
   min_salary: "最低年収",
   location: "勤務地",
-  full_remote: "フルリモート",
+  full_remote: "フルリモート必須",
 };
 
 export const constraintStatusLabels: Record<ConstraintStatus, string> = {

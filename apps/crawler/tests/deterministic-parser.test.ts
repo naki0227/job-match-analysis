@@ -97,6 +97,25 @@ describe("deterministic job parser", () => {
     });
   });
 
+  it("unions structured main location with additional visible job locations", () => {
+    const document = extractSourceDocument(
+      `<script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "Open Position",
+        hiringOrganization: { name: "Example Ltd" },
+        jobLocation: { address: { addressRegion: "東京都" } },
+      })}</script><main data-job>
+        <div>勤務地 108-0023 東京都港区 ■その他 -福岡開発拠点 -京都開発拠点 -大阪開発拠点 -名古屋開発拠点 働き方 ハイブリッド</div>
+      </main>`,
+      url,
+      now,
+    );
+    expect(parseDeterministicJobFacts(document).location).toMatchObject({
+      status: "known",
+      value: ["東京都", "愛知県", "京都府", "大阪府", "福岡県"],
+    });
+  });
+
   it("does not convert monthly salary or invent job identity", () => {
     const document = extractSourceDocument(
       `<main data-job><p>月給30万円</p><p>リモート相談可</p>

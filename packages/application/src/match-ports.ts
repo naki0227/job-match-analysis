@@ -25,7 +25,7 @@ export type MatchEvaluationSource = Readonly<{
   companyName: string;
   jobTitle: string | null;
   evaluation: EvaluationSnapshot;
-  jobConditions: JobConditions;
+  jobConditions?: JobConditions;
   companyEvaluation: EvaluationSnapshot | null;
 }>;
 

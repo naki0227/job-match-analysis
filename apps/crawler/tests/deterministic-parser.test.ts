@@ -112,7 +112,7 @@ describe("deterministic job parser", () => {
     );
     expect(parseDeterministicJobFacts(document).location).toMatchObject({
       status: "known",
-      value: ["東京都", "京都府", "大阪府", "福岡県", "愛知県"],
+      value: ["東京都", "愛知県", "京都府", "大阪府", "福岡県"],
     });
   });
 

@@ -27,9 +27,11 @@ export type {
 export { compareTarget } from "./match-axis.js";
 export type {
   Anchor,
+  AnchorRange,
   AxisComparison,
   AxisComparisonStatus,
   AxisEvidence,
+  AxisObservation,
   EvaluationSource,
   TargetComparison,
   TargetEvaluation,

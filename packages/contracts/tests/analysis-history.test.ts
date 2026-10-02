@@ -49,7 +49,7 @@ test("history pages cannot carry missing version pairs or negative counts", () =
     jobEvaluatedAt: "2026-09-29T12:00:00Z",
     companyEvaluationId: null,
     companyEvaluatedAt: null,
-    summary: { close: 3, different: 1, unknown: 4 },
+    summary: { close: 3, different: 1, partial: 0, unknown: 4 },
     staleConditions: false,
   };
   expect(

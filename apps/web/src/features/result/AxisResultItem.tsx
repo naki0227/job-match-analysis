@@ -47,7 +47,7 @@ function Bar({ label, value }: { label: string; value: number }) {
   );
 }
 
-/** The posting's range between two adjacent anchors, drawn as a segment. */
+/** Ambiguity between two adjacent documented anchors, drawn as a segment. */
 function RangeBar({
   label,
   range,
@@ -105,8 +105,8 @@ export function AxisResultItem({ axis, targetLabel }: Props) {
       {axis.observedRange && (
         <p className="meta range-note">
           {axis.status === "partial"
-            ? "求人の記載には幅があり、あなたの希望は一方の端には近く、もう一方からは離れています。"
-            : "求人の記載からは一点に決められず、この幅の中にあります。"}
+            ? "求人の根拠は隣り合う2段階のどちらにも当てはまり、一方はあなたの希望に近く、もう一方は離れています。中間値を推定したものではありません。"
+            : "求人の根拠は隣り合う2段階のどちらにも当てはまり、どちらか一方に確定できませんでした。中間値を推定したものではありません。"}
         </p>
       )}
       <div id={panelId} className="axis-evidence" hidden={!open}>

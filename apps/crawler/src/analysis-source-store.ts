@@ -61,7 +61,9 @@ export function createSupabaseAnalysisSourceStore(url: string, secret: string) {
             .maybeSingle();
           if (target.error) throw new AnalysisSourceStoreError();
           if (target.data) {
-            const parsedTarget = z.object({ id: z.uuid() }).safeParse(target.data);
+            const parsedTarget = z
+              .object({ id: z.uuid() })
+              .safeParse(target.data);
             if (!parsedTarget.success) throw new AnalysisSourceStoreError();
             targetId = parsedTarget.data.id;
           }

@@ -131,7 +131,10 @@ const salaryFact = z.discriminatedUnion("status", [
   z.object({ status: z.literal("conflicting") }),
 ]);
 const locationFact = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("known"), value: z.array(z.string().min(1)).min(1) }),
+  z.object({
+    status: z.literal("known"),
+    value: z.array(z.string().min(1)).min(1),
+  }),
   z.object({ status: z.literal("unknown") }),
   z.object({ status: z.literal("conflicting") }),
 ]);
@@ -148,9 +151,7 @@ const jobFactRows = z.array(
 );
 
 function observation<T>(
-  parsed:
-    | { status: "known"; value: T }
-    | { status: "unknown" | "conflicting" },
+  parsed: { status: "known"; value: T } | { status: "unknown" | "conflicting" },
 ): Observation<T> {
   return parsed.status === "known"
     ? { status: "known", value: parsed.value }

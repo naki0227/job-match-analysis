@@ -192,8 +192,21 @@ function locationNames(value: string): (typeof PREFECTURES)[number][] {
     if (pattern.test(value) && !names.includes(prefecture))
       names.push(prefecture);
   }
-  if (value.includes("名古屋") && !names.includes("愛知県"))
-    names.push("愛知県");
+  const japaneseCities: readonly [string, (typeof PREFECTURES)[number]][] = [
+    ["札幌", "北海道"],
+    ["仙台", "宮城県"],
+    ["横浜", "神奈川県"],
+    ["名古屋", "愛知県"],
+    ["京都", "京都府"],
+    ["大阪", "大阪府"],
+    ["神戸", "兵庫県"],
+    ["広島", "広島県"],
+    ["福岡", "福岡県"],
+  ];
+  for (const [city, prefecture] of japaneseCities) {
+    if (value.includes(city) && !names.includes(prefecture))
+      names.push(prefecture);
+  }
   return names;
 }
 

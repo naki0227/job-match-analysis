@@ -7,6 +7,7 @@ import type {
   AxisEvidence,
   AxisKey,
   ConstraintResult,
+  JobConditions,
 } from "@job-match/domain";
 
 /** One shared evaluation with the public evidence that supports its axes. */
@@ -24,6 +25,7 @@ export type MatchEvaluationSource = Readonly<{
   companyName: string;
   jobTitle: string | null;
   evaluation: EvaluationSnapshot;
+  jobConditions: JobConditions;
   companyEvaluation: EvaluationSnapshot | null;
 }>;
 

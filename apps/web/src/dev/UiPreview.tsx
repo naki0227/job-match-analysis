@@ -87,6 +87,7 @@ const screens: Record<string, () => ReactNode> = {
     <HomeScreen
       profileVersion={2}
       history={previewHistory}
+      getAccessToken={() => Promise.reject(new Error("preview"))}
       onAnalyze={noop}
       onEditProfile={noop}
       onShowHistory={noop}

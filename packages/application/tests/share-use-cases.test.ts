@@ -59,6 +59,7 @@ const source: MatchEvaluationSource = {
       },
     ],
   },
+  jobConditions: {},
   companyEvaluation: null,
 };
 

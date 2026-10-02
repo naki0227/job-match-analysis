@@ -4,7 +4,7 @@ import type {
   SourceFragment,
 } from "./source-extractor.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v5";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v6";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
@@ -352,17 +352,27 @@ export function parseDeterministicJobFacts(
   document: ExtractedSourceDocument,
 ): ParsedJobFacts {
   const fragments = document.fragments.filter((item) => item.scope === "job");
+  const wholeJob = document.sections.find((item) => item.scope === "job");
+  const fieldFragments: readonly SourceFragment[] = wholeJob
+    ? [
+        {
+          scope: "job",
+          text: wholeJob.text,
+          locator: `${wholeJob.locator}:whole`,
+        },
+      ]
+    : fragments;
   const structured = document.structuredJob;
   const regions = structured
     ? locationNames(structured.regions.join(" / "))
     : [];
   return {
-    salary: collect(fragments, salary),
+    salary: collect(fieldFragments, salary),
     location: mergeLocations(
       regions.length && structured
         ? known([...regions], structured.regions.join(" / "), "jobLocation")
         : undefined,
-      collect(fragments, location),
+      collect(fieldFragments, location),
     ),
     fullRemote: preferStructured(
       structured?.telecommute
@@ -374,7 +384,7 @@ export function parseDeterministicJobFacts(
     scheduleFlexibility: collect(fragments, scheduleFlexibility),
     targetRole: document.jobIdentity
       ? known(document.jobIdentity.title, document.jobIdentity.title, "title")
-      : collect(fragments, targetRoleFromText),
+      : collect(fieldFragments, targetRoleFromText),
     employmentType:
       structured && structured.employmentTypes.length
         ? known(
@@ -382,7 +392,7 @@ export function parseDeterministicJobFacts(
             structured.employmentTypes.join(", "),
             "employmentType",
           )
-        : collect(fragments, employmentType),
+        : collect(fieldFragments, employmentType),
     techStack: collect(fragments, techStackParser.parse),
   };
 }

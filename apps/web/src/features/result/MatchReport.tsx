@@ -1,6 +1,7 @@
 import { Mascot } from "../../components/Mascot";
 import { ShareButton } from "../share/ShareButton";
 import { AxisResultItem } from "./AxisResultItem";
+import { JobOverview } from "./JobOverview";
 import {
   constraintLabels,
   constraintReasonLabels,
@@ -19,16 +20,32 @@ function TargetSection({
   description,
   target,
   targetLabel,
+  showSummary = false,
 }: {
   title: string;
   description: string;
   target: TargetResult;
   targetLabel: string;
+  showSummary?: boolean;
 }) {
+  const summary = showSummary ? summarizeTarget(target) : null;
   return (
     <section className="target-section" aria-label={title}>
       <h3>{title}</h3>
       <p className="meta">{description}</p>
+      {summary && (
+        <p className="summary" aria-label="求人の軸別の比較結果">
+          <span>
+            <b>{summary.close}</b>近い
+          </span>
+          <span>
+            <b>{summary.different}</b>相違
+          </span>
+          <span>
+            <b>{summary.unknown}</b>不明
+          </span>
+        </p>
+      )}
       {target.status === "incompatible" ? (
         <p className="notice">
           評価時の軸の版があなたの希望条件と異なるため、比較していません。
@@ -50,7 +67,6 @@ function TargetSection({
 
 /** Personal comparison for one job; never a hiring or personality verdict. */
 export function MatchReport({ report }: Props) {
-  const summary = summarizeTarget(report.job);
   const hasConflict = report.hardConstraints.some(
     (constraint) => constraint.status === "unmet",
   );
@@ -67,19 +83,6 @@ export function MatchReport({ report }: Props) {
             {report.companyName}
           </h2>
           <p className="sub">{report.jobTitle}</p>
-          {summary && (
-            <p className="summary" aria-label="求人の軸別の比較結果">
-              <span>
-                <b>{summary.close}</b>近い
-              </span>
-              <span>
-                <b>{summary.different}</b>相違
-              </span>
-              <span>
-                <b>{summary.unknown}</b>不明
-              </span>
-            </p>
-          )}
         </div>
         <div className="hero-visual">
           <Mascot pose={hasConflict ? "worried" : "success"} size="small" />
@@ -92,39 +95,51 @@ export function MatchReport({ report }: Props) {
         </div>
       )}
 
-      <ul className="constraints" aria-label="必須条件">
-        {report.hardConstraints.map((constraint) => (
-          <li
-            key={constraint.kind}
-            className={`constraint-${constraint.status}`}
-          >
-            {constraintLabels[constraint.kind]}:{" "}
-            <b>{constraintStatusLabels[constraint.status]}</b>
-            {constraint.reason && (
-              <span className="constraint-reason">
-                （{constraintReasonLabels[constraint.reason]}）
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-      {hasConflict && (
-        <p className="notice warn">
-          必須条件に合わない項目があります。軸が近くても、この点は相殺されません。
+      <JobOverview overview={report.jobOverview} />
+
+      <section
+        className="constraint-section"
+        aria-labelledby="constraint-section-heading"
+      >
+        <h3 id="constraint-section-heading">希望条件との比較</h3>
+        <p className="meta">
+          ここは求人の条件そのものではなく、あなたが指定した必須条件との比較です。
         </p>
-      )}
+        <ul className="constraints" aria-label="希望条件との比較">
+          {report.hardConstraints.map((constraint) => (
+            <li
+              key={constraint.kind}
+              className={`constraint-${constraint.status}`}
+            >
+              {constraintLabels[constraint.kind]}:{" "}
+              <b>{constraintStatusLabels[constraint.status]}</b>
+              {constraint.reason && (
+                <span className="constraint-reason">
+                  （{constraintReasonLabels[constraint.reason]}）
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+        {hasConflict && (
+          <p className="notice warn">
+            必須条件に合わない項目があります。8軸が近くても、この点は相殺されません。
+          </p>
+        )}
+      </section>
 
       {isOpenPosition && (
         <p className="notice">
-          この求人はオープンポジションのため、配属先によって変わる項目は不明になりやすいです。個別職種の求人では、より具体的に比較できます。
+          この求人はオープンポジションのため、配属先によって変わる仕事観の項目は不明になりやすいです。給与・勤務地・働き方など、求人全体で明示された条件は上の「求人概要」に表示します。
         </p>
       )}
 
       <TargetSection
-        title="この求人について"
-        description="この求人ページの記載だけを根拠にした比較です。"
+        title="働き方・仕事観の比較"
+        description="求人ページから読み取れた範囲で、8軸をあなたの希望と比較します。"
         target={report.job}
         targetLabel="求人"
+        showSummary
       />
       {report.company && (
         <TargetSection

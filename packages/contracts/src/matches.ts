@@ -74,6 +74,61 @@ export const matchConstraintResultSchema = z.strictObject({
   reason: z.enum(matchConstraintReasons).optional(),
 });
 
+const unknownFactSchema = z.strictObject({ status: z.literal("unknown") });
+const conflictingFactSchema = z.strictObject({
+  status: z.literal("conflicting"),
+});
+const salaryOverviewSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    status: z.literal("known"),
+    minimum: z.number().int().nonnegative().safe(),
+    maximum: z.number().int().nonnegative().safe(),
+    currency: z.string().trim().min(1),
+    period: z.string().trim().min(1),
+  }),
+  unknownFactSchema,
+  conflictingFactSchema,
+]);
+const stringListOverviewSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    status: z.literal("known"),
+    values: z.array(z.string().trim().min(1)).min(1),
+  }),
+  unknownFactSchema,
+  conflictingFactSchema,
+]);
+const booleanOverviewSchema = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("known"), value: z.boolean() }),
+  unknownFactSchema,
+  conflictingFactSchema,
+]);
+const officeDaysOverviewSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    status: z.literal("known"),
+    value: z.number().int().min(0).max(5),
+  }),
+  unknownFactSchema,
+  conflictingFactSchema,
+]);
+const flexibilityOverviewSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    status: z.literal("known"),
+    value: z.union([z.literal(0), z.literal(50), z.literal(100)]),
+  }),
+  unknownFactSchema,
+  conflictingFactSchema,
+]);
+
+export const jobOverviewSchema = z.strictObject({
+  salary: salaryOverviewSchema,
+  locations: stringListOverviewSchema,
+  employmentTypes: stringListOverviewSchema,
+  fullRemote: booleanOverviewSchema,
+  weeklyOfficeDays: officeDaysOverviewSchema,
+  scheduleFlexibility: flexibilityOverviewSchema,
+  techStack: stringListOverviewSchema,
+});
+
 /** Personal comparison of one profile version with one job evaluation. */
 export const matchReportSchema = z.strictObject({
   matchResultId: uuid,
@@ -82,6 +137,7 @@ export const matchReportSchema = z.strictObject({
   algorithmVersion: z.string().trim().min(1),
   companyName: z.string().trim().min(1),
   jobTitle: z.string().trim().min(1),
+  jobOverview: jobOverviewSchema,
   job: matchTargetResultSchema,
   company: matchTargetResultSchema.nullable(),
   hardConstraints: z
@@ -91,6 +147,7 @@ export const matchReportSchema = z.strictObject({
 
 export type CreateMatchRequest = z.infer<typeof createMatchRequestSchema>;
 export type MatchEvidence = z.infer<typeof matchEvidenceSchema>;
+export type JobOverview = z.infer<typeof jobOverviewSchema>;
 export type MatchAxisResult = z.infer<typeof matchAxisResultSchema>;
 export type MatchTargetResult = z.infer<typeof matchTargetResultSchema>;
 export type MatchConstraintResult = z.infer<typeof matchConstraintResultSchema>;

@@ -1,5 +1,6 @@
 import type {
   CareerProfileResponse,
+  JobOverview,
   MatchEvidence,
 } from "@job-match/contracts";
 import type {
@@ -26,6 +27,7 @@ export type MatchEvaluationSource = Readonly<{
   jobTitle: string | null;
   evaluation: EvaluationSnapshot;
   jobConditions?: JobConditions;
+  jobOverview?: JobOverview;
   companyEvaluation: EvaluationSnapshot | null;
 }>;
 

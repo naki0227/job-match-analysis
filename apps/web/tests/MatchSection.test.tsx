@@ -38,9 +38,7 @@ test("shows progress and then the personal report", async () => {
   expect(
     await screen.findByRole("heading", { name: "サンプルテック株式会社" }),
   ).toBeInTheDocument();
-  expect(
-    screen.getByRole("region", { name: "この求人について" }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "求人概要" })).toBeInTheDocument();
 });
 
 test("asks for a career profile before comparing", async () => {

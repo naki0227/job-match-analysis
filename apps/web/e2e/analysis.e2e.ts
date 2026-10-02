@@ -85,9 +85,7 @@ test("求人URLを送信し、共有ジョブの完了後に本人の比較結�
   await expect(
     page.getByRole("heading", { name: "サンプルテック株式会社" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("region", { name: "この求人について" }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "求人概要" })).toBeVisible();
   expect(posted).toEqual([{ url: "https://jobs.example.com/posting/1" }]);
   expect(matchRequests).toEqual([{ evaluationId }]);
   await page.getByRole("button", { name: "分析履歴" }).click();

@@ -5,7 +5,7 @@ import type {
   MatchEvaluationSource,
   StoredMatch,
 } from "@job-match/application";
-import { careerAxisKeys } from "@job-match/contracts";
+import { careerAxisKeys, type JobOverview } from "@job-match/contracts";
 import {
   prefectureCodeFromName,
   type AxisComparison,
@@ -125,27 +125,36 @@ const salaryValue = z.object({
   currency: z.string().min(1),
   period: z.string().min(1),
 });
-const salaryFact = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("known"), value: salaryValue }),
-  z.object({ status: z.literal("unknown") }),
-  z.object({ status: z.literal("conflicting") }),
-]);
-const locationFact = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("known"),
-    value: z.array(z.string().min(1)).min(1),
-  }),
-  z.object({ status: z.literal("unknown") }),
-  z.object({ status: z.literal("conflicting") }),
-]);
-const remoteFact = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("known"), value: z.boolean() }),
-  z.object({ status: z.literal("unknown") }),
-  z.object({ status: z.literal("conflicting") }),
-]);
+
+function factSchema<T extends z.ZodTypeAny>(value: T) {
+  return z.discriminatedUnion("status", [
+    z.object({ status: z.literal("known"), value }),
+    z.object({ status: z.literal("unknown") }),
+    z.object({ status: z.literal("conflicting") }),
+  ]);
+}
+
+const salaryFact = factSchema(salaryValue);
+const locationFact = factSchema(z.array(z.string().min(1)).min(1));
+const remoteFact = factSchema(z.boolean());
+const employmentTypeFact = factSchema(z.array(z.string().min(1)).min(1));
+const officeDaysFact = factSchema(z.number().int().min(0).max(5));
+const flexibilityFact = factSchema(
+  z.union([z.literal(0), z.literal(50), z.literal(100)]),
+);
+const techStackFact = factSchema(z.array(z.string().min(1)).min(1));
+
 const jobFactRows = z.array(
   z.object({
-    kind: z.enum(["salary", "location", "fullRemote"]),
+    kind: z.enum([
+      "salary",
+      "location",
+      "fullRemote",
+      "weeklyOfficeDays",
+      "scheduleFlexibility",
+      "techStack",
+      "employmentType",
+    ]),
     payload: z.unknown(),
   }),
 );
@@ -158,20 +167,50 @@ function observation<T>(
     : { status: parsed.status };
 }
 
-function toJobConditions(raw: unknown): JobConditions {
+function emptyJobOverview(): JobOverview {
+  return {
+    salary: { status: "unknown" },
+    locations: { status: "unknown" },
+    employmentTypes: { status: "unknown" },
+    fullRemote: { status: "unknown" },
+    weeklyOfficeDays: { status: "unknown" },
+    scheduleFlexibility: { status: "unknown" },
+    techStack: { status: "unknown" },
+  };
+}
+
+function toJobFacts(raw: unknown): {
+  conditions: JobConditions;
+  overview: JobOverview;
+} {
   const rows = jobFactRows.safeParse(raw);
   if (!rows.success) throw new MatchStoreError();
+
   const conditions: {
     salary?: Observation<SalaryOffer>;
     availablePrefectureCodes?: Observation<readonly string[]>;
     fullRemote?: Observation<boolean>;
   } = {};
+  const overview = emptyJobOverview();
+
   for (const row of rows.data) {
     if (row.kind === "salary") {
       const parsed = salaryFact.safeParse(row.payload);
       if (!parsed.success) throw new MatchStoreError();
       conditions.salary = observation(parsed.data);
-    } else if (row.kind === "location") {
+      overview.salary =
+        parsed.data.status === "known"
+          ? {
+              status: "known",
+              minimum: parsed.data.value.minimum,
+              maximum: parsed.data.value.maximum,
+              currency: parsed.data.value.currency,
+              period: parsed.data.value.period,
+            }
+          : { status: parsed.data.status };
+      continue;
+    }
+    if (row.kind === "location") {
       const parsed = locationFact.safeParse(row.payload);
       if (!parsed.success) throw new MatchStoreError();
       conditions.availablePrefectureCodes =
@@ -181,13 +220,58 @@ function toJobConditions(raw: unknown): JobConditions {
               value: parsed.data.value.map(prefectureCodeFromName),
             }
           : { status: parsed.data.status };
-    } else {
+      overview.locations =
+        parsed.data.status === "known"
+          ? { status: "known", values: parsed.data.value }
+          : { status: parsed.data.status };
+      continue;
+    }
+    if (row.kind === "fullRemote") {
       const parsed = remoteFact.safeParse(row.payload);
       if (!parsed.success) throw new MatchStoreError();
       conditions.fullRemote = observation(parsed.data);
+      overview.fullRemote =
+        parsed.data.status === "known"
+          ? { status: "known", value: parsed.data.value }
+          : { status: parsed.data.status };
+      continue;
     }
+    if (row.kind === "employmentType") {
+      const parsed = employmentTypeFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      overview.employmentTypes =
+        parsed.data.status === "known"
+          ? { status: "known", values: parsed.data.value }
+          : { status: parsed.data.status };
+      continue;
+    }
+    if (row.kind === "weeklyOfficeDays") {
+      const parsed = officeDaysFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      overview.weeklyOfficeDays =
+        parsed.data.status === "known"
+          ? { status: "known", value: parsed.data.value }
+          : { status: parsed.data.status };
+      continue;
+    }
+    if (row.kind === "scheduleFlexibility") {
+      const parsed = flexibilityFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      overview.scheduleFlexibility =
+        parsed.data.status === "known"
+          ? { status: "known", value: parsed.data.value }
+          : { status: parsed.data.status };
+      continue;
+    }
+    const parsed = techStackFact.safeParse(row.payload);
+    if (!parsed.success) throw new MatchStoreError();
+    overview.techStack =
+      parsed.data.status === "known"
+        ? { status: "known", values: parsed.data.value }
+        : { status: parsed.data.status };
   }
-  return conditions;
+
+  return { conditions, overview };
 }
 
 export class MatchStoreError extends Error {
@@ -282,16 +366,17 @@ export function createMatchRepository(
       const parsed = evaluationSourceSchema.safeParse(raw);
       if (!parsed.success) throw new MatchStoreError();
       const source = parsed.data;
-      const jobConditions =
+      const facts =
         source.targetType === "job"
-          ? toJobConditions(await readJobFacts(source.evaluation.evaluationId))
-          : {};
+          ? toJobFacts(await readJobFacts(source.evaluation.evaluationId))
+          : { conditions: {}, overview: emptyJobOverview() };
       return {
         targetType: source.targetType,
         companyName: source.companyName,
         jobTitle: source.jobTitle,
         evaluation: toSnapshot(source.evaluation),
-        jobConditions,
+        jobConditions: facts.conditions,
+        jobOverview: facts.overview,
         companyEvaluation: source.companyEvaluation
           ? toSnapshot(source.companyEvaluation)
           : null,
@@ -369,7 +454,15 @@ export function createSupabaseMatchRepository(): MatchRepository {
         .from("evaluation_job_facts")
         .select("kind,payload")
         .eq("evaluation_id", evaluationId)
-        .in("kind", ["salary", "location", "fullRemote"]);
+        .in("kind", [
+          "salary",
+          "location",
+          "fullRemote",
+          "weeklyOfficeDays",
+          "scheduleFlexibility",
+          "techStack",
+          "employmentType",
+        ]);
       if (error) throw new MatchStoreError();
       return data ?? [];
     },

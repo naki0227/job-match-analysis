@@ -54,6 +54,7 @@ export {
   matchConstraintResultSchema,
   matchConstraintStatuses,
   matchEvidenceSchema,
+  jobOverviewSchema,
   matchReportSchema,
   matchTargetResultSchema,
 } from "./matches.js";
@@ -62,6 +63,7 @@ export type {
   MatchAxisResult,
   MatchConstraintResult,
   MatchEvidence,
+  JobOverview,
   MatchReport,
   MatchTargetResult,
 } from "./matches.js";

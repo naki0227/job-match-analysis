@@ -25,16 +25,16 @@ export const axisStatusLabels: Record<AxisStatus, string> =
   axisStatusDisplayLabels;
 
 export const constraintLabels: Record<ConstraintKind, string> = {
-  min_salary: "最低年収",
-  location: "勤務地",
+  min_salary: "希望最低年収",
+  location: "希望勤務地",
   full_remote: "フルリモート必須",
 };
 
 export const constraintStatusLabels: Record<ConstraintStatus, string> = {
   met: "満たす",
   unmet: "満たさない",
-  unknown: "不明",
-  not_required: "条件なし",
+  unknown: "判定できず",
+  not_required: "指定なし",
 };
 
 export const constraintReasonLabels: Record<ConstraintReason, string> = {

@@ -1,4 +1,5 @@
 import type {
+  JobOverview,
   MatchAxisResult,
   MatchReport,
   MatchTargetResult,
@@ -12,6 +13,18 @@ import type {
   EvaluationSnapshot,
   MatchEvaluationSource,
 } from "./match-ports.js";
+
+function emptyJobOverview(): JobOverview {
+  return {
+    salary: { status: "unknown" },
+    locations: { status: "unknown" },
+    employmentTypes: { status: "unknown" },
+    fullRemote: { status: "unknown" },
+    weeklyOfficeDays: { status: "unknown" },
+    scheduleFlexibility: { status: "unknown" },
+    techStack: { status: "unknown" },
+  };
+}
 
 function observedAnchor(axis: AxisComparison): 0 | 50 | 100 | null {
   const observation = axis.observation;
@@ -78,6 +91,7 @@ export function buildMatchReport(input: ReportInput): MatchReport {
     algorithmVersion: input.algorithmVersion,
     companyName: source.companyName,
     jobTitle: source.jobTitle ?? "",
+    jobOverview: source.jobOverview ?? emptyJobOverview(),
     job: toTargetResult(input.job, source.evaluation),
     company:
       input.company && source.companyEvaluation

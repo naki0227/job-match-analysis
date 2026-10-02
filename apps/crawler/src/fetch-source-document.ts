@@ -78,44 +78,83 @@ export async function fetchSourceDocument(args: {
   const html = requireHtml(response);
   rejectAccessGate(html);
   const httpDocument = extractSourceDocument(html, response.url, now());
-  if (httpDocument.sufficient)
-    return { document: httpDocument, usedBrowser: false };
-  if (!args.browser)
+  if (!args.browser) {
+    if (httpDocument.sufficient)
+      return { document: httpDocument, usedBrowser: false };
     throw new SourceFetchError("browser fallback is unavailable");
+  }
 
   const boundary = await createBrowserBoundary(args.browser, authorizedFetch);
   try {
-    const page = await boundary.context.newPage();
-    const navigation = await page.goto(initialUrl.href, {
-      waitUntil: "domcontentloaded",
-      timeout: FETCH_LIMITS.timeoutMs,
-    });
-    if (
-      !navigation ||
-      navigation.status() < 200 ||
-      navigation.status() >= 300
-    ) {
-      throw new SourceFetchError("browser source response was not successful");
+    try {
+      const page = await boundary.context.newPage();
+      const navigation = await page.goto(initialUrl.href, {
+        waitUntil: "domcontentloaded",
+        timeout: FETCH_LIMITS.timeoutMs,
+      });
+      if (
+        !navigation ||
+        navigation.status() < 200 ||
+        navigation.status() >= 300
+      ) {
+        throw new SourceFetchError(
+          "browser source response was not successful",
+        );
+      }
+      await page
+        .waitForFunction(
+          () => {
+            const content = document.querySelector(
+              "[data-job], [itemtype$='/JobPosting'], main",
+            );
+            return (
+              (content?.textContent?.replace(/\s/g, "").length ?? 0) >= 100
+            );
+          },
+          undefined,
+          { timeout: 5_000 },
+        )
+        .catch(() => undefined);
+
+      // A page can be textually "sufficient" before client-rendered compensation
+      // and conditions arrive. Wait briefly for visible text to settle so the
+      // rendered document can enrich the static response.
+      await page
+        .evaluate(async () => {
+          let previous = document.body?.innerText ?? "";
+          let stableChecks = 0;
+          for (let index = 0; index < 10; index += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            const current = document.body?.innerText ?? "";
+            if (current === previous) stableChecks += 1;
+            else stableChecks = 0;
+            previous = current;
+            if (index >= 3 && stableChecks >= 2) break;
+          }
+        })
+        .catch(() => undefined);
+
+      const renderedHtml = await page.content();
+      rejectAccessGate(renderedHtml);
+      const finalUrl = parsePublicUrl(page.url());
+      const renderedDocument = extractSourceDocument(
+        renderedHtml,
+        finalUrl.href,
+        now(),
+      );
+      if (renderedDocument.sufficient) {
+        return { document: renderedDocument, usedBrowser: true };
+      }
+      if (httpDocument.sufficient) {
+        return { document: httpDocument, usedBrowser: false };
+      }
+      throw new SourceFetchError("rendered source is insufficient");
+    } catch (error) {
+      if (httpDocument.sufficient) {
+        return { document: httpDocument, usedBrowser: false };
+      }
+      throw error;
     }
-    await page
-      .waitForFunction(
-        () => {
-          const content = document.querySelector(
-            "[data-job], [itemtype$='/JobPosting'], main",
-          );
-          return (content?.textContent?.replace(/\s/g, "").length ?? 0) >= 100;
-        },
-        undefined,
-        { timeout: 5_000 },
-      )
-      .catch(() => undefined);
-    const renderedHtml = await page.content();
-    rejectAccessGate(renderedHtml);
-    const finalUrl = parsePublicUrl(page.url());
-    return {
-      document: extractSourceDocument(renderedHtml, finalUrl.href, now()),
-      usedBrowser: true,
-    };
   } finally {
     await boundary.context.close();
   }

@@ -53,10 +53,34 @@ const evaluationRow = {
 
 test("評価をdomainの観測値に変換し、未評価はnullにする", async () => {
   const calls: Array<[string, Record<string, unknown>]> = [];
-  const repository = createMatchRepository(async (name, args) => {
-    calls.push([name, args]);
-    return args.p_evaluation_id === evaluationId ? evaluationRow : null;
-  });
+  const repository = createMatchRepository(
+    async (name, args) => {
+      calls.push([name, args]);
+      return args.p_evaluation_id === evaluationId ? evaluationRow : null;
+    },
+    async () => [
+      {
+        kind: "salary",
+        payload: {
+          status: "known",
+          value: {
+            minimum: 6_000_000,
+            maximum: 8_000_000,
+            currency: "JPY",
+            period: "year",
+          },
+        },
+      },
+      {
+        kind: "location",
+        payload: { status: "known", value: ["東京都", "大阪府"] },
+      },
+      {
+        kind: "fullRemote",
+        payload: { status: "known", value: false },
+      },
+    ],
+  );
   const source = await repository.readEvaluation(evaluationId);
   assert.deepEqual(calls[0], [
     "read_evaluation_for_match",
@@ -70,6 +94,19 @@ test("評価をdomainの観測値に変換し、未評価はnullにする", asyn
     },
     { axisKey: "autonomy", axisVersion: 1, observation: { status: "unknown" } },
   ]);
+  assert.deepEqual(source?.jobConditions, {
+    salary: {
+      status: "known",
+      value: {
+        minimum: 6_000_000,
+        maximum: 8_000_000,
+        currency: "JPY",
+        period: "year",
+      },
+    },
+    availablePrefectureCodes: { status: "known", value: ["13", "27"] },
+    fullRemote: { status: "known", value: false },
+  });
   assert.equal(source?.companyEvaluation?.evaluationId, companyEvaluationId);
   assert.equal(await repository.readEvaluation(randomUUID()), null);
 });

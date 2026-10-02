@@ -8,7 +8,7 @@ import { validateDecisionInput } from "../src/decision-engine.js";
 
 it("keeps all eight published axes in one versioned rubric", () => {
   expect(AXIS_CATALOG_VERSION).toBe(1);
-  expect(PUBLIC_RUBRIC_VERSION).toBe("public-anchors-v1");
+  expect(PUBLIC_RUBRIC_VERSION).toBe("public-anchors-v2");
   expect(PUBLIC_AXIS_RUBRICS.map((item) => item.axisKey)).toEqual([
     "work_location",
     "autonomy",

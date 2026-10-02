@@ -18,12 +18,20 @@ export type AxisRubric = {
   anchors: { 0: string; 50: string; 100: string };
 };
 
+/**
+ * "Which fragments state X?" for a job fact or section the parser could not
+ * read. The engine only points at fragments; values are read from their
+ * exact text by the caller, so nothing is generated.
+ */
+export type LocateQuestion = { key: string; description: string };
+
 export type DecisionEngineInput = {
   axisCatalogVersion: number;
   rubricVersion: string;
   scope: "company" | "job";
   rubrics: readonly AxisRubric[];
   fragments: readonly ContextFragment[];
+  locate?: readonly LocateQuestion[];
 };
 
 export type AxisDecision =
@@ -46,6 +54,8 @@ export type DecisionEngineOutput = {
   evaluatorVersion: string;
   modelVersion: string;
   decisions: readonly AxisDecision[];
+  /** Fragment ids per locate key, most supported first; absent when none. */
+  located?: Readonly<Record<string, readonly string[]>>;
 };
 
 export interface DecisionEngine {
@@ -78,7 +88,13 @@ export function validateDecisionInput(input: DecisionEngineInput): void {
     !Number.isInteger(input.axisCatalogVersion) ||
     input.axisCatalogVersion <= 0 ||
     !input.rubricVersion.trim() ||
-    input.rubrics.length === 0 ||
+    (input.rubrics.length === 0 && !input.locate?.length) ||
+    new Set(input.locate?.map((item) => item.key)).size !==
+      (input.locate?.length ?? 0) ||
+    input.locate?.some(
+      (item) =>
+        !/^[a-z][A-Za-z]{0,39}$/.test(item.key) || !item.description.trim(),
+    ) ||
     new Set(input.rubrics.map((item) => item.axisKey)).size !==
       input.rubrics.length ||
     new Set(input.fragments.map((item) => item.id)).size !==

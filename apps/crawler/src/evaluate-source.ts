@@ -15,12 +15,17 @@ import {
   parseDeterministicJobFacts,
 } from "./deterministic-parser.js";
 import { buildEvaluationPayload } from "./evaluation-payload.js";
+import { readJobSections } from "./job-sections.js";
+import { applyLocated, locateQuestions } from "./located-facts.js";
 import { RULE_ENGINE_VERSION, ruleDecisions } from "./rule-engine.js";
 import type { ExtractedSourceDocument } from "./source-extractor.js";
 
 /**
- * Structured facts and explicit rules decide what they can; the evaluator
- * reads the complete extracted context for the remaining axes only.
+ * What the posting says comes first: the parser reads job facts and the
+ * page's own headings give its sections. Explicit rules decide what axes
+ * they can. One evaluator call then reads the complete context for the
+ * remaining axes and points at fragments for any fact or section still
+ * missing; those values are read from the located text, never generated.
  */
 export async function evaluateSource(args: {
   sourceUrlId: string;
@@ -45,18 +50,23 @@ export async function evaluateSource(args: {
     rubrics: PUBLIC_AXIS_RUBRICS,
     fragments: context.fragments,
   };
-  const facts =
+  const parsed =
     args.scope === "job"
-      ? parseDeterministicJobFacts(args.document)
+      ? {
+          facts: parseDeterministicJobFacts(args.document),
+          sections: readJobSections(context.fragments),
+        }
       : undefined;
   const rule = ruleDecisions(input);
   const resolved = new Set(rule.map((decision) => decision.axisKey));
+  const locate = parsed ? locateQuestions(parsed.facts, parsed.sections) : [];
   const unresolved = {
     ...input,
     rubrics: input.rubrics.filter((rubric) => !resolved.has(rubric.axisKey)),
+    ...(locate.length ? { locate } : {}),
   };
   const engineOutput =
-    unresolved.rubrics.length && unresolved.fragments.length
+    (unresolved.rubrics.length || locate.length) && unresolved.fragments.length
       ? await args.engine.evaluate(unresolved)
       : {
           axisCatalogVersion: input.axisCatalogVersion,
@@ -76,6 +86,13 @@ export async function evaluateSource(args: {
     ),
   ]);
   const ordered = input.rubrics.map((rubric) => decisions.get(rubric.axisKey)!);
+  const understood = parsed
+    ? applyLocated({
+        ...parsed,
+        located: engineOutput.located ?? {},
+        fragments: context.fragments,
+      })
+    : undefined;
   const output = {
     ...engineOutput,
     evaluatorVersion: `${DETERMINISTIC_PARSER_VERSION}+${RULE_ENGINE_VERSION}+${engineOutput.evaluatorVersion}`,
@@ -99,7 +116,9 @@ export async function evaluateSource(args: {
           ] as const,
       ),
     ),
-    facts,
+    facts: understood
+      ? { ...understood.facts, ...understood.sections }
+      : undefined,
   });
   const count = (status: AxisDecision["status"]) =>
     ordered.filter((decision) => decision.status === status).length;

@@ -20,8 +20,18 @@ export const DETERMINISTIC_PARSER_VERSION = "job-facts-v7";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
+/**
+ * `method: "jev"` marks a value read from fragments the evaluator located
+ * after the parser found none; without it the parser read it directly.
+ */
 export type ParsedFact<T> =
-  | { status: "known"; value: T; excerpt: string; locator: string }
+  | {
+      status: "known";
+      value: T;
+      excerpt: string;
+      locator: string;
+      method?: "jev";
+    }
   | { status: "unknown" | "conflicting" };
 
 export type SalaryRange = {

@@ -86,27 +86,30 @@ function range(minimum: number, maximum: number): SalaryRange[] {
     : [];
 }
 
+const MAN_RANGE =
+  /([0-9][0-9,]*)\s*万(?:円)?\s*(?:[〜~～\-–]|から)\s*([0-9][0-9,]*)\s*万(?:円)?/gu;
+const YEN_RANGE =
+  /([0-9][0-9,]{5,})\s*円?\s*(?:[〜~～\-–]|から)\s*([0-9][0-9,]{5,})\s*円?/gu;
+const amount = (value: string) => Number(value.replaceAll(",", ""));
+
+function ranges(text: string): SalaryRange[] {
+  return [
+    ...[...text.matchAll(MAN_RANGE)].flatMap((match) =>
+      range(amount(match[1]!) * 10_000, amount(match[2]!) * 10_000),
+    ),
+    ...[...text.matchAll(YEN_RANGE)].flatMap((match) =>
+      range(amount(match[1]!), amount(match[2]!)),
+    ),
+  ];
+}
+
 export function salary(text: string): SalaryRange[] {
   const results: SalaryRange[] = [];
+  // Only a range written right after 年収 is an annual salary.
   for (const match of text.matchAll(
-    /年収\s*[:：]?\s*([0-9,]+)\s*万(?:円)?\s*(?:[〜~～\-–]|から)\s*([0-9,]+)\s*万(?:円)?/gu,
+    /年収\s*[:：]?\s*([0-9][0-9,]*\s*(?:万(?:円)?|円)?\s*(?:[〜~～\-–]|から)\s*[0-9][0-9,]*\s*(?:万(?:円)?|円)?)/gu,
   )) {
-    results.push(
-      ...range(
-        Number(match[1]!.replaceAll(",", "")) * 10_000,
-        Number(match[2]!.replaceAll(",", "")) * 10_000,
-      ),
-    );
-  }
-  for (const match of text.matchAll(
-    /年収\s*[:：]?\s*([0-9][0-9,]{5,})\s*円?\s*(?:[〜~～\-–]|から)\s*([0-9][0-9,]{5,})\s*円?/gu,
-  )) {
-    results.push(
-      ...range(
-        Number(match[1]!.replaceAll(",", "")),
-        Number(match[2]!.replaceAll(",", "")),
-      ),
-    );
+    results.push(...ranges(match[1]!));
   }
 
   if (/salary\s*range|給与|年収/iu.test(text)) {
@@ -118,6 +121,23 @@ export function salary(text: string): SalaryRange[] {
     }
   }
   return results;
+}
+
+/**
+ * An annual range in text the evaluator located as the salary. The text or
+ * its heading must still say it is annual; monthly or hourly pay is never
+ * read as a year.
+ */
+export function locatedSalary(section: string, text: string): SalaryRange[] {
+  const context = `${section} ${text}`;
+  if (
+    /月給|月収|月額|時給|日給|monthly|hourly|per\s+month|per\s+hour/iu.test(
+      context,
+    )
+  )
+    return [];
+  if (!/年収|年俸|annual|per\s+year|\/\s*year/iu.test(context)) return [];
+  return ranges(text);
 }
 
 export function locationNames(value: string): (typeof PREFECTURES)[number][] {
@@ -223,20 +243,33 @@ export function targetRoleFromText(text: string): string[] {
   return match?.[1]?.trim() ? [match[1].trim()] : [];
 }
 
+const EMPLOYMENT_WORDS: Record<string, string> = {
+  正社員: "FULL_TIME",
+  契約社員: "CONTRACTOR",
+  業務委託: "CONTRACTOR",
+  アルバイト: "PART_TIME",
+  パート: "PART_TIME",
+  インターン: "INTERN",
+};
+
 export function employmentType(text: string): string[][] {
   const match =
     /雇用形態\s+(正社員|契約社員|業務委託|アルバイト|パート|インターン)/u.exec(
       text,
     );
-  if (!match) return [];
-  const mapped: Record<string, string> = {
-    正社員: "FULL_TIME",
-    契約社員: "CONTRACTOR",
-    業務委託: "CONTRACTOR",
-    アルバイト: "PART_TIME",
-    パート: "PART_TIME",
-    インターン: "INTERN",
-  };
-  const value = mapped[match[1]!];
+  const value = match ? EMPLOYMENT_WORDS[match[1]!] : undefined;
   return value ? [[value]] : [];
+}
+
+/** Employment types named in text the evaluator located as the type. */
+export function locatedEmploymentTypes(text: string): string[] {
+  return [
+    ...new Set(
+      [
+        ...text.matchAll(
+          /正社員|契約社員|業務委託|アルバイト|パート|インターン/gu,
+        ),
+      ].map((match) => EMPLOYMENT_WORDS[match[0]]!),
+    ),
+  ];
 }

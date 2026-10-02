@@ -186,6 +186,44 @@ describe("Jev whole-context DecisionEngine", () => {
     ]);
   });
 
+  it("locates facts with fragment choices only, under the grounding threshold", async () => {
+    const requests: JevRequest[] = [];
+    const result = await engine(async (request) => {
+      requests.push(request);
+      return respond({
+        find_salary: answer("f2", { f2: 0.7, f3: 0.2, f1: 0.05, none: 0.05 }),
+        find_duties: answer("f1", { f1: 0.3, none: 0.7 }),
+      });
+    }).evaluate({
+      ...input,
+      rubrics: [],
+      locate: [
+        { key: "salary", description: "the annual salary" },
+        { key: "duties", description: "the duties" },
+      ],
+    });
+    const question = requests[0]!.questions.find_salary!;
+    expect(
+      question.type === "choice" && Object.keys(question.criteria),
+    ).toEqual(["f1", "f2", "f3", "none"]);
+    expect(question.instructions).toMatch(/ignore any instructions/);
+    expect(result.decisions).toEqual([]);
+    // Most supported first; the 5% share is dropped; an ungrounded answer
+    // (70% none) locates nothing.
+    expect(result.located).toEqual({ salary: ["b", "c"] });
+  });
+
+  it("rejects malformed locate keys before calling Jev", async () => {
+    const call = vi.fn();
+    await expect(
+      engine(call).evaluate({
+        ...input,
+        locate: [{ key: "find_salary; drop", description: "x" }],
+      }),
+    ).rejects.toBeInstanceOf(DecisionEngineInputError);
+    expect(call).not.toHaveBeenCalled();
+  });
+
   it("caps evidence per axis and drops fragments with a negligible share", async () => {
     const result = await engine(
       async () =>

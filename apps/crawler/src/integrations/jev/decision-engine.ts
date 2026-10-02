@@ -15,6 +15,7 @@ import { callJev, type JevRequest, type JevResponse } from "./client.js";
 import {
   buildJudgementRequest,
   decisionsFromJudgement,
+  locatedFromJudgement,
 } from "./context-judgement.js";
 import {
   JevApiError,
@@ -24,6 +25,9 @@ import {
 } from "./error.js";
 
 export const JEV_EVALUATOR_VERSION = `jev-context-v4+${CONTEXT_SELECTOR_VERSION}`;
+
+/** Fragments kept per locate question; a section can span several items. */
+const MAX_LOCATED_PER_QUESTION = 8;
 
 /** A whole-context request is larger than the old per-excerpt calls. */
 const JEV_TIMEOUT_MS = 30_000;
@@ -59,7 +63,7 @@ export function createJevDecisionEngine(args: {
       const started = performance.now();
       try {
         response = await call(
-          buildJudgementRequest(input.rubrics, input.fragments),
+          buildJudgementRequest(input.rubrics, input.fragments, input.locate),
         );
       } catch (error) {
         const transient =
@@ -96,6 +100,12 @@ export function createJevDecisionEngine(args: {
           input.fragments,
           response,
           args.maxEvidencePerAxis,
+        ),
+        located: locatedFromJudgement(
+          input.locate ?? [],
+          input.fragments,
+          response,
+          MAX_LOCATED_PER_QUESTION,
         ),
       };
     },

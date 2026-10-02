@@ -53,6 +53,42 @@ describe("HTTP to browser source fetch", () => {
     expect(visited).toEqual(["/robots.txt", "/job/1"]);
   });
 
+  it("uses rendered content to enrich a sufficient static job page", async () => {
+    const browser = await chromium.launch({
+      channel: "chrome",
+      headless: true,
+    });
+    try {
+      const send: RequestOnce = async (url) => {
+        if (url.pathname === "/robots.txt")
+          return response(url, "User-agent: *\\nAllow: /");
+        return response(
+          url,
+          `<main data-job>
+            <p>${jobText}</p>
+            <div>給与 年収 <span id="salary"></span> 勤務地 東京都</div>
+          </main>
+          <script>
+            setTimeout(() => {
+              document.querySelector("#salary").textContent = "600万円〜1600万円";
+            }, 50);
+          </script>`,
+        );
+      };
+      const result = await fetchSourceDocument({
+        url: "https://jobs.example/job/rendered",
+        siteApproved: async () => true,
+        browser,
+        resolve,
+        send,
+      });
+      expect(result.usedBrowser).toBe(true);
+      expect(result.document.extractedText).toContain("600万円〜1600万円");
+    } finally {
+      await browser.close();
+    }
+  }, 30_000);
+
   it("uses one browser fallback for JS-rendered job text", async () => {
     const browser = await chromium.launch({
       channel: "chrome",

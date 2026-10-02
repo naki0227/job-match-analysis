@@ -53,8 +53,6 @@ describe("analysis job processor", () => {
       resolveJobTarget,
       engine: createFakeDecisionEngine(),
       limits: {
-        maxFragments: 40,
-        maxContextChars: 8_000,
         maxFragmentChars: 200,
       },
       resolve: async () => ["8.8.8.8"],
@@ -85,8 +83,6 @@ describe("analysis job processor", () => {
         resolveJobTarget: async () => targetId,
         engine,
         limits: {
-          maxFragments: 40,
-          maxContextChars: 8_000,
           maxFragmentChars: 200,
         },
         resolve: async () => ["8.8.8.8"],
@@ -117,8 +113,6 @@ describe("analysis job processor", () => {
       }),
       engine: createFakeDecisionEngine(),
       limits: {
-        maxFragments: 40,
-        maxContextChars: 8_000,
         maxFragmentChars: 200,
       },
       resolve: async () => ["8.8.8.8"],
@@ -146,8 +140,6 @@ describe("analysis job processor", () => {
       siteAllowed: async () => false,
       engine: createFakeDecisionEngine(),
       limits: {
-        maxFragments: 40,
-        maxContextChars: 8_000,
         maxFragmentChars: 200,
       },
       send,
@@ -192,8 +184,6 @@ describe("analysis job processor", () => {
           siteAllowed: async () => true,
           engine,
           limits: {
-            maxFragments: 40,
-            maxContextChars: 8_000,
             maxFragmentChars: 200,
           },
           resolve: async () => ["8.8.8.8"],

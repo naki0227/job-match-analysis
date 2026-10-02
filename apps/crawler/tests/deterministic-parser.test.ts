@@ -116,6 +116,37 @@ describe("deterministic job parser", () => {
     });
   });
 
+  it("reads salary and locations when ATS labels and values are split across elements", () => {
+    const document = extractSourceDocument(
+      `<script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "Open Position",
+        hiringOrganization: { name: "Example Ltd" },
+        jobLocation: { address: { addressRegion: "東京都" } },
+        employmentType: "FULL_TIME",
+      })}</script><main data-job>
+        <dl>
+          <dt>給与</dt><dd>年収 600万円 〜 1600万円</dd>
+          <dt>勤務地</dt>
+          <dd>東京都港区 ■その他 -福岡開発拠点 -京都開発拠点 -大阪開発拠点 -名古屋開発拠点</dd>
+          <dt>働き方(出社・リモート)</dt><dd>原則、週2出社必須</dd>
+        </dl>
+      </main>`,
+      url,
+      now,
+    );
+    const facts = parseDeterministicJobFacts(document);
+    expect(facts.salary).toMatchObject({
+      status: "known",
+      value: { minimum: 6_000_000, maximum: 16_000_000 },
+    });
+    expect(facts.location).toMatchObject({
+      status: "known",
+      value: ["東京都", "愛知県", "京都府", "大阪府", "福岡県"],
+    });
+    expect(facts.weeklyOfficeDays).toMatchObject({ status: "known", value: 2 });
+  });
+
   it("does not convert monthly salary or invent job identity", () => {
     const document = extractSourceDocument(
       `<main data-job><p>月給30万円</p><p>リモート相談可</p>

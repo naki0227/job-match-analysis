@@ -4,8 +4,6 @@ import { sourceSetHash } from "../src/evaluation-input.js";
 import { extractSourceDocument } from "../src/source-extractor.js";
 
 const limits = {
-  maxFragments: 40,
-  maxContextChars: 8_000,
   maxFragmentChars: 200,
 };
 

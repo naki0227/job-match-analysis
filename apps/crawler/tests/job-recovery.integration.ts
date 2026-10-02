@@ -147,8 +147,6 @@ async function runWorker(mode: "hold" | "recover"): Promise<void> {
         siteAllowed: async (origin) => origin === "https://example.org",
         engine: createFakeDecisionEngine(),
         limits: {
-          maxFragments: 40,
-          maxContextChars: 8_000,
           maxFragmentChars: 200,
         },
         resolve: async () => ["8.8.8.8"],

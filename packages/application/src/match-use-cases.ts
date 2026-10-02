@@ -4,12 +4,14 @@ import {
   matchCareerProfile,
   parsePrefectureCode,
   type CareerProfileVersion,
+  type JobConditions,
+  type JobEvaluation,
   type TargetEvaluation,
 } from "@job-match/domain";
 import type { MatchPorts, StoredMatch } from "./match-ports.js";
 import { buildMatchReport } from "./match-report.js";
 
-export const MATCH_ALGORITHM_VERSION = "match-engine-v1";
+export const MATCH_ALGORITHM_VERSION = "match-engine-v2";
 
 export type CreateMatchResult =
   | { status: "created" | "existing"; report: MatchReport }
@@ -55,6 +57,16 @@ function asTarget(snapshot: {
   };
 }
 
+function asJob(
+  snapshot: {
+    axisCatalogVersion: number;
+    axisValues: TargetEvaluation["axisValues"];
+  },
+  conditions: JobConditions,
+): JobEvaluation {
+  return { ...asTarget(snapshot), ...conditions };
+}
+
 /**
  * Compares the caller's latest profile with a job evaluation and stores the
  * result. Re-running with the same inputs returns the stored match.
@@ -73,7 +85,7 @@ export async function createMatch(
 
   const result = matchCareerProfile({
     profile: toCareerProfileVersion(latest),
-    job: asTarget(source.evaluation),
+    job: asJob(source.evaluation, source.jobConditions),
     ...(source.companyEvaluation
       ? { company: asTarget(source.companyEvaluation) }
       : {}),

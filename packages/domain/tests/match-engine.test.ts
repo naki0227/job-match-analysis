@@ -72,13 +72,13 @@ describe("axis comparison", () => {
     const range = evidence({ status: "range", minimum: 50, maximum: 100 });
     const at = (preference: number) =>
       axisStatus(compareTarget(profile(preference), job([range]), "job"));
-    // Both ends within 25: whatever the job is, it is close.
+    // Both documented anchors are within 25.
     expect(at(75)).toMatchObject({
       status: "close",
-      difference: 0,
+      difference: 25,
       differenceMax: 25,
     });
-    // Inside the range but far from one end: neither confirmed nor ruled out.
+    // One documented anchor is close and the other is far: neither confirmed nor ruled out.
     expect(at(100)).toMatchObject({
       status: "partial",
       difference: 0,

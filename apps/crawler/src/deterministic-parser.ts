@@ -335,7 +335,6 @@ function mergeLocations(
   };
 }
 
-
 export function parseDeterministicJobFacts(
   document: ExtractedSourceDocument,
 ): ParsedJobFacts {

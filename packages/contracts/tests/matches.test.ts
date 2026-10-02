@@ -132,6 +132,31 @@ describe("match API contracts", () => {
     }
   });
 
+  it("accepts a partial axis with an adjacent range only", () => {
+    const job = report.job;
+    if (job.status !== "comparable") throw new Error("job");
+    const withRange = (observedRange: unknown, status = "partial") => ({
+      ...report,
+      job: {
+        ...job,
+        axes: job.axes.map((axis, index) =>
+          index === 0 ? { ...axis, status, observedRange } : axis,
+        ),
+      },
+    });
+    expect(
+      matchReportSchema.safeParse(withRange({ minimum: 50, maximum: 100 }))
+        .success,
+    ).toBe(true);
+    for (const range of [
+      { minimum: 0, maximum: 100 },
+      { minimum: 50, maximum: 50 },
+      { minimum: 25, maximum: 75 },
+    ]) {
+      expect(matchReportSchema.safeParse(withRange(range)).success).toBe(false);
+    }
+  });
+
   it("rejects overall scores, non-anchor values and missing axes", () => {
     expect(matchReportSchema.safeParse({ ...report, score: 80 }).success).toBe(
       false,

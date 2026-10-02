@@ -20,6 +20,7 @@ export const axisDisplayNames: Readonly<Record<AxisKey, string>> = {
 export const axisStatusDisplayLabels: Readonly<Record<AxisStatus, string>> = {
   close: "近い",
   different: "相違",
+  partial: "一部近い",
   unknown: "不明",
   conflicting: "情報が矛盾",
   stale: "情報が古い",

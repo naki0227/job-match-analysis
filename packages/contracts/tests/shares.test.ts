@@ -124,8 +124,29 @@ describe("share contracts", () => {
     expect(summary).toEqual({
       close: 6,
       different: 0,
+      partial: 0,
       unknown: 2,
       closeAxes: ["work_location", "autonomy", "collaboration"],
+    });
+  });
+
+  it("counts partial axes on their own, never as close or unknown", () => {
+    if (report.job.status !== "comparable") throw new Error("job");
+    const axes = report.job.axes.map((axis, index) => ({
+      ...axis,
+      status: index < 2 ? ("partial" as const) : ("unknown" as const),
+      observed: null,
+      observedRange:
+        index < 2 ? ({ minimum: 50, maximum: 100 } as const) : null,
+    }));
+    const summary = summarizeSharedMatch(
+      toSharedMatch({ ...report, job: { ...report.job, axes } }),
+    );
+    expect(summary).toMatchObject({
+      close: 0,
+      different: 0,
+      partial: 2,
+      unknown: 6,
     });
   });
 });

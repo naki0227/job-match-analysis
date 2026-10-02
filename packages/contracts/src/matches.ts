@@ -8,6 +8,7 @@ const percentage = z.number().int().min(0).max(100);
 export const matchAxisStatuses = [
   "close",
   "different",
+  "partial",
   "excluded",
   "unknown",
   "conflicting",
@@ -51,6 +52,17 @@ export const matchAxisResultSchema = z.strictObject({
   preference: percentage,
   importance: percentage,
   observed: z.union([z.literal(0), z.literal(50), z.literal(100)]).nullable(),
+  /**
+   * Set when the posting supports two adjacent anchors rather than one
+   * (ADR-049); `observed` is then null. Optional for older reports.
+   */
+  observedRange: z
+    .union([
+      z.strictObject({ minimum: z.literal(0), maximum: z.literal(50) }),
+      z.strictObject({ minimum: z.literal(50), maximum: z.literal(100) }),
+    ])
+    .nullable()
+    .optional(),
   evidence: z.array(matchEvidenceSchema),
 });
 

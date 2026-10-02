@@ -21,7 +21,11 @@ const salaryValue = z.object({
 
 function factSchema<T extends z.ZodTypeAny>(value: T) {
   return z.discriminatedUnion("status", [
-    z.object({ status: z.literal("known"), value }),
+    z.object({
+      status: z.literal("known"),
+      value,
+      excerpt: z.string().trim().min(1).optional(),
+    }),
     z.object({ status: z.literal("unknown") }),
     z.object({ status: z.literal("conflicting") }),
   ]);
@@ -36,6 +40,25 @@ const flexibilityFact = factSchema(
   z.union([z.literal(0), z.literal(50), z.literal(100)]),
 );
 const techStackFact = factSchema(z.array(z.string().min(1)).min(1));
+const sectionFact = factSchema(
+  z
+    .array(
+      z.object({
+        section: z.string().trim().min(1).nullable(),
+        text: z.string().trim().min(1),
+      }),
+    )
+    .min(1),
+);
+
+const SECTION_KINDS = ["duties", "requirements", "workStyle"] as const;
+type SectionKind = (typeof SECTION_KINDS)[number];
+const isSection = (kind: string): kind is SectionKind =>
+  (SECTION_KINDS as readonly string[]).includes(kind);
+
+/** The page text a known fact was read from, when the crawler stored it. */
+const withEvidence = (fact: { excerpt?: string | undefined }) =>
+  fact.excerpt ? { evidence: fact.excerpt } : {};
 
 /** Job fact kinds the API reads from evaluation_job_facts. */
 export const JOB_FACT_KINDS = [
@@ -46,6 +69,7 @@ export const JOB_FACT_KINDS = [
   "scheduleFlexibility",
   "techStack",
   "employmentType",
+  ...SECTION_KINDS,
 ] as const;
 
 const jobFactRows = z.array(
@@ -72,6 +96,9 @@ export function emptyJobOverview(): JobOverview {
     weeklyOfficeDays: { status: "unknown" },
     scheduleFlexibility: { status: "unknown" },
     techStack: { status: "unknown" },
+    duties: { status: "unknown" },
+    requirements: { status: "unknown" },
+    workStyle: { status: "unknown" },
   };
 }
 
@@ -90,6 +117,16 @@ export function toJobFacts(raw: unknown): {
   const overview = emptyJobOverview();
 
   for (const row of rows.data) {
+    if (isSection(row.kind)) {
+      const parsed = sectionFact.safeParse(row.payload);
+      if (!parsed.success) throw new MatchStoreError();
+      // Sections are never conflicting: quotes from several places are kept.
+      overview[row.kind] =
+        parsed.data.status === "known"
+          ? { status: "known", quotes: parsed.data.value }
+          : { status: "unknown" };
+      continue;
+    }
     if (row.kind === "salary") {
       const parsed = salaryFact.safeParse(row.payload);
       if (!parsed.success) throw new MatchStoreError();
@@ -102,6 +139,7 @@ export function toJobFacts(raw: unknown): {
               maximum: parsed.data.value.maximum,
               currency: parsed.data.value.currency,
               period: parsed.data.value.period,
+              ...withEvidence(parsed.data),
             }
           : { status: parsed.data.status };
       continue;
@@ -118,7 +156,11 @@ export function toJobFacts(raw: unknown): {
           : { status: parsed.data.status };
       overview.locations =
         parsed.data.status === "known"
-          ? { status: "known", values: parsed.data.value }
+          ? {
+              status: "known",
+              values: parsed.data.value,
+              ...withEvidence(parsed.data),
+            }
           : { status: parsed.data.status };
       continue;
     }
@@ -128,7 +170,11 @@ export function toJobFacts(raw: unknown): {
       conditions.fullRemote = observation(parsed.data);
       overview.fullRemote =
         parsed.data.status === "known"
-          ? { status: "known", value: parsed.data.value }
+          ? {
+              status: "known",
+              value: parsed.data.value,
+              ...withEvidence(parsed.data),
+            }
           : { status: parsed.data.status };
       continue;
     }
@@ -137,7 +183,11 @@ export function toJobFacts(raw: unknown): {
       if (!parsed.success) throw new MatchStoreError();
       overview.employmentTypes =
         parsed.data.status === "known"
-          ? { status: "known", values: parsed.data.value }
+          ? {
+              status: "known",
+              values: parsed.data.value,
+              ...withEvidence(parsed.data),
+            }
           : { status: parsed.data.status };
       continue;
     }
@@ -146,7 +196,11 @@ export function toJobFacts(raw: unknown): {
       if (!parsed.success) throw new MatchStoreError();
       overview.weeklyOfficeDays =
         parsed.data.status === "known"
-          ? { status: "known", value: parsed.data.value }
+          ? {
+              status: "known",
+              value: parsed.data.value,
+              ...withEvidence(parsed.data),
+            }
           : { status: parsed.data.status };
       continue;
     }
@@ -155,7 +209,11 @@ export function toJobFacts(raw: unknown): {
       if (!parsed.success) throw new MatchStoreError();
       overview.scheduleFlexibility =
         parsed.data.status === "known"
-          ? { status: "known", value: parsed.data.value }
+          ? {
+              status: "known",
+              value: parsed.data.value,
+              ...withEvidence(parsed.data),
+            }
           : { status: parsed.data.status };
       continue;
     }
@@ -163,7 +221,11 @@ export function toJobFacts(raw: unknown): {
     if (!parsed.success) throw new MatchStoreError();
     overview.techStack =
       parsed.data.status === "known"
-        ? { status: "known", values: parsed.data.value }
+        ? {
+            status: "known",
+            values: parsed.data.value,
+            ...withEvidence(parsed.data),
+          }
         : { status: parsed.data.status };
   }
 

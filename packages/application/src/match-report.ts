@@ -33,6 +33,14 @@ function observedAnchor(axis: AxisComparison): 0 | 50 | 100 | null {
     : null;
 }
 
+function observedRange(axis: AxisComparison): MatchAxisResult["observedRange"] {
+  const observation = axis.observation;
+  if (observation.status !== "range") return null;
+  return observation.minimum === 0
+    ? { minimum: 0, maximum: 50 }
+    : { minimum: 50, maximum: 100 };
+}
+
 function toAxisResult(
   axis: AxisComparison,
   snapshot: EvaluationSnapshot,
@@ -43,6 +51,7 @@ function toAxisResult(
     preference: axis.preference,
     importance: axis.importance,
     observed: observedAnchor(axis),
+    observedRange: observedRange(axis),
     evidence: snapshot.evidence
       .filter((item) => item.axisKey === axis.axisKey)
       .map(({ quote, sourceUrl, fetchedAt }) => ({

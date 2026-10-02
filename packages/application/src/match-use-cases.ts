@@ -11,7 +11,7 @@ import {
 import type { MatchPorts, StoredMatch } from "./match-ports.js";
 import { buildMatchReport } from "./match-report.js";
 
-export const MATCH_ALGORITHM_VERSION = "match-engine-v2";
+export const MATCH_ALGORITHM_VERSION = "match-engine-v3";
 
 export type CreateMatchResult =
   | { status: "created" | "existing"; report: MatchReport }

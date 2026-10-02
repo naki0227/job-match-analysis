@@ -73,7 +73,7 @@ test("summary and hard constraints are shown without an overall score", () => {
   const constraints = screen.getByRole("list", { name: "必須条件" });
   expect(constraints).toHaveTextContent("最低年収: 満たす");
   expect(constraints).toHaveTextContent("勤務地: 不明（求人情報に記載なし）");
-  expect(constraints).toHaveTextContent("フルリモート: 満たさない");
+  expect(constraints).toHaveTextContent("フルリモート必須: 満たさない");
   expect(screen.getByText(/相殺されません/)).toBeInTheDocument();
   expect(container.textContent).not.toMatch(/%|％|適性|合格/);
   expect(container.textContent).toMatch(

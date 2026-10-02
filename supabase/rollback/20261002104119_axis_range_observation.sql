@@ -4,6 +4,10 @@
 -- evidence rows are kept.
 begin;
 
+drop function if exists public.list_analysis_history_page_v3(
+  uuid, integer, timestamptz, text, text, text, integer, timestamptz, uuid
+);
+
 update public.match_axis_results
   set observation_status = 'unknown', observed_anchor = null,
     observed_anchor_max = null, difference = null, difference_max = null,

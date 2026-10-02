@@ -65,8 +65,8 @@ insert into public.match_results (id, user_id, career_profile_version_id, evalua
     'a4900000-0000-4000-8000-000000000001', 'a4900000-0000-4000-8000-000000000002',
     'a4900000-0000-4000-8000-000000000005', 1, 'match-range');
 
--- preference 100 vs 50〜100: smallest 0, largest 50 -> partial.
--- preference 75 vs 50〜100: both ends within 25 -> close.
+-- preference 100 vs 50/100: nearest 0, farthest 50 -> partial.
+-- preference 75 vs 50/100: both documented anchors are 25 away -> close.
 -- preference 100 vs 0〜50: nearest end 50 away -> different.
 insert into public.match_axis_results (match_result_id, axis_key, axis_version,
     preference, importance, observation_status, observed_anchor,
@@ -75,7 +75,7 @@ values
   ('a4900000-0000-4000-8000-000000000006', 'role_breadth', 1, 100, 80,
     'range', 50, 100, 'partial', 0, 50),
   ('a4900000-0000-4000-8000-000000000006', 'growth_direction', 1, 75, 80,
-    'range', 50, 100, 'close', 0, 25),
+    'range', 50, 100, 'close', 25, 25),
   ('a4900000-0000-4000-8000-000000000006', 'work_change', 1, 100, 80,
     'range', 0, 50, 'different', 50, 100),
   ('a4900000-0000-4000-8000-000000000006', 'customer_contact', 1, 100, 0,
@@ -89,12 +89,12 @@ select pg_temp.expect_check($$insert into public.match_axis_results
    observed_anchor, observed_anchor_max, comparison_status, difference, difference_max)
   values ('a4900000-0000-4000-8000-000000000006', 'collaboration', 1, 100, 80,
     'range', 50, 100, 'close', 0, 50)$$);
--- difference must be the true smallest difference.
-select pg_temp.expect_check($$insert into public.match_axis_results
+-- difference must be the true nearest-endpoint distance.
+select pg_temp.expect_check($insert into public.match_axis_results
   (match_result_id, axis_key, axis_version, preference, importance, observation_status,
    observed_anchor, observed_anchor_max, comparison_status, difference, difference_max)
   values ('a4900000-0000-4000-8000-000000000006', 'collaboration', 1, 70, 80,
-    'range', 50, 100, 'partial', 20, 30)$$);
+    'range', 50, 100, 'partial', 0, 30)$);
 select pg_temp.expect_check($$insert into public.match_axis_results
   (match_result_id, axis_key, axis_version, preference, importance, observation_status,
    observed_anchor, observed_anchor_max, comparison_status, difference, difference_max)

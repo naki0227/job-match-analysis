@@ -3,19 +3,15 @@ import { buildContextFragments } from "../src/context-fragments.js";
 import { extractSourceDocument } from "../src/source-extractor.js";
 
 const at = new Date("2026-09-29T00:00:00Z");
-const limits = {
-  maxFragments: 40,
-  maxContextChars: 8_000,
-  maxFragmentChars: 80,
-};
-const build = (html: string, overrides: Partial<typeof limits> = {}) => {
+const limits = { maxFragmentChars: 80 };
+const build = (html: string, maxFragmentChars = limits.maxFragmentChars) => {
   const document = extractSourceDocument(html, "https://jobs.example/1", at);
   return {
     document,
     ...buildContextFragments({
       documents: [document],
       scope: "job",
-      limits: { ...limits, ...overrides },
+      limits: { maxFragmentChars },
     }),
   };
 };
@@ -31,7 +27,7 @@ describe("context fragments", () => {
     ]);
   });
 
-  it("splits long fragments into sentences that exist verbatim in the source", () => {
+  it("splits long fragments into exact source substrings without dropping the tail", () => {
     const long = `${"あ".repeat(60)}。${"い".repeat(100)}。`;
     const { fragments, document } = build(
       `<main data-job><p>${long}</p></main>`,
@@ -47,20 +43,24 @@ describe("context fragments", () => {
     const prefix = "説明".repeat(120);
     const { fragments } = build(
       `<main data-job><div>${prefix} 働き方 ハイブリッドワークスタイル 週2出社必須</div></main>`,
-      { maxFragmentChars: 80 },
+      80,
     );
     expect(fragments.some((item) => item.text.includes("週2出社必須"))).toBe(
       true,
     );
   });
 
-  it("drops duplicates, tiny labels and fragments with contact data or secrets", () => {
+  it("does not discard labels, duplicates, or public contact text before evaluation", () => {
     const { fragments } = build(
       `<main data-job><h2>勤務</h2><p>チームで開発します。</p><p>チームで開発します。</p>
        <p>応募は jobs@example.com まで</p><p>Token sk-abcdefghijklmnopqrst</p></main>`,
     );
     expect(fragments.map((item) => item.text)).toEqual([
+      "勤務",
       "チームで開発します。",
+      "チームで開発します。",
+      "応募は jobs@example.com まで",
+      "Token sk-abcdefghijklmnopqrst",
     ]);
   });
 
@@ -81,26 +81,33 @@ describe("context fragments", () => {
     ]);
   });
 
-  it("within the limits prefers work-style text but keeps page order", () => {
-    const html = `<main data-job>
-      <p>当社は1999年に創業しました。</p>
-      <p>製品は全国で使われています。</p>
-      <p>在宅勤務と出社を選べます。</p>
-      <p>顧客と直接話す機会があります。</p>
-    </main>`;
-    const { fragments, stats } = build(html, { maxFragments: 2 });
-    expect(fragments.map((item) => item.text)).toEqual([
-      "在宅勤務と出社を選べます。",
-      "顧客と直接話す機会があります。",
-    ]);
-    expect(stats).toEqual({ available: 4, sent: 2, sentChars: 28 });
-    const byChars = build(html, { maxContextChars: 20 });
-    expect(byChars.stats.sentChars).toBeLessThanOrEqual(20);
+  it("sends every extracted fragment without a count or total-character cap", () => {
+    const paragraphs = Array.from(
+      { length: 80 },
+      (_, index) => `<p>説明文その${index + 1}です。</p>`,
+    ).join("");
+    const { fragments, stats } = build(`<main data-job>${paragraphs}</main>`);
+    expect(fragments).toHaveLength(80);
+    expect(stats.available).toBe(80);
+    expect(stats.sent).toBe(80);
+    expect(stats.sentChars).toBe(
+      fragments.reduce((total, item) => total + item.text.length, 0),
+    );
   });
 
-  it("rejects non-positive limits", () => {
+  it("rejects a non-positive evidence-fragment size", () => {
     expect(() =>
-      build("<main data-job><p>本文です。</p></main>", { maxFragments: 0 }),
+      buildContextFragments({
+        documents: [
+          extractSourceDocument(
+            "<main data-job><p>本文です。</p></main>",
+            "https://jobs.example/1",
+            at,
+          ),
+        ],
+        scope: "job",
+        limits: { maxFragmentChars: 0 },
+      }),
     ).toThrow(RangeError);
   });
 });

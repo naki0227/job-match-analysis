@@ -174,9 +174,7 @@ function salary(text: string): SalaryRange[] {
   }
 
   if (/salary\s*range|給与|年収/iu.test(text)) {
-    const annual = [
-      ...text.matchAll(/([0-9][0-9,]{5,})\s*JPY\s*\/\s*year/giu),
-    ]
+    const annual = [...text.matchAll(/([0-9][0-9,]{5,})\s*JPY\s*\/\s*year/giu)]
       .map((match) => Number(match[1]!.replaceAll(",", "")))
       .filter((value) => Number.isSafeInteger(value) && value > 0);
     if (annual.length >= 2) {

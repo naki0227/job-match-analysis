@@ -91,6 +91,47 @@ describe("match API contracts", () => {
     expect(matchReportSchema.safeParse(withEvidence).success).toBe(true);
   });
 
+  it("accepts posting sections and fact evidence, and reports without them", () => {
+    const withSections = {
+      ...report,
+      jobOverview: {
+        ...report.jobOverview,
+        salary: {
+          status: "known",
+          minimum: 6_000_000,
+          maximum: 16_000_000,
+          currency: "JPY",
+          period: "year",
+          evidence: "給与 年収 600万円 〜 1600万円",
+        },
+        duties: {
+          status: "known",
+          quotes: [{ section: "業務内容", text: "テックリード業務" }],
+        },
+        requirements: { status: "unknown" },
+        workStyle: {
+          status: "known",
+          quotes: [{ section: null, text: "原則、週2出社必須" }],
+        },
+      },
+    };
+    expect(matchReportSchema.safeParse(withSections).success).toBe(true);
+    // Older reports have no sections at all.
+    expect(matchReportSchema.safeParse(report).success).toBe(true);
+    for (const duties of [
+      { status: "known", quotes: [] },
+      { status: "conflicting" },
+      { status: "known", quotes: [{ section: "", text: "x" }] },
+    ]) {
+      expect(
+        matchReportSchema.safeParse({
+          ...report,
+          jobOverview: { ...report.jobOverview, duties },
+        }).success,
+      ).toBe(false);
+    }
+  });
+
   it("rejects overall scores, non-anchor values and missing axes", () => {
     expect(matchReportSchema.safeParse({ ...report, score: 80 }).success).toBe(
       false,

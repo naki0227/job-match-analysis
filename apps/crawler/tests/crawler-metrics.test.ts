@@ -11,6 +11,7 @@ const evaluationEvent = {
   axesSentToJev: 8,
   known: 5,
   unknown: 3,
+  range: 0,
   conflicting: 0,
   evidencePerAxis: [2, 1, 3, 1, 2],
   durationMs: 4_000,

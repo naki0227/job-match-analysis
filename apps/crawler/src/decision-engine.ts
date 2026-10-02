@@ -42,6 +42,17 @@ export type AxisDecision =
       evidenceIds: readonly string[];
     }
   | {
+      /**
+       * The cited text supports two adjacent anchors but not one of them
+       * (ADR-049): the work lies between `anchorValue` and `anchorMax`.
+       */
+      axisKey: string;
+      status: "range";
+      anchorValue: 0 | 50;
+      anchorMax: 50 | 100;
+      evidenceIds: readonly string[];
+    }
+  | {
       axisKey: string;
       status: "unknown" | "conflicting";
       anchorValue: null;

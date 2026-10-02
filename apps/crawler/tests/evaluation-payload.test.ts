@@ -77,6 +77,7 @@ describe("evaluation persistence payload", () => {
       axisVersion: 1,
       observationStatus: "known",
       anchorValue: 50,
+      anchorMax: null,
       evaluationMethod: "jev",
     });
     expect(payload.evaluation.evidence).toEqual(
@@ -91,6 +92,62 @@ describe("evaluation persistence payload", () => {
       expect(document.extractedText).toContain(item.excerpt);
     }
     expect(payload.evaluation.sourceSetHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("stores a range with its evidence and rejects a malformed range", async () => {
+    const { document, input } = source();
+    const [first] = input.fragments;
+    const payloadWith = async (range: Record<string, unknown>) => {
+      const output = await createFakeDecisionEngine((engineInput) =>
+        engineInput.rubrics.map((rubric) =>
+          rubric.axisKey === "work_location"
+            ? ({ axisKey: rubric.axisKey, ...range } as never)
+            : {
+                axisKey: rubric.axisKey,
+                status: "unknown",
+                anchorValue: null,
+                evidenceIds: [],
+              },
+        ),
+      ).evaluate(input);
+      return buildEvaluationPayload({
+        sourceUrlIds: [SOURCE_URL_ID],
+        documents: [document],
+        input,
+        output,
+      });
+    };
+    const payload = await payloadWith({
+      status: "range",
+      anchorValue: 50,
+      anchorMax: 100,
+      evidenceIds: [first!.id],
+    });
+    expect(payload.evaluation.axisValues[0]).toMatchObject({
+      observationStatus: "range",
+      anchorValue: 50,
+      anchorMax: 100,
+    });
+    expect(payload.evaluation.evidence).toHaveLength(1);
+    for (const range of [
+      { status: "range", anchorValue: 50, anchorMax: 100, evidenceIds: [] },
+      {
+        status: "range",
+        anchorValue: 0,
+        anchorMax: 100,
+        evidenceIds: [first!.id],
+      },
+      {
+        status: "range",
+        anchorValue: 100,
+        anchorMax: 150,
+        evidenceIds: [first!.id],
+      },
+    ]) {
+      await expect(payloadWith(range)).rejects.toBeInstanceOf(
+        EvaluationPayloadError,
+      );
+    }
   });
 
   it("rejects fabricated evidence, known without evidence and mismatched results", async () => {

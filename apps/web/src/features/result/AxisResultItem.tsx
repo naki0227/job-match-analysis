@@ -47,6 +47,32 @@ function Bar({ label, value }: { label: string; value: number }) {
   );
 }
 
+/** The posting's range between two adjacent anchors, drawn as a segment. */
+function RangeBar({
+  label,
+  range,
+}: {
+  label: string;
+  range: NonNullable<AxisResult["observedRange"]>;
+}) {
+  return (
+    <div className="bar-row bar-range">
+      <span>{label}</span>
+      <div className="track" aria-hidden="true">
+        <span
+          style={{
+            marginLeft: `${range.minimum}%`,
+            width: `${range.maximum - range.minimum}%`,
+          }}
+        />
+      </div>
+      <span>
+        {range.minimum}〜{range.maximum}
+      </span>
+    </div>
+  );
+}
+
 export function AxisResultItem({ axis, targetLabel }: Props) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -72,7 +98,17 @@ export function AxisResultItem({ axis, targetLabel }: Props) {
         {axis.observed !== null && (
           <Bar label={targetLabel} value={axis.observed} />
         )}
+        {axis.observedRange && (
+          <RangeBar label={targetLabel} range={axis.observedRange} />
+        )}
       </div>
+      {axis.observedRange && (
+        <p className="meta range-note">
+          {axis.status === "partial"
+            ? "求人の記載には幅があり、あなたの希望は一方の端には近く、もう一方からは離れています。"
+            : "求人の記載からは一点に決められず、この幅の中にあります。"}
+        </p>
+      )}
       <div id={panelId} className="axis-evidence" hidden={!open}>
         {axis.status === "excluded" && (
           <p className="meta">重要度を0にしたため、比較から除いています。</p>

@@ -15,5 +15,10 @@ begin
       where conname = 'match_axis_results_comparison_status_check')) like '%partial%' then
     raise exception 'partial comparisons are still allowed after rollback';
   end if;
+  if to_regprocedure(
+      'public.list_analysis_history_page_v3(uuid,integer,timestamptz,text,text,text,integer,timestamptz,uuid)'
+    ) is not null then
+    raise exception 'partial-aware history RPC remains after rollback';
+  end if;
 end;
 $$;

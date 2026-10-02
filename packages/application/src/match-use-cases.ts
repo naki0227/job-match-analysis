@@ -85,7 +85,7 @@ export async function createMatch(
 
   const result = matchCareerProfile({
     profile: toCareerProfileVersion(latest),
-    job: asJob(source.evaluation, source.jobConditions),
+    job: asJob(source.evaluation, source.jobConditions ?? {}),
     ...(source.companyEvaluation
       ? { company: asTarget(source.companyEvaluation) }
       : {}),

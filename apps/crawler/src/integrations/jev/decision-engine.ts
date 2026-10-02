@@ -23,7 +23,7 @@ import {
   JevTimeoutError,
 } from "./error.js";
 
-export const JEV_EVALUATOR_VERSION = `jev-context-v2+${CONTEXT_SELECTOR_VERSION}`;
+export const JEV_EVALUATOR_VERSION = `jev-context-v3+${CONTEXT_SELECTOR_VERSION}`;
 
 /** A whole-context request is larger than the old per-excerpt calls. */
 const JEV_TIMEOUT_MS = 30_000;

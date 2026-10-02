@@ -23,7 +23,7 @@ export type ContextStats = {
 
 function sentences(text: string): string[] {
   return text
-    .split(/(?<=[。！？.!?])\s+/u)
+    .split(/(?<=[。！？])|(?<=[.!?])\s+/u)
     .map((item) => item.trim())
     .filter(Boolean);
 }

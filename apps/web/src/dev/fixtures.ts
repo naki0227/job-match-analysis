@@ -83,6 +83,21 @@ export const sampleReport: MatchReportView = {
   algorithmVersion: "match-engine-v1",
   companyName: "サンプルテック株式会社",
   jobTitle: "Backend Engineer",
+  jobOverview: {
+    salary: {
+      status: "known",
+      minimum: 6_000_000,
+      maximum: 16_000_000,
+      currency: "JPY",
+      period: "year",
+    },
+    locations: { status: "known", values: ["東京都", "大阪府"] },
+    employmentTypes: { status: "known", values: ["FULL_TIME"] },
+    fullRemote: { status: "known", value: false },
+    weeklyOfficeDays: { status: "known", value: 2 },
+    scheduleFlexibility: { status: "unknown" },
+    techStack: { status: "known", values: ["Go", "PostgreSQL"] },
+  },
   job: {
     status: "comparable",
     evaluationId: jobEvaluationId,

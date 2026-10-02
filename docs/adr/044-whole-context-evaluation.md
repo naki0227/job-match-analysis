@@ -15,7 +15,7 @@
 優先順位は次のとおり。構造化された事実 > 明示的なrule > Jevの意味判定 > `unknown`。
 
 1. **抽出**: extractorでnav・footer・script・hiddenなど評価対象ではないWeb UIを除いた公開本文を抽出する。
-2. **context**（`context-fragments.ts`、`context-fragments-v3`）:
+2. **context**（`context-fragments.ts`、`context-fragments-v4`）:
    - 求人（または会社）scopeの抽出済み本文をページ順のまま全て評価対象にする。
    - `CRAWLER_JEV_MAX_FRAGMENTS`と`CRAWLER_JEV_MAX_CONTEXT_CHARS`は廃止する。アプリ側は断片数・総文字数を理由に本文を選別・破棄しない。
    - `CRAWLER_MAX_EXCERPT_CHARS`は情報量を削る上限ではない。根拠位置を特定し保存するため、長い断片をロスなく複数の部分文字列へ分けるサイズとしてのみ使う。
@@ -32,7 +32,7 @@
    - 根拠を特定できない判断は`unknown`とする。
 6. **根拠**: 1軸に複数の根拠を`evaluation_evidence`へ保存する。
 7. **versioning**:
-   - selector版は`context-fragments-v3`。求人事実parserを`job-facts-v4`、ruleを`public-rules-v4`、公開rubricを`public-anchors-v2`、Jev evaluatorを`jev-context-v3`へ上げる。
+   - selector版は`context-fragments-v4`。求人事実parserを`job-facts-v4`、ruleを`public-rules-v4`、公開rubricを`public-anchors-v2`、Jev evaluatorを`jev-context-v3`へ上げる。
    - source set hashにはJevへ渡した全断片（id・文・locator）とselector版を含める。
    - 本番の`ANALYZER_VERSION`を`analysis-v5`へ上げ、以前の選別あり・過度に厳しいrubricで作った評価をfresh cacheとして再利用しない。
 8. **計測**: 抽出字数、断片数、送信数、Jev token、known/unknown/conflicting数、根拠数、所要時間を計測する。本文やURLはmetric labelやlogへ出さない。

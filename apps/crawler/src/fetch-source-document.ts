@@ -97,7 +97,9 @@ export async function fetchSourceDocument(args: {
         navigation.status() < 200 ||
         navigation.status() >= 300
       ) {
-        throw new SourceFetchError("browser source response was not successful");
+        throw new SourceFetchError(
+          "browser source response was not successful",
+        );
       }
       await page
         .waitForFunction(
@@ -105,7 +107,9 @@ export async function fetchSourceDocument(args: {
             const content = document.querySelector(
               "[data-job], [itemtype$='/JobPosting'], main",
             );
-            return (content?.textContent?.replace(/\s/g, "").length ?? 0) >= 100;
+            return (
+              (content?.textContent?.replace(/\s/g, "").length ?? 0) >= 100
+            );
           },
           undefined,
           { timeout: 5_000 },

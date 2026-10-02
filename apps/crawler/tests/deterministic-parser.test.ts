@@ -51,7 +51,6 @@ describe("deterministic job parser", () => {
     });
   });
 
-
   it("reads mixed Japanese/English HRMOS conditions without JSON-LD", () => {
     const document = extractSourceDocument(
       `<main data-job><div>

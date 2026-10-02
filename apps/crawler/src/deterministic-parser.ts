@@ -325,7 +325,7 @@ function mergeLocations(
 ): ParsedFact<readonly string[]> {
   if (!structured) return text;
   if (text.status === "unknown") return structured;
-  if (text.status === "conflicting") return text;
+  if (text.status !== "known") return text;
   const value = [...new Set([...structured.value, ...text.value])];
   return {
     status: "known",

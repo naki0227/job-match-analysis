@@ -1,0 +1,23 @@
+name: Format Debug
+
+on:
+  push:
+    branches: [fix/job-overview-and-rendered-analysis]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write apps/api/src/repositories/matches.ts apps/crawler/src/fetch-source-document.ts apps/web/src/features/result/JobOverview.tsx apps/web/src/features/result/result.css
+          git diff -- apps/api/src/repositories/matches.ts apps/crawler/src/fetch-source-document.ts apps/web/src/features/result/JobOverview.tsx apps/web/src/features/result/result.css

@@ -2,6 +2,7 @@ import { Mascot } from "../components/Mascot";
 import { AnalyzeForm } from "../features/analysis/AnalyzeForm";
 import { HistoryRow } from "../features/history/HistoryList";
 import type { AnalysisHistoryState } from "../features/history/useAnalysisHistory";
+import { JobFinder } from "../features/job-resolver/JobFinder";
 import "../features/analysis/analysis.css";
 import "../features/history/history.css";
 
@@ -9,9 +10,8 @@ type Props = {
   /** Saved profile version; null when none is saved, undefined while unknown. */
   profileVersion: number | null | undefined;
   history: AnalysisHistoryState;
+  getAccessToken: () => Promise<string>;
   onAnalyze: (url: string) => void;
-  /** Opens the company + role search when the user has no URL at hand. */
-  onFindJob?: () => void;
   onEditProfile: () => void;
   onShowHistory: () => void;
   onOpenMatch: (matchResultId: string) => void;
@@ -58,8 +58,8 @@ function RecentAnalyses({
 export function HomeScreen({
   profileVersion,
   history,
+  getAccessToken,
   onAnalyze,
-  onFindJob,
   onEditProfile,
   onShowHistory,
   onOpenMatch,
@@ -82,12 +82,14 @@ export function HomeScreen({
           <Mascot pose="laptop" />
         </div>
       </div>
-      <AnalyzeForm busy={false} invalid={false} onSubmit={onAnalyze} />
-      {onFindJob && (
-        <button className="link-button" type="button" onClick={onFindJob}>
-          URLが分からない場合は、企業名と職種から探す
-        </button>
-      )}
+      <p className="muted">
+        まず企業名から公開求人を探します。職種を入れると候補を絞り込めます。
+      </p>
+      <JobFinder getAccessToken={getAccessToken} onAnalyze={onAnalyze} />
+      <details className="direct-url">
+        <summary>求人URLを直接入力</summary>
+        <AnalyzeForm busy={false} invalid={false} onSubmit={onAnalyze} />
+      </details>
       <section className="section" aria-labelledby="recent-heading">
         <h2 id="recent-heading">最近の分析</h2>
         <RecentAnalyses

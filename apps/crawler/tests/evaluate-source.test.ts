@@ -88,7 +88,7 @@ describe("public source evaluation pipeline", () => {
       }),
     };
     const empty = extractSourceDocument(
-      "<main data-job><p>…</p></main>",
+      "<main data-job></main>",
       "https://jobs.example/e",
       at,
     );

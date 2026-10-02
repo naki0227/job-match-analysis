@@ -119,7 +119,6 @@ export type MatchRpc = (
 
 export type JobFactsReader = (evaluationId: string) => Promise<unknown>;
 
-const factStatus = z.enum(["known", "unknown", "conflicting"]);
 const salaryValue = z.object({
   minimum: z.number().int().nonnegative(),
   maximum: z.number().int().nonnegative(),

@@ -74,8 +74,9 @@ export const matchConstraintResultSchema = z.strictObject({
   reason: z.enum(matchConstraintReasons).optional(),
 });
 
-const factUnknownSchema = z.strictObject({
-  status: z.enum(["unknown", "conflicting"]),
+const unknownFactSchema = z.strictObject({ status: z.literal("unknown") });
+const conflictingFactSchema = z.strictObject({
+  status: z.literal("conflicting"),
 });
 const salaryOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
@@ -85,32 +86,37 @@ const salaryOverviewSchema = z.discriminatedUnion("status", [
     currency: z.string().trim().min(1),
     period: z.string().trim().min(1),
   }),
-  factUnknownSchema,
+  unknownFactSchema,
+  conflictingFactSchema,
 ]);
 const stringListOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
     values: z.array(z.string().trim().min(1)).min(1),
   }),
-  factUnknownSchema,
+  unknownFactSchema,
+  conflictingFactSchema,
 ]);
 const booleanOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("known"), value: z.boolean() }),
-  factUnknownSchema,
+  unknownFactSchema,
+  conflictingFactSchema,
 ]);
 const officeDaysOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
     value: z.number().int().min(0).max(5),
   }),
-  factUnknownSchema,
+  unknownFactSchema,
+  conflictingFactSchema,
 ]);
 const flexibilityOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
     value: z.union([z.literal(0), z.literal(50), z.literal(100)]),
   }),
-  factUnknownSchema,
+  unknownFactSchema,
+  conflictingFactSchema,
 ]);
 
 export const jobOverviewSchema = z.strictObject({

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { JobFinder } from "../job-resolver/JobFinder";
 import { MatchSection } from "../result/MatchSection";
 import type { AnalysisState } from "./analysis-state";
@@ -21,9 +21,9 @@ export function AnalyzeScreen({
 }: Props) {
   const url = state.kind === "idle" ? "" : state.url;
   const statusRef = useRef<HTMLDivElement>(null);
+  const revealedUrlRef = useRef<string | null>(null);
 
-  function submitAndReveal(urlToAnalyze: string) {
-    onSubmit(urlToAnalyze);
+  function revealStatus() {
     requestAnimationFrame(() => {
       const target = statusRef.current;
       if (target && typeof target.scrollIntoView === "function") {
@@ -34,6 +34,18 @@ export function AnalyzeScreen({
       }
     });
   }
+
+  function submitAndReveal(urlToAnalyze: string) {
+    revealedUrlRef.current = urlToAnalyze;
+    onSubmit(urlToAnalyze);
+    revealStatus();
+  }
+
+  useEffect(() => {
+    if (state.kind === "idle" || revealedUrlRef.current === state.url) return;
+    revealedUrlRef.current = state.url;
+    revealStatus();
+  }, [state]);
 
   return (
     <section className="narrow page-head" aria-labelledby="analyze-heading">

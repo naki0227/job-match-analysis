@@ -22,7 +22,9 @@ function response(
     status,
     headers: {
       "content-type":
-        url.pathname === "/app.js" ? "text/javascript" : "text/html",
+        url.pathname === "/app.js"
+          ? "text/javascript; charset=utf-8"
+          : "text/html; charset=utf-8",
       ...(location ? { location } : {}),
     },
     body: Buffer.from(body),

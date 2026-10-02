@@ -51,6 +51,7 @@
 | [ADR-046](adr/046-legal-consent-flow.md) | 利用規約（同意）とプライバシーポリシー（確認）の現在の版への記録を利用開始の条件にする。本文はDBが正、記録はserverが現在版だけを受け付け、文書未登録時はfail closed | 誰がどの版にいつ同意したかを示せ、改定時に再同意を求められる | 有効な文書が未登録だと誰も利用できない（意図どおり） |
 | [ADR-047](adr/047-web-job-discovery-ddgs.md) | 既知の求人で足りない時だけ、crawler workerで非同期にWeb探索する。検索（初期βはDDGSのDuckDuckGo backendをbest-effort、`WebSearchProvider`で差し替え可能）は手がかりにとどめ、安全な取得とJobPosting JSON-LDの検証を通った求人だけを既存の表へ保存する | URLを知らなくても実在する求人に届き、API requestは外部へ出ない。検証済みの求人は全利用者で再利用される | 結果まで数十秒。JSON-LDのない求人は見つからない。DDGSは非公式でblockされうる |
 | [ADR-048](adr/048-full-page-job-understanding.md) | 求人ページ全体を落とさず読む。描画用subresourceに別の上限、ラベルと値を1 fragmentに、自然な位置で分割し、見出し単位の内容を原文で引用する。parserで読めない事実と見出しのないsectionは、Jevに位置だけを選ばせて原文から読む | どの値にもページ上の根拠があり、推測でunknownを減らさない。比較の前に求人の内容を原文で確認できる | 描画の通信量の上限が増え、Jevへの質問が最大7問増える。見出しの語彙に頼る |
+| [ADR-049](adr/049-axis-range-observation.md) | 根拠はあるが隣接する2つのanchorに割れる軸を範囲（例: 50〜100）として記録し、両端で比較する（close / partial「一部近い」/ different） | 「書いていない」と「幅がある」を区別し、推測なしで比較できる範囲を広げる | DB・domain・contract・UIの変更が大きい。履歴の集計はpartialをまだ数えていない |
 
 ## 技術スパイクで検証・継続確認する項目
 

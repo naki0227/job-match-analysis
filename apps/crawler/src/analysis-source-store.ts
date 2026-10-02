@@ -36,7 +36,46 @@ export function createSupabaseAnalysisSourceStore(url: string, secret: string) {
       if (data === null) return null;
       const parsed = z.object({ normalized_url: z.url() }).safeParse(data);
       if (!parsed.success) throw new AnalysisSourceStoreError();
-      return { url: parsed.data.normalized_url, scope: "job" as const };
+
+      // Discovery may already have created a stable job target for this URL.
+      // Reanalysis must reuse it instead of requiring the current page to
+      // expose JobPosting JSON-LD again.
+      let targetId: string | undefined;
+      try {
+        const posting = await client
+          .from("job_postings")
+          .select("id")
+          .eq("source_url_id", sourceUrlId)
+          .limit(1)
+          .maybeSingle();
+        if (posting.error) throw new AnalysisSourceStoreError();
+        if (posting.data) {
+          const postingId = z.object({ id: z.uuid() }).safeParse(posting.data);
+          if (!postingId.success) throw new AnalysisSourceStoreError();
+          const target = await client
+            .from("evaluation_targets")
+            .select("id")
+            .eq("job_posting_id", postingId.data.id)
+            .eq("target_type", "job")
+            .limit(1)
+            .maybeSingle();
+          if (target.error) throw new AnalysisSourceStoreError();
+          if (target.data) {
+            const parsedTarget = z.object({ id: z.uuid() }).safeParse(target.data);
+            if (!parsedTarget.success) throw new AnalysisSourceStoreError();
+            targetId = parsedTarget.data.id;
+          }
+        }
+      } catch (error) {
+        if (error instanceof AnalysisSourceStoreError) throw error;
+        throw new AnalysisSourceStoreError();
+      }
+
+      return {
+        url: parsed.data.normalized_url,
+        scope: "job" as const,
+        ...(targetId ? { targetId } : {}),
+      };
     },
     async resolveJobTarget(
       job: ClaimedAnalysisJob,

@@ -6,9 +6,9 @@ export type Anchor = 0 | 50 | 100;
 export type EvaluationSource = "job" | "company";
 
 /**
- * The posting supports two adjacent anchors but not one of them: it says
- * the work is somewhere between `minimum` and `maximum` (ADR-049). This is
- * what the page states, not an estimate between them.
+ * The posting supports two adjacent anchors but the evidence does not justify
+ * choosing one of them (ADR-049). The pair is ambiguity between documented
+ * anchors, not an estimate that the true value lies continuously between them.
  */
 export type AnchorRange = Readonly<{
   status: "range";
@@ -176,10 +176,7 @@ export function compareTarget(
     if (observation.status === "range") {
       const toMinimum = Math.abs(answer.preference - observation.minimum);
       const toMaximum = Math.abs(answer.preference - observation.maximum);
-      const inside =
-        answer.preference >= observation.minimum &&
-        answer.preference <= observation.maximum;
-      const difference = inside ? 0 : Math.min(toMinimum, toMaximum);
+      const difference = Math.min(toMinimum, toMaximum);
       const differenceMax = Math.max(toMinimum, toMaximum);
       return Object.freeze({
         ...common,

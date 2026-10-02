@@ -28,6 +28,7 @@ function row(index: number) {
     company_evaluated_at: null,
     close_count: 2,
     different_count: 1,
+    partial_count: 0,
     unknown_count: 5,
     stale_conditions: false,
     sort_count: 0,
@@ -56,6 +57,7 @@ for (const count of [1, 20, 100]) {
     assert.deepEqual(page.items[0]?.summary, {
       close: 2,
       different: 1,
+      partial: 0,
       unknown: 5,
     });
     assert.equal(

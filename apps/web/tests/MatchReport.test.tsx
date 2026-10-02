@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 test("job and company results are shown in separate sections", () => {
   render(<MatchReport report={sampleReport} />);
-  const job = screen.getByRole("region", { name: "この求人について" });
+  const job = screen.getByRole("region", { name: "働き方・仕事観の比較" });
   const company = screen.getByRole("region", {
     name: "会社全体について（参考）",
   });
@@ -28,7 +28,7 @@ test("job and company results are shown in separate sections", () => {
 
 test("evidence shows the source link and fetch time", () => {
   render(<MatchReport report={sampleReport} />);
-  const job = screen.getByRole("region", { name: "この求人について" });
+  const job = screen.getByRole("region", { name: "働き方・仕事観の比較" });
   const toggle = within(job).getAllByRole("button", { name: /裁量/ })[0]!;
   expect(toggle).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(toggle);
@@ -47,7 +47,7 @@ test("evidence shows the source link and fetch time", () => {
 
 test("axes without evidence say so instead of guessing", () => {
   render(<MatchReport report={sampleReport} />);
-  const job = screen.getByRole("region", { name: "この求人について" });
+  const job = screen.getByRole("region", { name: "働き方・仕事観の比較" });
   const openPanel = (name: RegExp) => {
     const toggle = within(job).getByRole("button", { name });
     fireEvent.click(toggle);
@@ -70,9 +70,19 @@ test("summary and hard constraints are shown without an overall score", () => {
   expect(screen.getByLabelText("求人の軸別の比較結果")).toHaveTextContent(
     "1近い1相違5不明",
   );
-  const constraints = screen.getByRole("list", { name: "必須条件" });
-  expect(constraints).toHaveTextContent("最低年収: 満たす");
-  expect(constraints).toHaveTextContent("勤務地: 不明（求人情報に記載なし）");
+  const overview = screen.getByRole("region", { name: "求人概要" });
+  expect(overview).toHaveTextContent("給与年収 600万円〜1,600万円");
+  expect(overview).toHaveTextContent("雇用形態正社員");
+  expect(overview).toHaveTextContent("勤務地東京都 / 大阪府");
+  expect(overview).toHaveTextContent("働き方ハイブリッド（週2日出社必須）");
+
+  const constraints = screen.getByRole("list", {
+    name: "希望条件との比較",
+  });
+  expect(constraints).toHaveTextContent("希望最低年収: 満たす");
+  expect(constraints).toHaveTextContent(
+    "希望勤務地: 判定できず（求人情報に記載なし）",
+  );
   expect(constraints).toHaveTextContent("フルリモート必須: 満たさない");
   expect(screen.getByText(/相殺されません/)).toBeInTheDocument();
   expect(container.textContent).not.toMatch(/%|％|適性|合格/);

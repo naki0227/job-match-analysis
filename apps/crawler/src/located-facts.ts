@@ -6,6 +6,7 @@ import {
   locationNames,
   weeklyOfficeDays,
 } from "./job-fact-patterns.js";
+import { redactSensitiveText } from "./redaction.js";
 import {
   JOB_SECTION_KINDS,
   SECTION_DESCRIPTIONS,
@@ -72,7 +73,7 @@ function readLocated<T>(
     read(fragment).map((value) => ({
       status: "known" as const,
       value,
-      excerpt: fragment.text,
+      excerpt: redactSensitiveText(fragment.text),
       locator: fragment.locator,
     })),
   );

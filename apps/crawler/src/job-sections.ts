@@ -1,5 +1,6 @@
 import type { ContextFragment } from "./decision-engine.js";
 import type { ParsedFact } from "./deterministic-parser.js";
+import { redactSensitiveText } from "./redaction.js";
 
 /**
  * What the posting says about the work, in its own words: duties, the
@@ -62,10 +63,10 @@ export function sectionFact(
   return {
     status: "known",
     value: quotes.map((fragment) => ({
-      section: fragment.section ?? null,
-      text: fragment.text,
+      section: fragment.section ? redactSensitiveText(fragment.section) : null,
+      text: redactSensitiveText(fragment.text),
     })),
-    excerpt: first.text,
+    excerpt: redactSensitiveText(first.text),
     locator: first.locator,
   };
 }

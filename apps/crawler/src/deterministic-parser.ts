@@ -5,6 +5,7 @@ import type {
   SourceSection,
 } from "./source-extractor.js";
 
+import { redactSensitiveText } from "./redaction.js";
 import {
   employmentType,
   fullRemote,
@@ -55,15 +56,7 @@ export type ParsedJobFacts = {
 type Known<T> = Extract<ParsedFact<T>, { status: "known" }>;
 
 function safeExcerpt(text: string): string {
-  return text
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email]")
-    .replace(
-      /\b(?:sk-[A-Za-z0-9_-]{16,}|AIza[A-Za-z0-9_-]{20,})\b/g,
-      "[secret]",
-    )
-    .replace(/\bBearer\s+[A-Za-z0-9._~-]{16,}\b/gi, "[secret]")
-    .replace(/(?:\+?\d[\d ()-]{8,}\d)/g, "[phone]")
-    .slice(0, 240);
+  return redactSensitiveText(text).slice(0, 240);
 }
 
 function reduceFacts<T>(facts: readonly Known<T>[]): ParsedFact<T> {

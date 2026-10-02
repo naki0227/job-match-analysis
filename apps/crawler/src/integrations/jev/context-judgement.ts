@@ -5,6 +5,7 @@ import type {
   LocateQuestion,
 } from "../../decision-engine.js";
 import { DecisionEngineProviderError } from "../../decision-engine.js";
+import { redactSensitiveText } from "../../redaction.js";
 import type { JevRequest, JevResponse } from "./client.js";
 
 /**
@@ -20,17 +21,6 @@ export const MIN_GROUNDING = 0.8;
 export const MIN_EVIDENCE_PROBABILITY = 0.1;
 
 const ANCHORS = ["0", "50", "100"] as const;
-
-export function redactSensitiveText(text: string): string {
-  return text
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email]")
-    .replace(
-      /\b(?:sk-[A-Za-z0-9_-]{16,}|AIza[A-Za-z0-9_-]{20,})\b/g,
-      "[secret]",
-    )
-    .replace(/\bBearer\s+[A-Za-z0-9._~-]{16,}\b/gi, "[secret]")
-    .replace(/(?:\+?\d[\d ()-]{8,}\d)/g, "[phone]");
-}
 
 const judgeKey = (axisKey: string) => `judge_${axisKey}`;
 const locateKey = (axisKey: string) => `locate_${axisKey}`;

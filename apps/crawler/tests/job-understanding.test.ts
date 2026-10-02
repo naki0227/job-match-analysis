@@ -123,4 +123,17 @@ describe("job understanding: what the posting says, with its own words", () => {
     expect(facts.requirements).toMatchObject({ status: "known" });
     expect(facts.workStyle).toEqual({ status: "unknown" });
   });
+
+  it("never stores a recruiter's contact details in a quote", async () => {
+    const { facts } = await understand(
+      `<main>${prose("新しい決済サービスの開発チームで働く仕事です。")}
+        <h2>応募資格</h2><p>ご質問は recruit@example.com または 03-1234-5678 まで</p></main>`,
+    );
+    expect(facts.requirements).toMatchObject({
+      status: "known",
+      value: [
+        { section: "応募資格", text: "ご質問は [email] または [phone] まで" },
+      ],
+    });
+  });
 });

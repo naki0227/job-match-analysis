@@ -51,6 +51,53 @@ describe("deterministic job parser", () => {
     });
   });
 
+
+  it("reads mixed Japanese/English HRMOS conditions without JSON-LD", () => {
+    const document = extractSourceDocument(
+      `<main data-job><div>
+        職種 / 募集ポジション Backend Developer (Go), Money Forward X, Tokyo
+        雇用形態 正社員
+        給与 年収 Monthly salary system
+        勤務地 108-0023 21F Tamachi Station Tower S, 3-1-21 Shibaura, Minato-ku, Tokyo
+        Salary System &lt;Salary Range&gt; Min 534,000 JPY / month（6,408,000 JPY / year）〜792,000 JPY / month（9,504,000 JPY / year）
+        Working Hour System Discretionary Labor System for Professional Work
+        Working Hours 9:30 - 18:30 are the basic working hours. However, employees are able to choose their working hours at their own discretion.
+        Work Style Policy Hybrid work style. As a standard practice, employees are required to work at the office a minimum of 2 days per week.
+        Holidays Saturdays / Sundays
+      </div></main>`,
+      url,
+      now,
+    );
+    const facts = parseDeterministicJobFacts(document);
+    expect(facts.salary).toMatchObject({
+      status: "known",
+      value: {
+        minimum: 6_408_000,
+        maximum: 9_504_000,
+        currency: "JPY",
+        period: "year",
+      },
+    });
+    expect(facts.location).toMatchObject({
+      status: "known",
+      value: ["東京都"],
+    });
+    expect(facts.fullRemote).toMatchObject({ status: "known", value: false });
+    expect(facts.weeklyOfficeDays).toMatchObject({ status: "known", value: 2 });
+    expect(facts.scheduleFlexibility).toMatchObject({
+      status: "known",
+      value: 100,
+    });
+    expect(facts.targetRole).toMatchObject({
+      status: "known",
+      value: "Backend Developer (Go), Money Forward X, Tokyo",
+    });
+    expect(facts.employmentType).toMatchObject({
+      status: "known",
+      value: ["FULL_TIME"],
+    });
+  });
+
   it("does not convert monthly salary or invent job identity", () => {
     const document = extractSourceDocument(
       `<main data-job><p>月給30万円</p><p>リモート相談可</p>

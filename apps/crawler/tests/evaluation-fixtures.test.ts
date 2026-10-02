@@ -12,10 +12,8 @@ import {
 import { oracleJev } from "./support/oracle-jev.js";
 
 const sourceUrlId = "33333333-3333-4333-8333-333333333333";
-// Production-like limits (see docs/runbooks/azure-crawler-job.md).
+// Production-like evidence fragment size (see docs/runbooks/azure-crawler-job.md).
 const limits = {
-  maxFragments: 60,
-  maxContextChars: 12_000,
   maxFragmentChars: 200,
 };
 

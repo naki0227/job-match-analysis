@@ -9,6 +9,8 @@ export type ContextFragment = {
   documentIndex: number;
   text: string;
   locator: string;
+  /** Heading or row label the text sits under, as written on the page. */
+  section?: string;
 };
 
 export type AxisRubric = {

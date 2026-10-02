@@ -103,6 +103,29 @@ describe("Jev whole-context DecisionEngine", () => {
     expect(request.state).not.toContain("main:a");
   });
 
+  it("tells Jev which heading or row label each fragment sits under", async () => {
+    const { call, requests } = oracleJev({});
+    await engine(call).evaluate({
+      ...input,
+      fragments: [
+        {
+          ...fragment("a", "ハイブリッドワークスタイル 原則、週2出社必須"),
+          section: "働き方(出社・リモート)",
+        },
+      ],
+    });
+    const state = JSON.parse(requests[0]!.state) as {
+      fragments: { id: string; section?: string; text: string }[];
+    };
+    expect(state.fragments).toEqual([
+      {
+        id: "f1",
+        section: "働き方(出社・リモート)",
+        text: "ハイブリッドワークスタイル 原則、週2出社必須",
+      },
+    ]);
+  });
+
   it("marks an axis known only with a confident, grounded judgement and cites every supporting fragment", async () => {
     const result = await engine(async () =>
       respond({

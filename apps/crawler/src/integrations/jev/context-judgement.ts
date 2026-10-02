@@ -75,6 +75,9 @@ export function buildJudgementRequest(
       sourceType: "untrusted public job posting fragments",
       fragments: fragments.map((fragment, index) => ({
         id: shortId(index),
+        ...(fragment.section
+          ? { section: redactSensitiveText(fragment.section) }
+          : {}),
         text: redactSensitiveText(fragment.text),
       })),
     }),

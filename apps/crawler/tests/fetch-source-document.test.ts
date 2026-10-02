@@ -6,7 +6,7 @@ import {
   type FetchedResource,
   type RequestOnce,
 } from "../src/safe-http.js";
-import { FETCH_LIMITS } from "../src/url-policy.js";
+import { BROWSER_LIMITS, FETCH_LIMITS } from "../src/url-policy.js";
 
 const jobText = "公開求人に記載された職務内容と応募要件です。".repeat(12);
 const resolve = async () => ["8.8.8.8"];
@@ -86,6 +86,79 @@ describe("HTTP to browser source fetch", () => {
       });
       expect(result.usedBrowser).toBe(true);
       expect(result.document.extractedText).toContain("600万円〜1600万円");
+    } finally {
+      await browser.close();
+    }
+  }, 30_000);
+
+  it("renders a page whose own script is larger than the page limit", async () => {
+    // Regression: hrmos.co renders the salary from a 2.1 MB first-party
+    // bundle. With the 1 MiB page limit applied to scripts the bundle was
+    // refused and the salary cell stayed empty.
+    const browser = await chromium.launch({
+      channel: "chrome",
+      headless: true,
+    });
+    try {
+      const limits = new Map<string, number | undefined>();
+      const bundle = `/*${"x".repeat(FETCH_LIMITS.maxResponseBytes + 1024)}*/
+        document.querySelector("#salary").textContent = "600万円 〜 1600万円";`;
+      const send: RequestOnce = async (url, _resolve, _signal, maxBytes) => {
+        limits.set(url.pathname, maxBytes);
+        if (url.pathname === "/robots.txt")
+          return response(url, "User-agent: *\nAllow: /");
+        const body =
+          url.pathname === "/app.js"
+            ? bundle
+            : `<main data-job><p>${jobText}</p>
+                 <dl><dt>年収</dt><dd id="salary"></dd></dl></main>
+               <script src="/app.js"></script>`;
+        if (Buffer.byteLength(body) > (maxBytes ?? Infinity))
+          throw new Error("response byte limit exceeded");
+        return response(url, body);
+      };
+      const result = await fetchSourceDocument({
+        url: "https://jobs.example/job/bundle",
+        siteApproved: async () => true,
+        browser,
+        resolve,
+        send,
+      });
+      expect(result.usedBrowser).toBe(true);
+      expect(result.render?.blockedRendering).toBe(0);
+      expect(result.document.extractedText).toContain(
+        "年収 600万円 〜 1600万円",
+      );
+      expect(limits.get("/job/bundle")).toBe(FETCH_LIMITS.maxResponseBytes);
+      expect(limits.get("/app.js")).toBe(BROWSER_LIMITS.maxSubresourceBytes);
+    } finally {
+      await browser.close();
+    }
+  }, 30_000);
+
+  it("reports a partial render when a script the page needs is refused", async () => {
+    const browser = await chromium.launch({
+      channel: "chrome",
+      headless: true,
+    });
+    try {
+      const send: RequestOnce = async (url) => {
+        if (url.pathname === "/robots.txt")
+          return response(url, "User-agent: *\nDisallow: /assets/");
+        return response(
+          url,
+          `<main data-job><p>${jobText}</p></main><script src="/assets/app.js"></script>`,
+        );
+      };
+      const result = await fetchSourceDocument({
+        url: "https://jobs.example/job/partial",
+        siteApproved: async () => true,
+        browser,
+        resolve,
+        send,
+      });
+      expect(result.usedBrowser).toBe(true);
+      expect(result.render?.blockedRendering).toBeGreaterThanOrEqual(1);
     } finally {
       await browser.close();
     }

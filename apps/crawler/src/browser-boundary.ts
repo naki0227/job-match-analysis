@@ -1,9 +1,9 @@
 import type { Browser, BrowserContext, Request } from "playwright";
 import { fetchPublic, type FetchedResource } from "./safe-http.js";
-import { FETCH_LIMITS, parsePublicUrl } from "./url-policy.js";
+import { BROWSER_LIMITS, FETCH_LIMITS, parsePublicUrl } from "./url-policy.js";
 
-const maxRequests = 32;
-const maxTotalBytes = 8 * 1024 * 1024;
+/** Blocked requests of these types can leave job text unrendered. */
+const RENDERING_RESOURCES = new Set(["document", "script", "xhr", "fetch"]);
 
 function redirectCount(request: Request): number {
   let count = 0;
@@ -21,6 +21,8 @@ export interface BrowserBoundary {
     requests: number;
     bytes: number;
     blocked: number;
+    /** Blocked document, script or data requests: the render may be partial. */
+    blockedRendering: number;
   };
 }
 
@@ -35,7 +37,7 @@ export async function createBrowserBoundary(
     ignoreHTTPSErrors: false,
     permissions: [],
   });
-  const metrics = { requests: 0, bytes: 0, blocked: 0 };
+  const metrics = { requests: 0, bytes: 0, blocked: 0, blockedRendering: 0 };
   await context.routeWebSocket("**/*", (route) => {
     metrics.blocked += 1;
     return route.close();
@@ -45,7 +47,7 @@ export async function createBrowserBoundary(
     metrics.requests += 1;
     try {
       if (
-        metrics.requests > maxRequests ||
+        metrics.requests > BROWSER_LIMITS.maxRequests ||
         redirectCount(browserRequest) > FETCH_LIMITS.maxRedirects ||
         browserRequest.method() !== "GET"
       ) {
@@ -60,7 +62,8 @@ export async function createBrowserBoundary(
         throw new Error("unresolved browser redirect");
       }
       metrics.bytes += response.body.byteLength;
-      if (metrics.bytes > maxTotalBytes) throw new Error("browser byte limit");
+      if (metrics.bytes > BROWSER_LIMITS.maxTotalBytes)
+        throw new Error("browser byte limit");
       const contentType = response.headers["content-type"];
       await route.fulfill({
         status: response.status,
@@ -72,6 +75,8 @@ export async function createBrowserBoundary(
       });
     } catch {
       metrics.blocked += 1;
+      if (RENDERING_RESOURCES.has(browserRequest.resourceType()))
+        metrics.blockedRendering += 1;
       await route.abort("blockedbyclient");
     }
   });

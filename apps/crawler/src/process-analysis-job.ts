@@ -53,6 +53,11 @@ export async function processAnalysisJob(
     send: deps.send,
     now: deps.now,
   });
+  deps.metrics?.sourceFetch({
+    renderer: fetched.usedBrowser ? "browser" : "http",
+    blocked: fetched.render?.blocked ?? 0,
+    blockedRendering: fetched.render?.blockedRendering ?? 0,
+  });
   await renew();
   if (
     !source.targetId &&

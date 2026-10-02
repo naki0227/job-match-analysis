@@ -45,6 +45,16 @@ export type DiscoveryEvent = {
   durationMs: number;
 };
 
+/**
+ * How one source page was read. `blockedRendering` counts refused document,
+ * script or data requests: a page rendered without them may lack fields.
+ */
+export type SourceFetchEvent = {
+  renderer: "browser" | "http";
+  blocked: number;
+  blockedRendering: number;
+};
+
 export type CrawlerMetrics = {
   jevCall: (event: {
     fragments: number;
@@ -61,6 +71,7 @@ export type CrawlerMetrics = {
   analysisJob: (event: { outcome: JobOutcome; durationMs: number }) => void;
   discovery: (event: DiscoveryEvent) => void;
   evaluation: (event: EvaluationEvent) => void;
+  sourceFetch: (event: SourceFetchEvent) => void;
 };
 
 export const noopCrawlerMetrics: CrawlerMetrics = {
@@ -70,6 +81,7 @@ export const noopCrawlerMetrics: CrawlerMetrics = {
   analysisJob: () => {},
   discovery: () => {},
   evaluation: () => {},
+  sourceFetch: () => {},
 };
 
 /** Telemetry failures must never stop evaluation. */
@@ -90,5 +102,6 @@ export function safeCrawlerMetrics(inner: CrawlerMetrics): CrawlerMetrics {
     analysisJob: guard(inner.analysisJob),
     discovery: guard(inner.discovery),
     evaluation: guard(inner.evaluation),
+    sourceFetch: guard(inner.sourceFetch),
   };
 }

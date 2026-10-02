@@ -34,6 +34,10 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     unit: "s",
     description: "Analysis job processing time by final outcome",
   });
+  const sourceFetches = meter.createCounter("job_match.source_fetch.pages", {
+    description:
+      "Source pages read, by renderer and whether rendering was partial",
+  });
   const discovery = createDiscoveryInstruments(meter);
   const quality = createEvaluationInstruments(meter);
   return {
@@ -63,6 +67,11 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
       jobDuration.record(durationMs / 1_000, { outcome }),
     discovery,
     evaluation: quality,
+    sourceFetch: ({ renderer, blockedRendering }) =>
+      sourceFetches.add(1, {
+        renderer,
+        render: blockedRendering > 0 ? "partial" : "complete",
+      }),
   };
 }
 

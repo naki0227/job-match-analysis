@@ -32,6 +32,11 @@ describe("crawler metrics", () => {
       metrics.jevBudgetMode("unlimited");
       metrics.analysisJob({ outcome: "completed", durationMs: 3_000 });
       metrics.evaluation(evaluationEvent);
+      metrics.sourceFetch({
+        renderer: "browser",
+        blocked: 2,
+        blockedRendering: 1,
+      });
     }).not.toThrow();
   });
 
@@ -46,6 +51,7 @@ describe("crawler metrics", () => {
       analysisJob: down,
       discovery: down,
       evaluation: down,
+      sourceFetch: down,
     });
     expect(() =>
       safe.jevCall({
@@ -59,6 +65,9 @@ describe("crawler metrics", () => {
     ).not.toThrow();
     expect(() => safe.jevBudgetExhausted({ fragments: 1 })).not.toThrow();
     expect(() => safe.evaluation(evaluationEvent)).not.toThrow();
+    expect(() =>
+      safe.sourceFetch({ renderer: "http", blocked: 0, blockedRendering: 0 }),
+    ).not.toThrow();
     expect(() => safe.jevBudgetMode("finite")).not.toThrow();
     expect(() =>
       safe.analysisJob({ outcome: "failed", durationMs: 1 }),

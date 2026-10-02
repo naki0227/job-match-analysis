@@ -8,8 +8,6 @@ import { oracleJev } from "./support/oracle-jev.js";
 
 const sourceUrlId = "33333333-3333-4333-8333-333333333333";
 const limits = {
-  maxFragments: 40,
-  maxContextChars: 8_000,
   maxFragmentChars: 200,
 };
 const at = new Date("2026-09-29T00:00:00Z");

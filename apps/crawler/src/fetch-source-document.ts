@@ -123,13 +123,13 @@ export async function fetchSourceDocument(args: {
         .evaluate(async () => {
           let previous = document.body?.innerText ?? "";
           let stableChecks = 0;
-          for (let index = 0; index < 8; index += 1) {
+          for (let index = 0; index < 10; index += 1) {
             await new Promise((resolve) => setTimeout(resolve, 250));
             const current = document.body?.innerText ?? "";
             if (current === previous) stableChecks += 1;
             else stableChecks = 0;
             previous = current;
-            if (stableChecks >= 2) break;
+            if (index >= 3 && stableChecks >= 2) break;
           }
         })
         .catch(() => undefined);

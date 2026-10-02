@@ -5,10 +5,7 @@ import type {
   MatchEvaluationSource,
   StoredMatch,
 } from "@job-match/application";
-import {
-  careerAxisKeys,
-  type JobOverview,
-} from "@job-match/contracts";
+import { careerAxisKeys, type JobOverview } from "@job-match/contracts";
 import {
   prefectureCodeFromName,
   type AxisComparison,

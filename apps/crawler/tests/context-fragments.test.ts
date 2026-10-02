@@ -41,7 +41,8 @@ describe("context fragments", () => {
 
   it("keeps English sentences intact before evidence chunking", () => {
     const first = "A".repeat(70) + ".";
-    const second = "Employees are required to work at the office a minimum of 2 days per week.";
+    const second =
+      "Employees are required to work at the office a minimum of 2 days per week.";
     const { fragments } = build(
       `<main data-job><div>${first} ${second}</div></main>`,
       80,

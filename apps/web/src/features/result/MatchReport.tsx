@@ -36,18 +36,18 @@ function TargetSection({
       <p className="meta">{description}</p>
       {summary && (
         <p className="summary" aria-label="求人の軸別の比較結果">
-          <span>
+          <span className="summary-close">
             <b>{summary.close}</b>近い
           </span>
-          <span>
+          <span className="summary-different">
             <b>{summary.different}</b>相違
           </span>
           {summary.partial > 0 && (
-            <span>
+            <span className="summary-partial">
               <b>{summary.partial}</b>一部近い
             </span>
           )}
-          <span>
+          <span className="summary-unknown">
             <b>{summary.unknown}</b>不明
           </span>
         </p>

@@ -130,7 +130,7 @@ describe("web discovery", () => {
     expect(search.inputs.map((input) => input.query)).toEqual([
       '"サンプル" 採用 Go バックエンド 新卒',
       '"サンプル" 求人 Go バックエンド 新卒',
-      '"サンプル" careers jobs Go バックエンド 新卒',
+      '"サンプル" 募集要項 Go バックエンド 新卒',
     ]);
   });
 
@@ -147,6 +147,62 @@ describe("web discovery", () => {
       now,
     });
     expect(search.inputs[0]?.query).toBe('"Sample" 採用 sales');
+  });
+
+  it("accepts a public job detail page without JobPosting JSON-LD", async () => {
+    const url = "https://sample.example/ja/recruit/career/job-openings/backend";
+    const html = `
+      <html>
+        <head>
+          <title>Backend Engineer | 株式会社サンプル</title>
+          <meta property="og:site_name" content="株式会社サンプル">
+        </head>
+        <body>
+          <main>
+            <h1>Backend Engineer</h1>
+            <h2>仕事内容</h2><p>API開発を担当します。</p>
+            <h2>応募資格</h2><p>Web開発経験。</p>
+            <p>勤務地: 東京都</p>
+            <p>雇用形態: 正社員</p>
+            <a href="/apply">応募する</a>
+          </main>
+        </body>
+      </html>`;
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(url)]),
+      fetchPage: pages({ [url]: html }),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.postings).toEqual([
+      expect.objectContaining({
+        url,
+        title: "Backend Engineer",
+        companyName: "サンプル",
+        sourceKind: "official",
+      }),
+    ]);
+  });
+
+  it("expands a deeper generic careers listing when it contains job links", async () => {
+    const root = "https://sample.example/ja/recruit/career/job-categories/";
+    const job =
+      "https://sample.example/ja/recruit/career/job-openings/backend";
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(root)]),
+      fetchPage: pages({
+        [root]: `<html><body><main><h1>求人一覧</h1><a href="/ja/recruit/career/job-openings/backend">バックエンドエンジニア</a></main></body></html>`,
+        [job]: jobPage({ title: "Backend Engineer", org: "サンプル" }),
+      }),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.stats.listingsExpanded).toBe(1);
+    expect(result.postings.map((item) => item.title)).toEqual([
+      "Backend Engineer",
+    ]);
   });
 
   it("follows a careers root one hop on the same origin, within the link limit", async () => {

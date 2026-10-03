@@ -270,8 +270,9 @@ describe("Jev whole-context DecisionEngine", () => {
       requests.push(request);
       return respond({
         judge_autonomy: answer("50", { "50": 0.9 }),
-        locate_autonomy: answer("f1", {
-          f1: 0.85,
+        locate_autonomy: answer("f2", {
+          f1: 0.4,
+          f2: 0.45,
           f3: 0.1,
           none: 0.05,
         }),
@@ -296,6 +297,9 @@ describe("Jev whole-context DecisionEngine", () => {
     ]);
     expect(requests[0]!.questions.judge_autonomy!.instructions).toMatch(
       /Working-time flexibility/,
+    );
+    expect(requests[0]!.questions.locate_autonomy!.instructions).toMatch(
+      /contractual range of changes/,
     );
     expect(requests[0]!.questions.judge_work_change!.instructions).toMatch(
       /contractual range of changes/,

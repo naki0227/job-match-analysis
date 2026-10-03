@@ -1,0 +1,192 @@
+.home-screen {
+  padding-bottom: 24px;
+}
+
+.home-screen .hero h1 {
+  margin-top: 12px;
+  text-wrap: balance;
+}
+
+.home-screen .hero-visual {
+  justify-content: center;
+}
+
+.home-discovery {
+  margin-top: 14px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.home-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 18px;
+}
+
+.home-section-heading h2 {
+  margin-top: 5px;
+}
+
+.home-section-heading > p {
+  max-width: 29rem;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.home-discovery .job-search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(150px, 0.6fr);
+  gap: 8px 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-discovery label[for="job-search-company"] {
+  grid-column: 1;
+  grid-row: 1;
+}
+.home-discovery #job-search-company {
+  grid-column: 1;
+  grid-row: 2;
+}
+.home-discovery label[for="job-search-role"] {
+  grid-column: 2;
+  grid-row: 1;
+}
+.home-discovery #job-search-role {
+  grid-column: 2;
+  grid-row: 2;
+}
+.home-discovery #job-search-role-hint {
+  grid-column: 2;
+  grid-row: 3;
+}
+.home-discovery label[for="job-search-employment"] {
+  grid-column: 3;
+  grid-row: 1;
+}
+.home-discovery #job-search-employment {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.home-discovery .job-search-form .primary {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+
+.home-discovery .field-label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.home-discovery .direct-url {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.home-discovery .direct-url summary {
+  color: var(--blue-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.home-recent {
+  padding-top: 42px;
+}
+
+.home-recent .list {
+  display: block;
+  border-top: 1px solid var(--line);
+}
+
+.home-recent .history-card {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-recent .history-card:hover {
+  transform: none;
+  background: #f5f9fc;
+  box-shadow: none;
+}
+
+.home-recent .list-row {
+  padding: 17px 4px;
+}
+
+.home-recent .list-row strong {
+  margin-top: 8px;
+}
+
+.home-recent .statusline {
+  margin-top: 8px;
+}
+
+.home-all-link {
+  margin-top: 12px;
+}
+
+.home-profile .eyebrow {
+  margin-bottom: 5px;
+}
+
+.home-profile strong {
+  display: block;
+  font-family: var(--round);
+  font-size: 20px;
+}
+
+@media (max-width: 900px) {
+  .home-discovery .job-search-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .home-discovery label[for="job-search-employment"] {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+  .home-discovery #job-search-employment {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+  .home-discovery .job-search-form .primary {
+    grid-row: 6;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-section-heading {
+    display: block;
+  }
+
+  .home-section-heading > p {
+    margin-top: 7px;
+  }
+
+  .home-discovery .job-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .home-discovery .job-search-form .primary {
+    margin-top: 8px;
+  }
+
+  .home-recent {
+    padding-top: 34px;
+  }
+}

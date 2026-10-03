@@ -284,8 +284,7 @@ function collectFragments(
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\export function extractSourceDocument(
-");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, (match) => `\\${match}`);
 }
 
 function relatedListingMarker(

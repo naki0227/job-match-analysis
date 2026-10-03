@@ -113,3 +113,78 @@ test("incompatible axis versions are not compared", () => {
     screen.queryByRole("region", { name: "会社全体について（参考）" }),
   ).not.toBeInTheDocument();
 });
+
+test("the posting is read first, in its own words, before any comparison", () => {
+  const report = {
+    ...sampleReport,
+    jobOverview: {
+      ...sampleReport.jobOverview,
+      salary: {
+        status: "known" as const,
+        minimum: 6_000_000,
+        maximum: 16_000_000,
+        currency: "JPY",
+        period: "year",
+        evidence: "給与 年収 600万円 〜 1600万円",
+      },
+      duties: {
+        status: "known" as const,
+        quotes: [
+          { section: "業務内容", text: "各プロダクトのテックリード業務" },
+          { section: "業務内容", text: "toB SaaSプロダクト開発" },
+        ],
+      },
+      workStyle: {
+        status: "known" as const,
+        quotes: [
+          {
+            section: "働き方(出社・リモート)",
+            text: "原則、週2出社必須・週3以上の出社推奨",
+          },
+        ],
+      },
+      requirements: {
+        status: "known" as const,
+        quotes: [
+          { section: "求めるスキル・経験", text: "基礎的な英語力" },
+          { section: "あると望ましいスキル・経験", text: "AIの開発経験" },
+        ],
+      },
+    },
+  };
+  const { container } = render(<MatchReport report={report} />);
+  const overview = screen.getByRole("region", { name: "求人概要" });
+  expect(overview).toHaveTextContent("原文: 給与 年収 600万円 〜 1600万円");
+
+  const duties = screen.getByRole("region", { name: "仕事内容・役割" });
+  expect(
+    within(duties).getByRole("heading", { name: "業務内容" }),
+  ).toBeVisible();
+  expect(within(duties).getAllByRole("listitem")).toHaveLength(2);
+  const requirements = screen.getByRole("region", { name: "求める人物・経験" });
+  expect(
+    within(requirements).getByRole("heading", {
+      name: "あると望ましいスキル・経験",
+    }),
+  ).toBeVisible();
+
+  const order = [
+    "求人概要",
+    "仕事内容・役割",
+    "働き方",
+    "求める人物・経験",
+    "希望条件との比較",
+    "働き方・仕事観の比較",
+  ].map((name) =>
+    container.innerHTML.indexOf(screen.getByRole("region", { name }).outerHTML),
+  );
+  expect(order.every((position) => position >= 0)).toBe(true);
+  expect([...order].sort((a, b) => a - b)).toEqual(order);
+});
+
+test("a report without posting sections says they could not be read", () => {
+  render(<MatchReport report={sampleReport} />);
+  expect(
+    screen.getByRole("region", { name: "仕事内容・役割" }),
+  ).toHaveTextContent("求人ページから確認できず");
+});

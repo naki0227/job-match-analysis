@@ -6,7 +6,7 @@ import type { ExtractedSourceDocument } from "./source-extractor.js";
  * Part of every evaluator version and source set hash: changing how the
  * context is built must never reuse evaluations made from another context.
  */
-export const CONTEXT_SELECTOR_VERSION = "context-fragments-v4";
+export const CONTEXT_SELECTOR_VERSION = "context-fragments-v5";
 
 export type ContextLimits = {
   /** Longest fragment, and so the longest quote stored as evidence. */
@@ -21,27 +21,49 @@ export type ContextStats = {
   sentChars: number;
 };
 
-function sentences(text: string): string[] {
-  return text
-    .split(/(?<=[。！？])|(?<=[.!?])\s+/u)
-    .map((item) => item.trim())
-    .filter(Boolean);
+/** Sentence ends and list markers: where a reader would break the text. */
+const NATURAL_BREAK =
+  /(?<=[。！？!?])|(?<=[.;；])(?=\s)|\s(?=[■●◆▼・※↓【]|-\S)/gu;
+
+function lastBreakIn(
+  breaks: readonly number[],
+  start: number,
+  limit: number,
+): number | undefined {
+  let found: number | undefined;
+  for (const index of breaks) {
+    if (index <= start) continue;
+    if (index > limit) break;
+    found = index;
+  }
+  return found;
 }
 
 /**
- * Split only so evidence can point to a bounded exact substring. Every
- * non-whitespace character from the extracted fragment is retained.
+ * Split only so evidence can point to a bounded exact substring. Pieces
+ * end at a sentence end or list marker when one fits, else at a space, and
+ * only a single unbroken run longer than the limit is cut mid-word. Every
+ * non-whitespace character is kept, in order.
  */
 function pieces(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return text.trim() ? [text.trim()] : [];
-  return sentences(text).flatMap((sentence) => {
-    const result: string[] = [];
-    for (let offset = 0; offset < sentence.length; offset += maxChars) {
-      const piece = sentence.slice(offset, offset + maxChars).trim();
-      if (piece) result.push(piece);
-    }
-    return result;
-  });
+  const natural = [...text.matchAll(NATURAL_BREAK)].map((match) => match.index);
+  const spaces = [...text.matchAll(/\s/gu)].map((match) => match.index);
+  const result: string[] = [];
+  let start = 0;
+  while (text.length - start > maxChars) {
+    const limit = start + maxChars;
+    const cut =
+      lastBreakIn(natural, start, limit) ??
+      lastBreakIn(spaces, start, limit) ??
+      limit;
+    const piece = text.slice(start, cut).trim();
+    if (piece) result.push(piece);
+    start = cut;
+  }
+  const tail = text.slice(start).trim();
+  if (tail) result.push(tail);
+  return result;
 }
 
 function assertLimits(limits: ContextLimits): void {
@@ -85,6 +107,7 @@ export function buildContextFragments(args: {
               documentIndex,
               text,
               locator,
+              ...(fragment.section ? { section: fragment.section } : {}),
             });
           },
         );

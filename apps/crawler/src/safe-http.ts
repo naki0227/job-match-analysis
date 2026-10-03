@@ -47,16 +47,18 @@ export type RequestOnce = (
   url: URL,
   resolve: ResolveAddresses,
   signal: AbortSignal,
+  maxBytes?: number,
 ) => Promise<FetchedResource>;
 
 export async function collectLimited(
   chunks: AsyncIterable<Buffer>,
+  maxBytes: number = FETCH_LIMITS.maxResponseBytes,
 ): Promise<Buffer> {
   const received: Buffer[] = [];
   let bytes = 0;
   for await (const chunk of chunks) {
     bytes += chunk.byteLength;
-    if (bytes > FETCH_LIMITS.maxResponseBytes) {
+    if (bytes > maxBytes) {
       throw new UnsafeTargetError("response byte limit exceeded");
     }
     received.push(chunk);
@@ -64,7 +66,12 @@ export async function collectLimited(
   return Buffer.concat(received);
 }
 
-export const requestOnce: RequestOnce = (url, resolve, signal) =>
+export const requestOnce: RequestOnce = (
+  url,
+  resolve,
+  signal,
+  maxBytes = FETCH_LIMITS.maxResponseBytes,
+) =>
   new Promise((fulfill, reject) => {
     const options: RequestOptions = {
       agent: false,
@@ -83,15 +90,12 @@ export const requestOnce: RequestOnce = (url, resolve, signal) =>
         return;
       }
       const declaredSize = Number(incoming.headers["content-length"]);
-      if (
-        Number.isFinite(declaredSize) &&
-        declaredSize > FETCH_LIMITS.maxResponseBytes
-      ) {
+      if (Number.isFinite(declaredSize) && declaredSize > maxBytes) {
         outgoing.destroy();
         reject(new UnsafeTargetError("response byte limit exceeded"));
         return;
       }
-      void collectLimited(incoming).then(
+      void collectLimited(incoming, maxBytes).then(
         (body) =>
           fulfill({
             url: url.href,
@@ -114,12 +118,13 @@ export async function fetchPublicOnce(
   signal: AbortSignal = AbortSignal.timeout(FETCH_LIMITS.timeoutMs),
   resolve: ResolveAddresses = systemResolver,
   send: RequestOnce = requestOnce,
+  maxBytes: number = FETCH_LIMITS.maxResponseBytes,
 ): Promise<FetchedResource> {
   const url = parsePublicUrl(input);
   // Literal IPs skip Node's lookup callback. Validate them on every hop.
   const host = url.hostname.replace(/^\[|\]$/g, "");
   if (isIP(host)) await resolvePublicAddress(host, async () => [host]);
-  return send(url, resolve, signal);
+  return send(url, resolve, signal, maxBytes);
 }
 
 export async function fetchPublic(
@@ -127,6 +132,7 @@ export async function fetchPublic(
   resolve: ResolveAddresses = systemResolver,
   send: RequestOnce = requestOnce,
   authorize?: (url: URL) => Promise<void>,
+  maxBytes: number = FETCH_LIMITS.maxResponseBytes,
 ): Promise<FetchedResource> {
   let url = parsePublicUrl(input);
   const signal = AbortSignal.timeout(FETCH_LIMITS.timeoutMs);
@@ -136,7 +142,13 @@ export async function fetchPublic(
     redirects += 1
   ) {
     await authorize?.(url);
-    const result = await fetchPublicOnce(url.href, signal, resolve, send);
+    const result = await fetchPublicOnce(
+      url.href,
+      signal,
+      resolve,
+      send,
+      maxBytes,
+    );
     const location = result.headers.location;
     if (result.status < 300 || result.status > 399 || !location) return result;
     if (redirects === FETCH_LIMITS.maxRedirects) {

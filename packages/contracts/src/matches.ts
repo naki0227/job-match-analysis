@@ -78,6 +78,8 @@ const unknownFactSchema = z.strictObject({ status: z.literal("unknown") });
 const conflictingFactSchema = z.strictObject({
   status: z.literal("conflicting"),
 });
+/** The page text a known fact was read from, so users can check it. */
+const evidence = z.string().trim().min(1).optional();
 const salaryOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
@@ -85,6 +87,7 @@ const salaryOverviewSchema = z.discriminatedUnion("status", [
     maximum: z.number().int().nonnegative().safe(),
     currency: z.string().trim().min(1),
     period: z.string().trim().min(1),
+    evidence,
   }),
   unknownFactSchema,
   conflictingFactSchema,
@@ -93,12 +96,13 @@ const stringListOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
     values: z.array(z.string().trim().min(1)).min(1),
+    evidence,
   }),
   unknownFactSchema,
   conflictingFactSchema,
 ]);
 const booleanOverviewSchema = z.discriminatedUnion("status", [
-  z.strictObject({ status: z.literal("known"), value: z.boolean() }),
+  z.strictObject({ status: z.literal("known"), value: z.boolean(), evidence }),
   unknownFactSchema,
   conflictingFactSchema,
 ]);
@@ -106,6 +110,7 @@ const officeDaysOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
     value: z.number().int().min(0).max(5),
+    evidence,
   }),
   unknownFactSchema,
   conflictingFactSchema,
@@ -114,11 +119,35 @@ const flexibilityOverviewSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("known"),
     value: z.union([z.literal(0), z.literal(50), z.literal(100)]),
+    evidence,
   }),
   unknownFactSchema,
   conflictingFactSchema,
 ]);
+/**
+ * A part of the posting in its own words: quotes in page order, each with
+ * the heading or row label it appeared under (null when it had none).
+ */
+const sectionOverviewSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    status: z.literal("known"),
+    quotes: z
+      .array(
+        z.strictObject({
+          section: z.string().trim().min(1).nullable(),
+          text: z.string().trim().min(1),
+        }),
+      )
+      .min(1),
+  }),
+  unknownFactSchema,
+]);
 
+/**
+ * What the job posting itself says, before any comparison with the user.
+ * The sections are optional so a report from an API without them still
+ * parses; their absence means the same as unknown.
+ */
 export const jobOverviewSchema = z.strictObject({
   salary: salaryOverviewSchema,
   locations: stringListOverviewSchema,
@@ -127,6 +156,9 @@ export const jobOverviewSchema = z.strictObject({
   weeklyOfficeDays: officeDaysOverviewSchema,
   scheduleFlexibility: flexibilityOverviewSchema,
   techStack: stringListOverviewSchema,
+  duties: sectionOverviewSchema.optional(),
+  requirements: sectionOverviewSchema.optional(),
+  workStyle: sectionOverviewSchema.optional(),
 });
 
 /** Personal comparison of one profile version with one job evaluation. */
@@ -148,6 +180,7 @@ export const matchReportSchema = z.strictObject({
 export type CreateMatchRequest = z.infer<typeof createMatchRequestSchema>;
 export type MatchEvidence = z.infer<typeof matchEvidenceSchema>;
 export type JobOverview = z.infer<typeof jobOverviewSchema>;
+export type JobSectionOverview = z.infer<typeof sectionOverviewSchema>;
 export type MatchAxisResult = z.infer<typeof matchAxisResultSchema>;
 export type MatchTargetResult = z.infer<typeof matchTargetResultSchema>;
 export type MatchConstraintResult = z.infer<typeof matchConstraintResultSchema>;

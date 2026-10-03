@@ -216,7 +216,7 @@ async function main(): Promise<void> {
   assert.equal(
     await query(`select count(*) from public.source_document_versions
       where source_url_id = '${sourceId}'
-        and extractor_version = 'html-v2'
+        and extractor_version = 'html-v3'
         and extracted_text like '%[job]%'
         and extracted_text like '%[company]%'`),
     "1",

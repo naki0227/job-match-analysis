@@ -75,6 +75,37 @@
   overflow-wrap: anywhere;
 }
 
+.fact-evidence {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.posting-section {
+  margin-top: 26px;
+}
+
+.posting-section h3 {
+  margin-bottom: 4px;
+}
+
+.posting-group h4 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.posting-group ul {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
 .constraints {
   display: flex;
   flex-wrap: wrap;

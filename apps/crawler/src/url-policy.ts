@@ -7,6 +7,19 @@ export const FETCH_LIMITS = Object.freeze({
   timeoutMs: 10_000,
 });
 
+/**
+ * Subresources a job page needs to render itself (ADR-048). Application
+ * bundles are routinely larger than a page: hrmos.co serves a 2.1 MB
+ * first-party script, and blocking it left the salary unrendered. Every
+ * request still passes the same URL, DNS, robots and GET-only checks; only
+ * the per-response and per-page byte budgets differ from a page fetch.
+ */
+export const BROWSER_LIMITS = Object.freeze({
+  maxRequests: 64,
+  maxSubresourceBytes: 4 * 1024 * 1024,
+  maxTotalBytes: 16 * 1024 * 1024,
+});
+
 const blockedIpv4 = new BlockList();
 for (const [address, prefix] of [
   ["0.0.0.0", 8],

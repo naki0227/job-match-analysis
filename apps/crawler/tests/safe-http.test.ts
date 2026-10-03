@@ -52,6 +52,31 @@ describe("safe HTTP boundary", () => {
     await expect(collectLimited(chunks())).rejects.toThrow("byte limit");
   });
 
+  it("applies a caller's larger limit and passes it to every hop", async () => {
+    async function* chunks() {
+      yield Buffer.alloc(FETCH_LIMITS.maxResponseBytes);
+      yield Buffer.from("x");
+    }
+    const limit = FETCH_LIMITS.maxResponseBytes * 2;
+    await expect(collectLimited(chunks(), limit)).resolves.toHaveLength(
+      FETCH_LIMITS.maxResponseBytes + 1,
+    );
+    const limits: (number | undefined)[] = [];
+    await fetchPublic(
+      "https://example.com/app.js",
+      async () => ["8.8.8.8"],
+      async (url, _resolve, _signal, maxBytes) => {
+        limits.push(maxBytes);
+        return url.pathname === "/app.js"
+          ? result(url, 302, { location: "/bundle.js" })
+          : result(url, 200);
+      },
+      undefined,
+      limit,
+    );
+    expect(limits).toEqual([limit, limit]);
+  });
+
   it("checks DNS on each connection and rejects a changed private answer", async () => {
     let calls = 0;
     const resolve = async () => (++calls === 1 ? ["8.8.8.8"] : ["127.0.0.1"]);

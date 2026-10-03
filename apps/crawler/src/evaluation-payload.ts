@@ -5,6 +5,7 @@ import {
 } from "./decision-engine.js";
 import { sourceSetHash } from "./evaluation-input.js";
 import type { ParsedJobFacts } from "./deterministic-parser.js";
+import type { JobSections } from "./job-sections.js";
 import {
   evaluationDocumentPayload,
   type ExtractedSourceDocument,
@@ -23,7 +24,7 @@ export function buildEvaluationPayload(args: {
   input: DecisionEngineInput;
   output: DecisionEngineOutput;
   methods?: ReadonlyMap<string, "deterministic" | "rule" | "jev">;
-  facts?: ParsedJobFacts;
+  facts?: ParsedJobFacts & JobSections;
 }) {
   const { sourceUrlIds, documents, input, output } = args;
   validateDecisionInput(input);

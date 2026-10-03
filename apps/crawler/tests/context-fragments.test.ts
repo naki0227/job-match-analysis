@@ -61,6 +61,34 @@ describe("context fragments", () => {
     );
   });
 
+  it("breaks long list text at its markers instead of mid-word", () => {
+    // Regression: a 200-char hard cut ended a fragment with
+    // "週3以上の出社推奨（会社、業" and split the condition in two.
+    const row =
+      "働き方(出社・リモート) ハイブリッドワークスタイル ・原則、週2出社必須・週3以上の出社推奨（会社、業務状況により変動あり） ・出社曜日は所属チームにより異なる ■休日 ■土曜日・日曜日・国民の祝日";
+    const { fragments, document } = build(
+      `<main data-job><table><tr><th>働き方</th><td>${row}</td></tr></table></main>`,
+      80,
+    );
+    const texts = fragments.map((item) => item.text);
+    expect(texts.some((text) => text.endsWith("（会社、業"))).toBe(false);
+    expect(
+      texts.some((text) =>
+        text.includes("週3以上の出社推奨（会社、業務状況により変動あり）"),
+      ),
+    ).toBe(true);
+    for (const text of texts) {
+      expect(text.length).toBeLessThanOrEqual(80);
+      expect(document.extractedText).toContain(text);
+    }
+    // Nothing is dropped: the pieces rebuild the row without whitespace.
+    const squash = (text: string) => text.replace(/\s/g, "");
+    expect(squash(texts.join(""))).toBe(squash(`働き方 ${row}`));
+    expect(new Set(fragments.map((item) => item.section))).toEqual(
+      new Set(["働き方"]),
+    );
+  });
+
   it("does not discard labels, duplicates, or public contact text before evaluation", () => {
     const { fragments } = build(
       `<main data-job><h2>勤務</h2><p>チームで開発します。</p><p>チームで開発します。</p>

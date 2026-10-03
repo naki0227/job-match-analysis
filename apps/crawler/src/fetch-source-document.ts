@@ -13,6 +13,7 @@ import {
   type ExtractedSourceDocument,
 } from "./source-extractor.js";
 import {
+  BROWSER_LIMITS,
   FETCH_LIMITS,
   parsePublicUrl,
   type ResolveAddresses,
@@ -48,6 +49,12 @@ function rejectAccessGate(html: string): void {
 export type SourceFetchResult = {
   document: ExtractedSourceDocument;
   usedBrowser: boolean;
+  /**
+   * Requests the browser boundary refused while rendering. A non-zero
+   * `blockedRendering` means scripts or data the page needed were refused
+   * (robots, size or method), so client-rendered fields may be missing.
+   */
+  render?: { requests: number; blocked: number; blockedRendering: number };
 };
 
 export async function fetchSourceDocument(args: {
@@ -62,8 +69,11 @@ export async function fetchSourceDocument(args: {
   const resolve = args.resolve ?? systemResolver;
   const send = args.send ?? requestOnce;
   const now = args.now ?? (() => new Date());
-  const rawFetch = (url: string, authorize?: (next: URL) => Promise<void>) =>
-    fetchPublic(url, resolve, send, authorize);
+  const rawFetch = (
+    url: string,
+    authorize?: (next: URL) => Promise<void>,
+    maxBytes?: number,
+  ) => fetchPublic(url, resolve, send, authorize, maxBytes);
   const policy = createCrawlPolicy({
     siteApproved: args.siteApproved,
     fetchRobots: (url) =>
@@ -84,7 +94,23 @@ export async function fetchSourceDocument(args: {
     throw new SourceFetchError("browser fallback is unavailable");
   }
 
-  const boundary = await createBrowserBoundary(args.browser, authorizedFetch);
+  // The page itself keeps the page-size limit; the scripts and data it loads
+  // to render get the larger subresource budget.
+  const pageUrl = initialUrl.href;
+  const boundary = await createBrowserBoundary(args.browser, (url) =>
+    rawFetch(
+      url,
+      policy,
+      url === pageUrl
+        ? FETCH_LIMITS.maxResponseBytes
+        : BROWSER_LIMITS.maxSubresourceBytes,
+    ),
+  );
+  const render = () => ({
+    requests: boundary.metrics.requests,
+    blocked: boundary.metrics.blocked,
+    blockedRendering: boundary.metrics.blockedRendering,
+  });
   try {
     try {
       const page = await boundary.context.newPage();
@@ -143,15 +169,19 @@ export async function fetchSourceDocument(args: {
         now(),
       );
       if (renderedDocument.sufficient) {
-        return { document: renderedDocument, usedBrowser: true };
+        return {
+          document: renderedDocument,
+          usedBrowser: true,
+          render: render(),
+        };
       }
       if (httpDocument.sufficient) {
-        return { document: httpDocument, usedBrowser: false };
+        return { document: httpDocument, usedBrowser: false, render: render() };
       }
       throw new SourceFetchError("rendered source is insufficient");
     } catch (error) {
       if (httpDocument.sufficient) {
-        return { document: httpDocument, usedBrowser: false };
+        return { document: httpDocument, usedBrowser: false, render: render() };
       }
       throw error;
     }

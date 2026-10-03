@@ -17,7 +17,7 @@ import {
   weeklyOfficeDays,
 } from "./job-fact-patterns.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v7";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v8";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
@@ -81,6 +81,26 @@ function collect<T>(
     }
   }
   return reduceFacts(facts);
+}
+
+function collectStringUnion(
+  fragments: readonly SourceFragment[],
+  parse: (text: string) => readonly (readonly string[])[],
+): ParsedFact<readonly string[]> {
+  const found: { values: readonly string[]; fragment: SourceFragment }[] = [];
+  for (const fragment of fragments) {
+    for (const values of parse(fragment.text)) {
+      if (values.length) found.push({ values, fragment });
+    }
+  }
+  if (!found.length) return { status: "unknown" };
+  const value = [...new Set(found.flatMap((item) => item.values))];
+  return {
+    status: "known",
+    value,
+    excerpt: safeExcerpt(found.map((item) => item.fragment.text).join(" / ")),
+    locator: found[0]!.fragment.locator,
+  };
 }
 
 /** Consecutive fragments under the same heading or row label. */
@@ -212,6 +232,16 @@ export function parseDeterministicJobFacts(
   const field = <T>(parse: (text: string) => readonly T[]) =>
     collectField(fragments, wholeJob, parse);
   const structured = document.structuredJob;
+  const techFragments: readonly SourceFragment[] = document.jobIdentity
+    ? [
+        {
+          scope: "job",
+          text: document.jobIdentity.title,
+          locator: `${JSON_LD}.title`,
+        },
+        ...fragments,
+      ]
+    : fragments;
   const regions = structured
     ? locationNames(structured.regions.join(" / "))
     : [];
@@ -242,6 +272,6 @@ export function parseDeterministicJobFacts(
             "employmentType",
           )
         : field(employmentType),
-    techStack: collect(fragments, techStackParser.parse),
+    techStack: collectStringUnion(techFragments, techStackParser.parse),
   };
 }

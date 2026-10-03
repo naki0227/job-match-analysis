@@ -229,6 +229,135 @@ describe("Jev whole-context DecisionEngine", () => {
     expect(result.decisions[0]).toMatchObject({ status: "unknown" });
   });
 
+  it("rejects schedule-only autonomy evidence and contractual change boilerplate", async () => {
+    const guardedInput: DecisionEngineInput = {
+      ...input,
+      rubrics: [
+        {
+          axisKey: "autonomy",
+          anchors: {
+            0: "process-bound",
+            50: "some work decisions",
+            100: "large decision authority",
+          },
+        },
+        {
+          axisKey: "work_change",
+          anchors: {
+            0: "predictable",
+            50: "some change",
+            100: "fast-changing",
+          },
+        },
+      ],
+      fragments: [
+        fragment(
+          "hours",
+          "Working Hours are 9:30 - 18:30. Employees may choose their working hours at their own discretion.",
+        ),
+        fragment(
+          "legal",
+          "Range of change in job description: Work as determined by the company. Range of change in work location: Work location as determined by the company.",
+        ),
+        fragment(
+          "lifecycle",
+          "Participate in the full software development lifecycle, from planning and design to testing and deployment.",
+        ),
+      ],
+    };
+    const requests: JevRequest[] = [];
+    const result = await engine(async (request) => {
+      requests.push(request);
+      return respond({
+        judge_autonomy: answer("50", { "50": 0.9 }),
+        locate_autonomy: answer("f1", {
+          f1: 0.85,
+          f3: 0.1,
+          none: 0.05,
+        }),
+        judge_work_change: answer("50", { "50": 0.9 }),
+        locate_work_change: answer("f2", { f2: 0.9, none: 0.1 }),
+      });
+    }).evaluate(guardedInput);
+
+    expect(result.decisions).toEqual([
+      {
+        axisKey: "autonomy",
+        status: "unknown",
+        anchorValue: null,
+        evidenceIds: [],
+      },
+      {
+        axisKey: "work_change",
+        status: "unknown",
+        anchorValue: null,
+        evidenceIds: [],
+      },
+    ]);
+    expect(requests[0]!.questions.judge_autonomy!.instructions).toMatch(
+      /Working-time flexibility/,
+    );
+    expect(requests[0]!.questions.judge_work_change!.instructions).toMatch(
+      /contractual range of changes/,
+    );
+  });
+
+  it("keeps genuine work-decision and operational-change evidence eligible", async () => {
+    const guardedInput: DecisionEngineInput = {
+      ...input,
+      rubrics: [
+        {
+          axisKey: "autonomy",
+          anchors: {
+            0: "process-bound",
+            50: "some work decisions",
+            100: "large decision authority",
+          },
+        },
+        {
+          axisKey: "work_change",
+          anchors: {
+            0: "predictable",
+            50: "some change",
+            100: "fast-changing",
+          },
+        },
+      ],
+      fragments: [
+        fragment(
+          "decisions",
+          "Engineers decide the technical design and implementation approach for their services.",
+        ),
+        fragment(
+          "changes",
+          "Project priorities shift frequently as customer needs change.",
+        ),
+      ],
+    };
+    const result = await engine(async () =>
+      respond({
+        judge_autonomy: answer("100", { "100": 0.9 }),
+        locate_autonomy: answer("f1", { f1: 0.9, none: 0.1 }),
+        judge_work_change: answer("100", { "100": 0.9 }),
+        locate_work_change: answer("f2", { f2: 0.9, none: 0.1 }),
+      }),
+    ).evaluate(guardedInput);
+    expect(result.decisions).toEqual([
+      {
+        axisKey: "autonomy",
+        status: "known",
+        anchorValue: 100,
+        evidenceIds: ["decisions"],
+      },
+      {
+        axisKey: "work_change",
+        status: "known",
+        anchorValue: 100,
+        evidenceIds: ["changes"],
+      },
+    ]);
+  });
+
   it("locates facts with fragment choices only, under the grounding threshold", async () => {
     const requests: JevRequest[] = [];
     const result = await engine(async (request) => {

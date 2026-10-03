@@ -36,7 +36,7 @@ const TECH_MENTIONS: readonly {
     // "Go" is ordinary English, so require an engineering context.
     name: "Go",
     pattern:
-      /\bGolang\b|\bGo-based\b|\bGo\s+(?:developer|development|applications?|services?|microservices?|code|language)\b|\b(?:developer|engineer)\b[^\n()]{0,32}\(\s*Go\s*\)|\b(?:using|written in|developed in|developing in)\s+Go\b/iu,
+      /\bGolang\b|\bGo-based\b|\bGo\s+(?:developer|development|applications?|services?|microservices?|code|language)\b|\bprogramming languages?\s*[:：]\s*Go\b|\b(?:developer|engineer)\b[^\n()]{0,32}\(\s*Go\s*\)|\b(?:using|written in|developed in|developing in)\s+Go\b/iu,
   },
   { name: "TypeScript", pattern: /\bTypeScript\b/u },
   { name: "JavaScript", pattern: /\bJavaScript\b/u },

@@ -108,11 +108,7 @@ function postingTitle(root: Html.Node, company: string): string | null {
         (part) => !GENERIC_TITLE.test(part) && !sameCompany(company, part),
       ) ?? parts.find((part) => !GENERIC_TITLE.test(part));
     const title = (preferred ?? raw).replace(/\s+/g, " ").trim();
-    if (
-      title.length >= 2 &&
-      title.length <= 300 &&
-      !GENERIC_TITLE.test(title)
-    )
+    if (title.length >= 2 && title.length <= 300 && !GENERIC_TITLE.test(title))
       return title;
   }
   return null;
@@ -203,8 +199,7 @@ export function verifyPosting(args: {
   if (CLOSED.test(text)) return { ok: false, reason: "closed" };
 
   const postings = readJobPostings(args.html);
-  if (postings.length > 1)
-    return { ok: false, reason: "multiple_postings" };
+  if (postings.length > 1) return { ok: false, reason: "multiple_postings" };
 
   if (postings.length === 0) {
     const fallback = genericPosting({

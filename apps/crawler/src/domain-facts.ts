@@ -23,7 +23,9 @@ export function isTechStackSection(section: string | undefined): boolean {
 }
 
 export function isExplicitTechStackLine(text: string): boolean {
-  return LABELED_STACK.test(text.trim()) || EXPLICIT_STACK_LINE.test(text.trim());
+  return (
+    LABELED_STACK.test(text.trim()) || EXPLICIT_STACK_LINE.test(text.trim())
+  );
 }
 
 const TECH_MENTIONS: readonly {
@@ -55,7 +57,10 @@ const TECH_MENTIONS: readonly {
   { name: "Redis", pattern: /\bRedis\b/u },
   { name: "Kafka", pattern: /\bKafka\b/u },
   { name: "gRPC", pattern: /\bgRPC\b/u },
-  { name: "Visual Studio Code", pattern: /\bVisual Studio Code\b|\bVS Code\b/iu },
+  {
+    name: "Visual Studio Code",
+    pattern: /\bVisual Studio Code\b|\bVS Code\b/iu,
+  },
   { name: "GoLand", pattern: /\bGoLand\b/u },
   { name: "Cursor", pattern: /\bCursor\b/u },
   { name: "GitHub Copilot", pattern: /\bGitHub Copilot\b/u },

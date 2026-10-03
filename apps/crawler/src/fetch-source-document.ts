@@ -190,14 +190,33 @@ export async function fetchSourceDocument(args: {
   }
 }
 
+const DISCOVERY_TEXT_MARKERS = [
+  /仕事内容|業務内容|職務内容|job description|responsibilities/iu,
+  /応募資格|必須要件|requirements|qualifications/iu,
+  /勤務地|勤務場所|work location|locations?/iu,
+  /給与|年収|salary|compensation/iu,
+  /応募する|エントリー|apply now|apply for/iu,
+] as const;
+const DISCOVERY_LINK =
+  /href\s*=\s*["'][^"']*(?:jobs?|careers?|recruit|positions?|openings?|job-details?|job-openings?|採用|求人|募集)[^"']*["']/giu;
+
+function discoveryNeedsBrowser(html: string): boolean {
+  if (/["']JobPosting["']/u.test(html)) return false;
+  const markerCount = DISCOVERY_TEXT_MARKERS.filter((pattern) =>
+    pattern.test(html),
+  ).length;
+  const linkCount = html.match(DISCOVERY_LINK)?.length ?? 0;
+  return markerCount < 2 && linkCount < 2;
+}
+
 /**
- * One public HTML page over plain HTTP, for job discovery (ADR-047): the
- * same URL, DNS, redirect, robots, size, time and content-type checks as
- * analysis, no browser, and redirects must stay on the starting origin. The
- * robots policy is shared across calls so one origin's robots.txt is read
- * once per discovery.
+ * One public HTML page for job discovery (ADR-047). Static HTML is preferred.
+ * If it looks like a client-rendered shell, Chromium gets one bounded chance
+ * to render it through the same DNS/robots/request boundary used by analysis.
+ * Redirects of the top-level page must stay on the starting origin.
  */
 export function createPublicPageFetcher(args: {
+  browser?: Browser;
   resolve?: ResolveAddresses;
   send?: RequestOnce;
 }): (url: string) => Promise<{ url: string; html: string }> {
@@ -222,6 +241,43 @@ export function createPublicPageFetcher(args: {
     });
     const html = requireHtml(response);
     rejectAccessGate(html);
-    return { url: response.url, html };
+    if (!args.browser || !discoveryNeedsBrowser(html)) {
+      return { url: response.url, html };
+    }
+
+    const boundary = await createBrowserBoundary(args.browser, (resourceUrl) =>
+      fetchPublic(resourceUrl, resolve, send, policy),
+    );
+    try {
+      const page = await boundary.context.newPage();
+      await page.goto(response.url, {
+        waitUntil: "domcontentloaded",
+        timeout: FETCH_LIMITS.timeoutMs,
+      });
+      await page
+        .waitForFunction(
+          () =>
+            document.querySelectorAll("a").length > 3 ||
+            (document.body?.innerText?.replace(/\s/g, "").length ?? 0) > 500,
+          undefined,
+          { timeout: 4_000 },
+        )
+        .catch(() => undefined);
+      await page.waitForTimeout(500);
+      const finalUrl = parsePublicUrl(page.url());
+      if (finalUrl.origin !== origin) {
+        throw new SourceFetchError("browser redirected to another origin");
+      }
+      const renderedHtml = await page.content();
+      rejectAccessGate(renderedHtml);
+      return {
+        url: finalUrl.href,
+        html: renderedHtml.length > html.length ? renderedHtml : html,
+      };
+    } catch {
+      return { url: response.url, html };
+    } finally {
+      await boundary.context.close();
+    }
   };
 }

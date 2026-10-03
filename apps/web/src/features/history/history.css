@@ -1,48 +1,126 @@
 .list {
+  display: grid;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--line);
+}
+
+.history-card {
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  transition: background 180ms ease;
+}
+
+.history-card:hover {
+  background: #f5f9fc;
 }
 
 .list-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
-  align-items: center;
+  align-items: start;
   width: 100%;
-  padding: 17px 2px;
+  min-height: 100%;
+  padding: 20px 22px;
   border: 0;
-  border-bottom: 1px solid var(--line);
   background: transparent;
   text-align: left;
 }
 
+.history-card-content {
+  display: grid;
+  min-width: 0;
+}
+
 .list-row strong,
-.list-row .meta,
-.list-row .statusline {
+.list-row .meta {
   display: block;
 }
 
-.statusline {
-  margin-top: 8px;
+.list-row strong {
+  margin-top: 14px;
+  font-family: var(--round);
+  font-size: 19px;
+  letter-spacing: -0.035em;
+  line-height: 1.35;
+}
+
+.history-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  color: var(--muted);
   font-size: 12px;
+}
+
+.history-profile-version {
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--blue-ink);
+  font-weight: 800;
+}
+
+.history-job-title {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.list-row .statusline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.statusline span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding-right: 14px;
+  font-weight: 700;
+}
+
+.statusline b {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.statusline .summary-close {
+  color: var(--blue-ink);
+}
+.statusline .summary-different {
+  color: var(--danger);
+}
+.statusline .summary-unknown {
   color: var(--muted);
 }
 
 .chev {
-  font-size: 25px;
-  color: #8fa0b0;
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  color: var(--blue-ink);
+  font-size: 20px;
+  line-height: 1;
 }
 
 .stale-badge {
   display: inline-flex;
-  margin-top: 8px;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--warn-soft);
+  justify-self: start;
+  margin-top: 12px;
+  padding: 5px 10px;
   color: var(--warn);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -64,6 +142,44 @@
 
 .version-pair {
   overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.history-card-compact .list-row {
+  padding: 19px;
+}
+
+.history-card-compact .list-row strong {
+  font-size: 17px;
+}
+
+.history-card-compact .history-card-top {
+  font-size: 11px;
+}
+
+.history-screen {
+  max-width: 860px;
+}
+
+.history-intro {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 8px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.history-intro h1 {
+  margin-top: 8px;
+}
+
+.history-screen .filter-grid {
+  margin-bottom: 22px;
+}
+
+.history-screen > .secondary {
+  display: block;
+  min-width: 170px;
+  margin: 26px auto 0;
 }
 
 .filter-grid {
@@ -80,5 +196,15 @@
 @media (min-width: 760px) {
   .filter-grid {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .history-intro {
+    padding: 29px 24px;
+  }
+
+  .list-row {
+    padding: 18px;
   }
 }

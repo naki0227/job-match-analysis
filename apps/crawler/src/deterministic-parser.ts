@@ -232,6 +232,16 @@ export function parseDeterministicJobFacts(
   const field = <T>(parse: (text: string) => readonly T[]) =>
     collectField(fragments, wholeJob, parse);
   const structured = document.structuredJob;
+  const techFragments: readonly SourceFragment[] = document.jobIdentity
+    ? [
+        {
+          scope: "job",
+          text: document.jobIdentity.title,
+          locator: `${JSON_LD}.title`,
+        },
+        ...fragments,
+      ]
+    : fragments;
   const regions = structured
     ? locationNames(structured.regions.join(" / "))
     : [];
@@ -262,6 +272,6 @@ export function parseDeterministicJobFacts(
             "employmentType",
           )
         : field(employmentType),
-    techStack: collectStringUnion(fragments, techStackParser.parse),
+    techStack: collectStringUnion(techFragments, techStackParser.parse),
   };
 }

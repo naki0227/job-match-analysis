@@ -48,8 +48,10 @@ export const hostedAtsSource: JobSourceAdapter = {
   name: "hosted-ats",
   kind: "ats",
   canHandle: (url) => HOSTED_ATS.test(url.hostname),
-  isListing: (url) => !ATS_DETAIL.test(`${url.pathname}${url.search}`),
-  isPostingLink: (link) => ATS_DETAIL.test(`${link.pathname}${link.search}`),
+  isListing: (url) =>
+    !ATS_DETAIL.test(`${url.pathname}${url.search}`),
+  isPostingLink: (link) =>
+    ATS_DETAIL.test(`${link.pathname}${link.search}`),
 };
 
 const CAREER_PATH =
@@ -67,7 +69,9 @@ export const genericSource: JobSourceAdapter = {
     url.pathname.split("/").filter(Boolean).length <= 5,
   isPostingLink: (link, listing) =>
     link.href !== listing.href &&
-    (GENERIC_DETAIL.test(decodeURIComponent(`${link.pathname}${link.search}`)) ||
+    (GENERIC_DETAIL.test(
+      decodeURIComponent(`${link.pathname}${link.search}`),
+    ) ||
       (CAREER_PATH.test(decodeURIComponent(link.pathname)) &&
         link.pathname.split("/").filter(Boolean).length >= 2)),
 };
@@ -98,7 +102,11 @@ function linkText(node: Html.Node): string {
 function hrefs(node: Html.Node, found: RawLink[]): void {
   if ("tagName" in node && node.tagName === "a") {
     const href = node.attrs.find((attr) => attr.name === "href")?.value;
-    if (href) found.push({ href, text: linkText(node).replace(/\s+/g, " ").trim() });
+    if (href)
+      found.push({
+        href,
+        text: linkText(node).replace(/\s+/g, " ").trim(),
+      });
   }
   if ("childNodes" in node)
     for (const child of node.childNodes) hrefs(child, found);
@@ -131,14 +139,17 @@ export function postingLinks(
       continue;
     }
     link.hash = "";
-    if (link.protocol !== "https:" || NON_JOB_PATH.test(link.pathname)) continue;
+    if (link.protocol !== "https:" || NON_JOB_PATH.test(link.pathname))
+      continue;
 
     const sameOrigin = link.origin === listing.origin;
     const accepted =
       (sameOrigin &&
         (source.isPostingLink(link, listing) ||
           (JOB_LINK_TEXT.test(item.text) &&
-            CAREER_PATH.test(decodeURIComponent(`${link.pathname}${link.search}`))))) ||
+            CAREER_PATH.test(
+              decodeURIComponent(`${link.pathname}${link.search}`),
+            ))) ||
       (!sameOrigin && isKnownAtsLink(link));
 
     if (!accepted) continue;

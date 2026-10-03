@@ -100,8 +100,8 @@ export function InsightsScreen({ onEditProfile }: Props) {
               ))}
             </div>
             <PendingFeature
-              title={`「${cohort}」との比較はまだ表示できません`}
-              reason="匿名集計への参加同意と、人数が少ない集団を表示しない仕組みの準備中です（Issue #40・#41）。"
+              title={`「${cohort}」との比較は現在準備中です`}
+              reason="比較機能は順次対応しています。"
             />
           </section>
         </>

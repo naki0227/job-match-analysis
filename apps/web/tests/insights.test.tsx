@@ -76,6 +76,8 @@ test("own axes render as a radar and a table; cohorts are not faked", async () =
   const table = screen.getByRole("table", { name: "あなたの希望（第3版）" });
   expect(table).toHaveTextContent("裁量10比較しない");
   fireEvent.click(screen.getByRole("button", { name: "全体" }));
-  expect(screen.getByRole("note")).toHaveTextContent("「全体」との比較");
-  expect(screen.getByRole("note")).toHaveTextContent("Issue #40");
+  expect(screen.getByRole("note")).toHaveTextContent(
+    "「全体」との比較は現在準備中です",
+  );
+  expect(screen.getByRole("note")).toHaveTextContent("順次対応しています");
 });

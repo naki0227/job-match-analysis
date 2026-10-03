@@ -1,7 +1,4 @@
-import {
-  normalizeCompanyName,
-  sameCompany,
-} from "@job-match/domain";
+import { sameCompany } from "@job-match/domain";
 import { parse, type DefaultTreeAdapterTypes as Html } from "parse5";
 import { readJobPostings } from "./job-posting-ld.js";
 import type { JobSourceAdapter } from "./job-sources.js";

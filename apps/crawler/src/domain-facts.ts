@@ -13,6 +13,20 @@ export type DomainFactParser<T> = {
 };
 
 const LABELED_STACK = /^技術スタック\s*[:：]\s*(.+)$/u;
+const TECH_STACK_SECTION =
+  /^(?:technology|technical|tech)\s*stack$|^技術スタック$|^開発環境$|^技術環境$/iu;
+const EXPLICIT_STACK_LINE =
+  /^(?:programming languages?|languages?|tech(?:nology)? stack|技術スタック)\s*[:：]/iu;
+
+export function isTechStackSection(section: string | undefined): boolean {
+  return section ? TECH_STACK_SECTION.test(section.trim()) : false;
+}
+
+export function isExplicitTechStackLine(text: string): boolean {
+  return (
+    LABELED_STACK.test(text.trim()) || EXPLICIT_STACK_LINE.test(text.trim())
+  );
+}
 
 const TECH_MENTIONS: readonly {
   name: string;
@@ -22,7 +36,7 @@ const TECH_MENTIONS: readonly {
     // "Go" is ordinary English, so require an engineering context.
     name: "Go",
     pattern:
-      /\bGolang\b|\bGo-based\b|\bGo\s+(?:developer|development|applications?|services?|microservices?|code|language)\b|\b(?:developer|engineer)\b[^\n()]{0,32}\(\s*Go\s*\)|\b(?:using|written in|developed in|developing in)\s+Go\b/iu,
+      /\bGolang\b|\bGo-based\b|\bGo\s+(?:developer|development|applications?|services?|microservices?|code|language)\b|\bprogramming languages?\s*[:：]\s*Go\b|\b(?:developer|engineer)\b[^\n()]{0,32}\(\s*Go\s*\)|\b(?:using|written in|developed in|developing in)\s+Go\b/iu,
   },
   { name: "TypeScript", pattern: /\bTypeScript\b/u },
   { name: "JavaScript", pattern: /\bJavaScript\b/u },
@@ -43,8 +57,30 @@ const TECH_MENTIONS: readonly {
   { name: "Redis", pattern: /\bRedis\b/u },
   { name: "Kafka", pattern: /\bKafka\b/u },
   { name: "gRPC", pattern: /\bgRPC\b/u },
+  {
+    name: "Visual Studio Code",
+    pattern: /\bVisual Studio Code\b|\bVS Code\b/iu,
+  },
+  { name: "GoLand", pattern: /\bGoLand\b/u },
+  { name: "Cursor", pattern: /\bCursor\b/u },
+  { name: "GitHub Copilot", pattern: /\bGitHub Copilot\b/u },
+  { name: "CircleCI", pattern: /\bCircleCI\b/u },
+  { name: "GitHub Actions", pattern: /\bGitHub Actions?\b/u },
+  { name: "ArgoCD", pattern: /\bArgo\s?CD\b/u },
+  {
+    name: "GitHub",
+    pattern: /\bGitHub\b(?!\s+(?:Actions?|Copilot))/u,
+  },
+  { name: "Datadog", pattern: /\bDatadog\b/u },
+  { name: "CloudWatch", pattern: /\bCloudWatch\b/u },
+  { name: "Rollbar", pattern: /\bRollbar\b/u },
+  { name: "SonarQube", pattern: /\bSonarQube\b/u },
+  { name: "RabbitMQ", pattern: /\bRabbitMQ\b/u },
   { name: "Docker", pattern: /\bDocker\b/u },
-  { name: "Kubernetes", pattern: /\bKubernetes\b|\bK8s\b/u },
+  {
+    name: "Kubernetes",
+    pattern: /\bKubernetes\b|\bKubernates\b|\bKubernate\b|\bK8s\b/iu,
+  },
   { name: "Terraform", pattern: /\bTerraform\b/u },
   { name: "AWS", pattern: /\bAWS\b|\bAmazon Web Services\b/u },
   { name: "GCP", pattern: /\bGCP\b|\bGoogle Cloud(?: Platform)?\b/u },

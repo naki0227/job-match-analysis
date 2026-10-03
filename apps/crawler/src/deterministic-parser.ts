@@ -1,4 +1,9 @@
-import { techStackParser, type DomainFacts } from "./domain-facts.js";
+import {
+  isExplicitTechStackLine,
+  isTechStackSection,
+  techStackParser,
+  type DomainFacts,
+} from "./domain-facts.js";
 import type {
   ExtractedSourceDocument,
   SourceFragment,
@@ -17,7 +22,7 @@ import {
   weeklyOfficeDays,
 } from "./job-fact-patterns.js";
 
-export const DETERMINISTIC_PARSER_VERSION = "job-facts-v8";
+export const DETERMINISTIC_PARSER_VERSION = "job-facts-v9";
 
 const JSON_LD = "script[type='application/ld+json']:JobPosting";
 
@@ -232,16 +237,26 @@ export function parseDeterministicJobFacts(
   const field = <T>(parse: (text: string) => readonly T[]) =>
     collectField(fragments, wholeJob, parse);
   const structured = document.structuredJob;
-  const techFragments: readonly SourceFragment[] = document.jobIdentity
-    ? [
-        {
-          scope: "job",
-          text: document.jobIdentity.title,
-          locator: `${JSON_LD}.title`,
-        },
-        ...fragments,
-      ]
-    : fragments;
+  const targetRole = document.jobIdentity
+    ? known(document.jobIdentity.title, document.jobIdentity.title, "title")
+    : field(targetRoleFromText);
+  const stackFragments = fragments.filter(
+    (fragment) =>
+      isTechStackSection(fragment.section) ||
+      isExplicitTechStackLine(fragment.text),
+  );
+  const techFragments: readonly SourceFragment[] =
+    stackFragments.length > 0
+      ? stackFragments
+      : targetRole.status === "known"
+        ? [
+            {
+              scope: "job",
+              text: targetRole.value,
+              locator: targetRole.locator,
+            },
+          ]
+        : [];
   const regions = structured
     ? locationNames(structured.regions.join(" / "))
     : [];
@@ -261,9 +276,7 @@ export function parseDeterministicJobFacts(
     ),
     weeklyOfficeDays: collect(fragments, weeklyOfficeDays),
     scheduleFlexibility: collect(fragments, scheduleFlexibility),
-    targetRole: document.jobIdentity
-      ? known(document.jobIdentity.title, document.jobIdentity.title, "title")
-      : field(targetRoleFromText),
+    targetRole,
     employmentType:
       structured && structured.employmentTypes.length
         ? known(

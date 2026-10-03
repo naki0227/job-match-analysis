@@ -102,21 +102,51 @@ describe("deterministic job parser", () => {
     });
   });
 
-  it("unions explicit technology mentions and ignores ordinary English go", () => {
+  it("reads the explicit technology-stack section and ignores skill wishlists", () => {
     const document = extractSourceDocument(
       `<main data-job>
         <h1>Backend Developer (Go)</h1>
-        <p>Develop scalable Go applications and microservices.</p>
-        <p>Infrastructure uses PostgreSQL, Docker and Kubernetes.</p>
+        <h2>Good to have Skill-set</h2>
+        <p>Experience with AWS, Azure, Google Cloud Platform, and Apache Kafka is a plus.</p>
+        <h2>Technology Stack</h2>
+        <p>Programming language: Go</p>
+        <p>Environment: Visual Studio Code, GoLand, Cursor, GitHub Copilot</p>
+        <p>CI/CD: CircleCI, GitHub Actions and ArgoCD</p>
+        <p>Repository: GitHub</p>
+        <p>Monitoring: Datadog, CloudWatch, and Rollbar</p>
+        <p>Other: AWS, Docker, Kubernetes, SonarQube and Terraform</p>
         <p>Employees go to the office twice a week.</p>
       </main>`,
       url,
       now,
     );
-    expect(parseDeterministicJobFacts(document).techStack).toMatchObject({
+    const tech = parseDeterministicJobFacts(document).techStack;
+    expect(tech).toMatchObject({
       status: "known",
-      value: ["Go", "PostgreSQL", "Docker", "Kubernetes"],
+      value: [
+        "Go",
+        "Visual Studio Code",
+        "GoLand",
+        "Cursor",
+        "GitHub Copilot",
+        "CircleCI",
+        "GitHub Actions",
+        "ArgoCD",
+        "GitHub",
+        "Datadog",
+        "CloudWatch",
+        "Rollbar",
+        "SonarQube",
+        "Docker",
+        "Kubernetes",
+        "Terraform",
+        "AWS",
+      ],
     });
+    if (tech.status !== "known") throw new Error("tech stack");
+    expect(tech.value).not.toContain("Azure");
+    expect(tech.value).not.toContain("GCP");
+    expect(tech.value).not.toContain("Kafka");
 
     const ordinary = extractSourceDocument(
       `<main data-job><p>Employees go to the office twice a week.</p></main>`,
@@ -135,7 +165,10 @@ describe("deterministic job parser", () => {
         title: "Backend Developer (Go)",
         hiringOrganization: { name: "Example Ltd" },
       })}</script><main data-job>
-        <p>Develop Go services on AWS using Docker. ${"This posting describes the current backend role in detail. ".repeat(3)}</p>
+        <h2>Technology Stack</h2>
+        <p>Programming language: Go</p>
+        <p>Other: AWS, Docker</p>
+        <p>${"This posting describes the current backend role in detail. ".repeat(3)}</p>
         <h2>Example Ltd の求人</h2>
         <p>Backend Developer (Kotlin/Java) with Spring Boot.</p>
       </main>`,

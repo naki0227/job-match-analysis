@@ -237,6 +237,9 @@ export function parseDeterministicJobFacts(
   const field = <T>(parse: (text: string) => readonly T[]) =>
     collectField(fragments, wholeJob, parse);
   const structured = document.structuredJob;
+  const targetRole = document.jobIdentity
+    ? known(document.jobIdentity.title, document.jobIdentity.title, "title")
+    : field(targetRoleFromText);
   const stackFragments = fragments.filter(
     (fragment) =>
       isTechStackSection(fragment.section) ||
@@ -245,12 +248,12 @@ export function parseDeterministicJobFacts(
   const techFragments: readonly SourceFragment[] =
     stackFragments.length > 0
       ? stackFragments
-      : document.jobIdentity
+      : targetRole.status === "known"
         ? [
             {
               scope: "job",
-              text: document.jobIdentity.title,
-              locator: `${JSON_LD}.title`,
+              text: targetRole.value,
+              locator: targetRole.locator,
             },
           ]
         : [];
@@ -273,9 +276,7 @@ export function parseDeterministicJobFacts(
     ),
     weeklyOfficeDays: collect(fragments, weeklyOfficeDays),
     scheduleFlexibility: collect(fragments, scheduleFlexibility),
-    targetRole: document.jobIdentity
-      ? known(document.jobIdentity.title, document.jobIdentity.title, "title")
-      : field(targetRoleFromText),
+    targetRole,
     employmentType:
       structured && structured.employmentTypes.length
         ? known(

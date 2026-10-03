@@ -83,10 +83,8 @@ export function sourceFor(url: URL): JobSourceAdapter {
   return jobSources.find((source) => source.canHandle(url)) ?? genericSource;
 }
 
-function isKnownAtsPosting(url: URL): boolean {
-  if (hrmosSource.canHandle(url)) return HRMOS_DETAIL.test(url.pathname);
-  if (herpSource.canHandle(url)) return HERP_DETAIL.test(url.pathname);
-  return hostedAtsSource.canHandle(url) && hostedAtsSource.isPostingLink(url, url);
+function isKnownAtsLink(url: URL): boolean {
+  return sourceFor(url).kind === "ats" && url.pathname !== "/";
 }
 
 type RawLink = { href: string; text: string };
@@ -141,7 +139,7 @@ export function postingLinks(
         (source.isPostingLink(link, listing) ||
           (JOB_LINK_TEXT.test(item.text) &&
             CAREER_PATH.test(decodeURIComponent(`${link.pathname}${link.search}`))))) ||
-      (!sameOrigin && isKnownAtsPosting(link));
+      (!sameOrigin && isKnownAtsLink(link));
 
     if (!accepted) continue;
     links.add(link.href);

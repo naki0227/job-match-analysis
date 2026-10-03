@@ -174,7 +174,8 @@ function genericPosting(args: {
     url: args.url,
     title,
     companyName: args.company,
-    sourceKind: args.source.kind === "ats" ? "ats" : official ? "official" : "web",
+    sourceKind:
+      args.source.kind === "ats" ? "ats" : official ? "official" : "web",
     employmentTypes: [],
     location: null,
     validThrough: null,

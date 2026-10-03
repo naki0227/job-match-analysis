@@ -30,7 +30,10 @@ const TECH_MENTIONS: readonly {
   { name: "Kotlin", pattern: /\bKotlin\b/u },
   { name: "Rust", pattern: /\bRust\b/u },
   { name: "Python", pattern: /\bPython\b/u },
-  { name: "Ruby", pattern: /\bRuby\b/u },
+  {
+    name: "Ruby",
+    pattern: /\bRuby\b(?!\s+on\s+Rails)/u,
+  },
   { name: "Ruby on Rails", pattern: /\bRuby on Rails\b|\bRails\b/u },
   { name: "React", pattern: /\bReact\b/u },
   { name: "Next.js", pattern: /\bNext\.js\b/u },

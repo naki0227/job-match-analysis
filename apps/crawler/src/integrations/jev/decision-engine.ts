@@ -24,7 +24,7 @@ import {
   JevTimeoutError,
 } from "./error.js";
 
-export const JEV_EVALUATOR_VERSION = `jev-context-v5+${CONTEXT_SELECTOR_VERSION}`;
+export const JEV_EVALUATOR_VERSION = `jev-context-v6+${CONTEXT_SELECTOR_VERSION}`;
 
 /** Fragments kept per locate question; a section can span several items. */
 const MAX_LOCATED_PER_QUESTION = 8;

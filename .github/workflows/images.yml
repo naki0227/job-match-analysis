@@ -12,6 +12,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/images.yml"
+      - ".github/workflows/deploy-api.yml"
   pull_request:
     paths:
       - "apps/api/**"
@@ -21,6 +22,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/images.yml"
+      - ".github/workflows/deploy-api.yml"
 
 permissions:
   contents: read

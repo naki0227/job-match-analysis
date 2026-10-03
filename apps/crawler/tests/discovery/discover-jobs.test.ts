@@ -193,7 +193,8 @@ describe("web discovery", () => {
       query: { company: "サンプル" },
       search: provider([lead(root)]),
       fetchPage: pages({
-        [root]: `<html><body><main><h1>求人一覧</h1><a href="/ja/recruit/career/job-openings/backend">バックエンドエンジニア</a></main></body></html>`,
+        [root]:
+          `<html><body><main><h1>求人一覧</h1><a href="/ja/recruit/career/job-openings/backend">バックエンドエンジニア</a></main></body></html>`,
         [job]: jobPage({ title: "Backend Engineer", org: "サンプル" }),
       }),
       limits: { ...limits, maxQueries: 1 },

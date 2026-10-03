@@ -124,7 +124,8 @@ function postingTitle(
     const employmentTitle = employmentPattern
       ? parts.find((part) => employmentPattern.test(part))
       : undefined;
-    if (employmentTitle && employmentTitle.length <= 300) return employmentTitle;
+    if (employmentTitle && employmentTitle.length <= 300)
+      return employmentTitle;
 
     const preferred =
       parts.find(
@@ -167,7 +168,12 @@ function genericPosting(args: {
   const siteName = metaContent(args.root, "property", "og:site_name");
   const pageTitle = firstElementText(args.root, "title");
   const pageHeading = firstElementText(args.root, "h1");
-  const companyEvidence = [siteName, pageTitle, pageHeading, args.text.slice(0, 20_000)]
+  const companyEvidence = [
+    siteName,
+    pageTitle,
+    pageHeading,
+    args.text.slice(0, 20_000),
+  ]
     .filter((value): value is string => value !== null)
     .some((value) => sameCompany(args.company, value));
   if (!companyEvidence) return null;

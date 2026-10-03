@@ -1,21 +1,24 @@
-/* Design tokens follow apps/web/mock/mock.css. */
+/* A clear, calm visual language for decisions with incomplete evidence. */
 :root {
   --bg: #fbfdff;
   --surface: #fff;
   --ink: #172235;
-  --muted: #5f7085;
+  --muted: #607186;
   --line: #dce8f1;
-  --blue: #37a9ea;
-  --blue-ink: #1f7fb8;
+  --navy: #172235;
+  --navy-light: #1b4870;
+  --blue: #1178ba;
+  --blue-ink: #0869a8;
   --blue-soft: #eaf7ff;
-  --blue-line: #cdecfc;
-  --soft: #f5f9fc;
-  --warn: #9a6a12;
-  --warn-soft: #fff7e6;
-  --danger: #a95454;
-  --danger-soft: #fdf1f1;
+  --blue-line: #b8dff7;
+  --soft: #edf4fa;
+  --warm: #ffe5bc;
+  --warn: #81520f;
+  --warn-soft: #fff2da;
+  --danger: #a23f48;
+  --danger-soft: #fff0f1;
   --radius: 18px;
-  --shadow: 0 18px 44px rgba(55, 169, 234, 0.08);
+  --shadow: none;
   --sans:
     "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
     "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
@@ -26,7 +29,7 @@
   color-scheme: light;
   color: var(--ink);
   background: var(--bg);
-  font: 16px/1.6 var(--sans);
+  font: 16px/1.65 var(--sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -37,6 +40,11 @@
 body {
   margin: 0;
   background: var(--bg);
+}
+
+::selection {
+  background: #bce6ff;
+  color: var(--navy);
 }
 
 button,
@@ -56,8 +64,8 @@ button:disabled {
 }
 
 :focus-visible {
-  outline: 3px solid rgba(55, 169, 234, 0.35);
-  outline-offset: 2px;
+  outline: 3px solid #1685d8;
+  outline-offset: 3px;
 }
 
 h1,
@@ -65,21 +73,21 @@ h2,
 h3 {
   margin: 0;
   font-family: var(--round);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.045em;
   color: var(--ink);
 }
 
 h1 {
-  font-size: clamp(30px, 7vw, 48px);
-  line-height: 1.2;
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 1.13;
 }
 
 h2 {
-  font-size: 22px;
+  font-size: clamp(23px, 3vw, 30px);
 }
 
 h3 {
-  font-size: 18px;
+  font-size: 19px;
 }
 
 p {

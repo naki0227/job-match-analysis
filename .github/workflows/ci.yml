@@ -184,10 +184,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check formatting
-        run: |
-          pnpm exec prettier apps/crawler/src/discovery/verify-posting.ts --write
-          git diff -- apps/crawler/src/discovery/verify-posting.ts
-          exit 1
+        run: pnpm format:check
 
   docker:
     runs-on: ubuntu-24.04

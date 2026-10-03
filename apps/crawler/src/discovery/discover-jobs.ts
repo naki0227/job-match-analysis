@@ -142,6 +142,7 @@ export async function discoverJobs(args: {
       html: page.html,
       url: finalUrl,
       company: args.query.company,
+      employmentType: args.query.employmentType,
       source,
       now: args.now,
     });

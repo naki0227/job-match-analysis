@@ -24,6 +24,8 @@ export type RejectionReason =
 
 const CLOSED =
   /募集(?:は|を)?終了|受付(?:は|を)?終了|掲載(?:は|を)?終了|このポジションは(?:充足|終了)|no longer accepting|position (?:has been )?(?:closed|filled)|job (?:is )?(?:closed|expired)/iu;
+const OPEN =
+  /(?:プレ)?エントリー(?:を)?受付中|応募受付中|募集中|applications? (?:are )?open|apply now|pre-?entry/iu;
 
 function isElement(node: Html.Node): node is Html.Element {
   return "tagName" in node;
@@ -90,19 +92,41 @@ function host(url: string): string | null {
 const GENERIC_TITLE =
   /^(?:採用情報|求人一覧|募集職種(?:を探す)?|募集ポジション|キャリア採用|中途採用|新卒採用|careers?|jobs?|job search|search jobs|open positions?)$/iu;
 
-function postingTitle(root: Html.Node, company: string): string | null {
+const EMPLOYMENT_TEXT: Readonly<Record<string, RegExp>> = {
+  new_grad: /新卒|新卒採用|new.?grad|graduate|entry.?level/iu,
+  intern: /インターン|internship?|intern/iu,
+  full_time: /中途|キャリア採用|正社員|full.?time|experienced hire/iu,
+  contract: /契約社員|業務委託|contract/iu,
+  part_time: /アルバイト|パート|part.?time/iu,
+};
+
+function postingTitle(
+  root: Html.Node,
+  company: string,
+  employmentType: string | null | undefined,
+): string | null {
   const values = [
     firstElementText(root, "h1"),
     metaContent(root, "property", "og:title"),
     metaContent(root, "name", "twitter:title"),
     firstElementText(root, "title"),
   ].filter((value): value is string => value !== null);
+  const employmentPattern = employmentType
+    ? EMPLOYMENT_TEXT[employmentType]
+    : undefined;
 
   for (const raw of values) {
     const parts = raw
       .split(/\s*(?:\||｜|–|—)\s*|\s+-\s+/u)
       .map((part) => part.trim())
       .filter(Boolean);
+
+    const employmentTitle = employmentPattern
+      ? parts.find((part) => employmentPattern.test(part))
+      : undefined;
+    if (employmentTitle && employmentTitle.length <= 300)
+      return employmentTitle;
+
     const preferred =
       parts.find(
         (part) => !GENERIC_TITLE.test(part) && !sameCompany(company, part),
@@ -127,44 +151,62 @@ const DETAIL_URL =
   /(?:\/jobs?\/[^/?#]+|\/job-openings?\/[^/?#]+|\/job-details?\/[^/?#]+|\/positions?\/[^/?#]+|\/openings?\/[^/?#]+|[?&](?:job|jobId|job_id|position|opening|req|requisition)[=_-])/iu;
 const LISTING_URL =
   /(?:jobsearch|job-categories|\/jobs?\/?$|\/careers?\/?$|\/recruit(?:ing|ment)?\/?$)/iu;
+const RECRUITMENT_PATH =
+  /(?:^|\/)(?:recruit(?:ing|ment)?|careers|jobs|newgrads?|new-grads?|graduates?|entry-level|join-us)(?:\/|$|[-_.])/iu;
 
 function genericPosting(args: {
   root: Html.Node;
   text: string;
   url: string;
   company: string;
+  employmentType?: string | null;
   source: JobSourceAdapter;
 }): DiscoveredPosting | null {
-  const title = postingTitle(args.root, args.company);
+  const title = postingTitle(args.root, args.company, args.employmentType);
   if (!title) return null;
 
   const siteName = metaContent(args.root, "property", "og:site_name");
+  const pageTitle = firstElementText(args.root, "title");
+  const pageHeading = firstElementText(args.root, "h1");
   const companyEvidence = [
     siteName,
-    firstElementText(args.root, "title"),
-    firstElementText(args.root, "h1"),
+    pageTitle,
+    pageHeading,
     args.text.slice(0, 20_000),
   ]
     .filter((value): value is string => value !== null)
     .some((value) => sameCompany(args.company, value));
   if (!companyEvidence) return null;
 
+  const url = new URL(args.url);
+  const decodedUrl = decodeURIComponent(url.href);
   const markerCount = JOB_MARKERS.filter((pattern) =>
     pattern.test(args.text),
   ).length;
   const detailUrl =
-    DETAIL_URL.test(decodeURIComponent(new URL(args.url).href)) &&
-    !LISTING_URL.test(decodeURIComponent(new URL(args.url).href));
+    DETAIL_URL.test(decodedUrl) && !LISTING_URL.test(decodedUrl);
+  const siteNameMatches =
+    siteName !== null && sameCompany(args.company, siteName);
+  const employmentPattern = args.employmentType
+    ? EMPLOYMENT_TEXT[args.employmentType]
+    : undefined;
+  const requestedEmployment =
+    employmentPattern !== undefined &&
+    employmentPattern.test(`${title} ${args.text.slice(0, 20_000)}`);
+  const recruitmentLanding =
+    RECRUITMENT_PATH.test(decodeURIComponent(url.pathname)) &&
+    requestedEmployment &&
+    markerCount >= 1;
+
   const enoughEvidence =
-    (detailUrl && markerCount >= 2) ||
     (args.source.kind === "ats" && markerCount >= 2) ||
-    markerCount >= 4;
+    (detailUrl && markerCount >= 2) ||
+    (siteNameMatches && markerCount >= 2) ||
+    recruitmentLanding;
   if (!enoughEvidence) return null;
 
   const official =
-    args.source.kind === "generic" &&
-    siteName !== null &&
-    sameCompany(args.company, siteName);
+    args.source.kind === "generic" && (siteNameMatches || recruitmentLanding);
 
   return {
     url: args.url,
@@ -180,15 +222,15 @@ function genericPosting(args: {
 
 /**
  * Prefer a page's JobPosting structured data. When a public careers site does
- * not expose JSON-LD, fall back to conservative page evidence: company
- * identity, a concrete role title, job-detail URL/ATS context, and multiple
- * job-specific labels. The fallback identifies a posting URL only; analysis
- * still extracts every fact from the posting itself.
+ * not expose JSON-LD, fall back to conservative page evidence. Recruitment
+ * landing pages are accepted only when the URL is recruitment-specific and
+ * the requested employment type is explicitly written on the page.
  */
 export function verifyPosting(args: {
   html: string;
   url: string;
   company: string;
+  employmentType?: string | null;
   source: JobSourceAdapter;
   now: Date;
 }):
@@ -196,17 +238,20 @@ export function verifyPosting(args: {
   | { ok: false; reason: RejectionReason } {
   const root = parse(args.html);
   const text = visibleText(root).replace(/\s+/g, " ").trim();
-  if (CLOSED.test(text)) return { ok: false, reason: "closed" };
+  const closed = CLOSED.test(text);
+  const open = OPEN.test(text);
 
   const postings = readJobPostings(args.html);
   if (postings.length > 1) return { ok: false, reason: "multiple_postings" };
 
   if (postings.length === 0) {
+    if (closed && !open) return { ok: false, reason: "closed" };
     const fallback = genericPosting({
       root,
       text,
       url: args.url,
       company: args.company,
+      employmentType: args.employmentType,
       source: args.source,
     });
     return fallback
@@ -214,6 +259,7 @@ export function verifyPosting(args: {
       : { ok: false, reason: "not_job_posting" };
   }
 
+  if (closed) return { ok: false, reason: "closed" };
   const posting = postings[0]!;
   if (!sameCompany(args.company, posting.hiringOrganization))
     return { ok: false, reason: "company_mismatch" };

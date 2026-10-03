@@ -238,7 +238,7 @@ test("a known miss queues a discovery with search terms only, wakes the worker, 
       ),
     ),
     {
-      p_query_key: "discovery-v2|サンプル||",
+      p_query_key: "discovery-v3|サンプル||",
       p_company: "株式会社サンプル",
       p_role_query: null,
       p_employment_type: null,
@@ -376,7 +376,7 @@ test("the discovery key is made of search terms only", () => {
       roleQuery: "Go  バックエンド",
       employmentType: "full_time",
     }),
-    "discovery-v2|マネーフォワード|go バックエンド|full_time",
+    "discovery-v3|マネーフォワード|go バックエンド|full_time",
   );
 });
 

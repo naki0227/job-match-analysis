@@ -101,7 +101,7 @@ async function main(): Promise<void> {
           config.SUPABASE_SECRET_KEY,
         ),
         search: createDdgsProvider(config.discovery.ddgs),
-        createFetcher: () => createPublicPageFetcher({}),
+        createFetcher: () => createPublicPageFetcher({ browser }),
         limits: config.discovery.limits,
         leaseSeconds: config.CRAWLER_LEASE_SECONDS,
         maxAttempts: config.CRAWLER_MAX_ATTEMPTS,

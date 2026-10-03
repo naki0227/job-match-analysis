@@ -99,6 +99,9 @@
 .statusline .summary-different {
   color: var(--danger);
 }
+.statusline .summary-partial {
+  color: var(--warn);
+}
 .statusline .summary-unknown {
   color: var(--muted);
 }

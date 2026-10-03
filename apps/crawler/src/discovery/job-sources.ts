@@ -149,7 +149,7 @@ export function postingLinks(
           (JOB_LINK_TEXT.test(item.text) &&
             CAREER_PATH.test(
               decodeURIComponent(`${link.pathname}${link.search}`),
-            ))) ||
+            )))) ||
       (!sameOrigin && isKnownAtsLink(link));
 
     if (!accepted) continue;

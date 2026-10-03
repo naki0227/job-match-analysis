@@ -30,6 +30,48 @@ export function searchCompanyName(company: string): string {
   );
 }
 
+function employmentQueries(
+  company: string,
+  role: string,
+  employmentType: string | null | undefined,
+): string[] | null {
+  const roleSuffix = role ? ` ${role}` : "";
+  switch (employmentType) {
+    case "new_grad":
+      return [
+        `"${company}" 新卒採用${roleSuffix}`,
+        `"${company}" 新卒 募集要項${roleSuffix}`,
+        `"${company}" new graduate careers${roleSuffix}`,
+      ];
+    case "intern":
+      return [
+        `"${company}" インターン 採用${roleSuffix}`,
+        `"${company}" インターン 募集要項${roleSuffix}`,
+        `"${company}" internship careers${roleSuffix}`,
+      ];
+    case "full_time":
+      return [
+        `"${company}" 中途採用${roleSuffix}`,
+        `"${company}" キャリア採用${roleSuffix}`,
+        `"${company}" careers jobs${roleSuffix}`,
+      ];
+    case "contract":
+      return [
+        `"${company}" 契約社員 採用${roleSuffix}`,
+        `"${company}" 契約 募集要項${roleSuffix}`,
+        `"${company}" contract jobs${roleSuffix}`,
+      ];
+    case "part_time":
+      return [
+        `"${company}" アルバイト 採用${roleSuffix}`,
+        `"${company}" パート 求人${roleSuffix}`,
+        `"${company}" part time jobs${roleSuffix}`,
+      ];
+    default:
+      return null;
+  }
+}
+
 export function buildDiscoveryQueries(
   input: DiscoveryQuery,
   maxQueries: number,
@@ -37,8 +79,10 @@ export function buildDiscoveryQueries(
   const company = searchCompanyName(input.company);
   if (!company) return [];
   const role = clean(input.roleQuery ?? "");
-  const newGrad = input.employmentType === "new_grad" ? " 新卒" : "";
-  const suffix = `${role ? ` ${role}` : ""}${newGrad}`;
+  const targeted = employmentQueries(company, role, input.employmentType);
+  if (targeted) return [...new Set(targeted)].slice(0, maxQueries);
+
+  const suffix = role ? ` ${role}` : "";
   const japaneseCompany =
     /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(company);
   const queries = [

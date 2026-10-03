@@ -1,0 +1,23 @@
+name: Format Debug
+
+on:
+  push:
+    branches: [feat/axis-range-observation]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write apps/web/src/features/history/HistoryList.tsx apps/web/tests/MatchReport.test.tsx
+          git diff -- apps/web/src/features/history/HistoryList.tsx apps/web/tests/MatchReport.test.tsx

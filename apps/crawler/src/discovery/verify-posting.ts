@@ -206,8 +206,7 @@ function genericPosting(args: {
   if (!enoughEvidence) return null;
 
   const official =
-    args.source.kind === "generic" &&
-    (siteNameMatches || recruitmentLanding);
+    args.source.kind === "generic" && (siteNameMatches || recruitmentLanding);
 
   return {
     url: args.url,

@@ -90,11 +90,11 @@ select pg_temp.expect_check($$insert into public.match_axis_results
   values ('a4900000-0000-4000-8000-000000000006', 'collaboration', 1, 100, 80,
     'range', 50, 100, 'close', 0, 50)$$);
 -- difference must be the true nearest-endpoint distance.
-select pg_temp.expect_check($insert into public.match_axis_results
+select pg_temp.expect_check($$insert into public.match_axis_results
   (match_result_id, axis_key, axis_version, preference, importance, observation_status,
    observed_anchor, observed_anchor_max, comparison_status, difference, difference_max)
   values ('a4900000-0000-4000-8000-000000000006', 'collaboration', 1, 70, 80,
-    'range', 50, 100, 'partial', 0, 30)$);
+    'range', 50, 100, 'partial', 0, 30)$$);
 select pg_temp.expect_check($$insert into public.match_axis_results
   (match_result_id, axis_key, axis_version, preference, importance, observation_status,
    observed_anchor, observed_anchor_max, comparison_status, difference, difference_max)

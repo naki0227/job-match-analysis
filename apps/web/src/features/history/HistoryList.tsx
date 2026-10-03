@@ -10,38 +10,63 @@ type Props = {
 export function HistoryRow({
   item,
   onOpen,
+  compact = false,
 }: {
   item: HistoryItem;
   onOpen: (matchResultId: string) => void;
+  compact?: boolean;
 }) {
   return (
-    <li>
+    <li className={`history-card${compact ? " history-card-compact" : ""}`}>
       <button
         className="list-row"
         type="button"
         onClick={() => onOpen(item.matchResultId)}
       >
-        <span>
+        <span className="history-card-content">
+          <span className="history-card-top">
+            <span>{formatDateTime(item.analyzedAt)}</span>
+            <span className="history-profile-version">
+              希望条件 第{item.profileVersion}版
+            </span>
+          </span>
           <strong>{item.companyName}</strong>
-          <span className="meta">{item.jobTitle}</span>
-          <span className="statusline">
-            近い {item.summary.close}　相違 {item.summary.different}
-            {item.summary.partial > 0 && <>　一部近い {item.summary.partial}</>}
-            　不明 {item.summary.unknown}
+          <span className="history-job-title">{item.jobTitle}</span>
+          <span className="statusline" aria-label="軸別の比較結果">
+            <span className="summary-close">
+              近い <b>{item.summary.close}</b>
+            </span>
+            <span className="summary-different">
+              相違 <b>{item.summary.different}</b>
+            </span>
+            {item.summary.partial > 0 && (
+              <span className="summary-partial">
+                一部近い <b>{item.summary.partial}</b>
+              </span>
+            )}
+            <span className="summary-unknown">
+              不明 <b>{item.summary.unknown}</b>
+            </span>
           </span>
-          <span className="meta">
-            {`${formatDateTime(item.analyzedAt)}・希望条件 第${item.profileVersion}版`}
-          </span>
-          <span className="meta">希望職種: {item.targetRoles.join("、")}</span>
-          <span className="meta version-pair">
-            求人評価ID: {item.jobEvaluationId}
-          </span>
+          {!compact && (
+            <>
+              <span className="meta">
+                希望職種: {item.targetRoles.join("、")}
+              </span>
+              <span className="meta version-pair">
+                希望条件 第{item.profileVersion}版 ・ 求人評価ID:{" "}
+                {item.jobEvaluationId}
+              </span>
+            </>
+          )}
           {item.staleConditions && (
-            <span className="stale-badge">求人条件が古い可能性。確認を</span>
+            <span className="stale-badge">
+              求人条件が古い可能性。確認してください
+            </span>
           )}
         </span>
         <span className="chev" aria-hidden="true">
-          ›
+          ↗
         </span>
       </button>
     </li>

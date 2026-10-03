@@ -135,7 +135,7 @@ describe("deterministic job parser", () => {
         title: "Backend Developer (Go)",
         hiringOrganization: { name: "Example Ltd" },
       })}</script><main data-job>
-        <p>Develop Go services on AWS using Docker.</p>
+        <p>Develop Go services on AWS using Docker. ${"This posting describes the current backend role in detail. ".repeat(3)}</p>
         <h2>Example Ltd の求人</h2>
         <p>Backend Developer (Kotlin/Java) with Spring Boot.</p>
       </main>`,

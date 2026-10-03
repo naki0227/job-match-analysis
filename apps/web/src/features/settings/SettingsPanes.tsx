@@ -11,7 +11,7 @@ export function ProfilePane() {
   return (
     <PendingFeature
       title="表示名・大学・学部・卒業予定"
-      reason="任意プロフィールの保存先はありますが、入力APIがまだありません（Issue #38）。"
+      reason="プロフィール設定は現在準備中です。順次対応しています。"
     />
   );
 }
@@ -76,7 +76,7 @@ export function PrivacyPane() {
     <>
       <PendingFeature
         title="Community Insights・匿名集計への参加"
-        reason="参加同意の記録と集計の設計が未確定です（Issue #40）。現在は誰のデータも集計に使っていません。"
+        reason="匿名集計への参加設定は現在準備中です。順次対応しています。現在は誰のデータも集計に使っていません。"
       />
       <LegalHistory />
     </>

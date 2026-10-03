@@ -559,7 +559,7 @@ returns table (
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $$
 begin
   if p_user_id is null or p_limit is null or p_limit < 1 or p_limit > 100
     or p_fresh_after is null
@@ -665,7 +665,7 @@ begin
   ) ce on true
   order by page.sort_count desc, page.analyzed_at desc, page.match_result_id desc;
 end;
-$;
+$$;
 
 revoke all on function public.list_analysis_history_page_v3(
   uuid, integer, timestamptz, text, text, text, integer, timestamptz, uuid

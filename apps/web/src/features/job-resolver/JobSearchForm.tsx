@@ -45,7 +45,7 @@ export function JobSearchForm({ busy, onSearch }: Props) {
         className="input"
         type="text"
         maxLength={100}
-        placeholder="例: マネーフォワード"
+        placeholder="企業名を入力"
         value={company}
         onChange={(event) => setCompany(event.target.value)}
       />

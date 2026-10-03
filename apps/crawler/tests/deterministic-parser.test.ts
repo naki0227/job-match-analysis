@@ -96,6 +96,36 @@ describe("deterministic job parser", () => {
       status: "known",
       value: ["FULL_TIME"],
     });
+    expect(facts.techStack).toMatchObject({
+      status: "known",
+      value: ["Go"],
+    });
+  });
+
+  it("unions explicit technology mentions and ignores ordinary English go", () => {
+    const document = extractSourceDocument(
+      `<main data-job>
+        <h1>Backend Developer (Go)</h1>
+        <p>Develop scalable Go applications and microservices.</p>
+        <p>Infrastructure uses PostgreSQL, Docker and Kubernetes.</p>
+        <p>Employees go to the office twice a week.</p>
+      </main>`,
+      url,
+      now,
+    );
+    expect(parseDeterministicJobFacts(document).techStack).toMatchObject({
+      status: "known",
+      value: ["Go", "PostgreSQL", "Docker", "Kubernetes"],
+    });
+
+    const ordinary = extractSourceDocument(
+      `<main data-job><p>Employees go to the office twice a week.</p></main>`,
+      url,
+      now,
+    );
+    expect(parseDeterministicJobFacts(ordinary).techStack.status).toBe(
+      "unknown",
+    );
   });
 
   it("unions structured main location with additional visible job locations", () => {

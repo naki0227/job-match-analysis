@@ -9,29 +9,33 @@ type Props = {
 
 export function SignInScreen({ failed, onSignIn, notice }: Props) {
   return (
-    <section className="gate" aria-labelledby="sign-in-heading">
+    <section className="gate gate-sign-in" aria-labelledby="sign-in-heading">
       <div className="brand">
         <span className="brand-mark" aria-hidden="true" />
         <span>job match</span>
       </div>
-      <div className="gate-mascot">
-        <Mascot pose="wave" />
+      <div className="gate-card">
+        <div className="gate-mascot">
+          <Mascot pose="wave" />
+        </div>
+        <div className="gate-copy">
+          {notice && (
+            <p className="notice" role="status">
+              {notice}
+            </p>
+          )}
+          <h1 id="sign-in-heading">はじめよう。</h1>
+          <p className="sub">気になる求人を、自分の軸で。</p>
+          <button className="google-btn" type="button" onClick={onSignIn}>
+            <strong aria-hidden="true">G</strong>Googleでログイン
+          </button>
+          {failed && (
+            <p className="notice danger" role="alert">
+              認証を完了できませんでした。時間をおいてもう一度お試しください。
+            </p>
+          )}
+        </div>
       </div>
-      {notice && (
-        <p className="notice" role="status">
-          {notice}
-        </p>
-      )}
-      <h1 id="sign-in-heading">はじめよう。</h1>
-      <p className="sub">気になる求人を、自分の軸で。</p>
-      <button className="google-btn" type="button" onClick={onSignIn}>
-        <strong aria-hidden="true">G</strong>Googleでログイン
-      </button>
-      {failed && (
-        <p className="notice danger" role="alert">
-          認証を完了できませんでした。時間をおいてもう一度お試しください。
-        </p>
-      )}
     </section>
   );
 }

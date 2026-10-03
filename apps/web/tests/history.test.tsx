@@ -9,6 +9,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { defaultHistoryFilter } from "../src/features/history/history-model";
 import { HistoryScreen } from "../src/features/history/HistoryScreen";
 import type { AnalysisHistoryState } from "../src/features/history/useAnalysisHistory";
+import { HistoryRow } from "../src/features/history/HistoryList";
 import { historyItems } from "./fixtures/history";
 
 afterEach(cleanup);
@@ -74,4 +75,15 @@ test("an empty page and next page are explicit", () => {
   );
   fireEvent.click(screen.getByRole("button", { name: "さらに表示" }));
   expect(loadMore).toHaveBeenCalledOnce();
+});
+
+test("compact recent analysis keeps the judgement but hides technical identifiers", () => {
+  render(
+    <ul>
+      <HistoryRow item={historyItems[0]!} onOpen={vi.fn()} compact />
+    </ul>,
+  );
+  expect(screen.getByText(/近い/)).toBeInTheDocument();
+  expect(screen.getByText(/相違/)).toBeInTheDocument();
+  expect(screen.queryByText(/求人評価ID/)).not.toBeInTheDocument();
 });

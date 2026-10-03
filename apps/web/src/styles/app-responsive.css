@@ -1,0 +1,54 @@
+@media (min-width: 760px) {
+  .shell,
+  .topbar-inner {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+
+  .topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .brand-row {
+    flex: 1;
+  }
+
+  .topbar-inner .avatar {
+    order: 3;
+  }
+
+  .nav {
+    display: flex;
+    margin-top: 0;
+  }
+
+  .nav button {
+    padding: 6px 18px;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.65fr);
+    padding: 38px 6px 26px;
+  }
+
+  .hero-visual {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 759px) {
+  .hero {
+    margin-top: 16px;
+    padding: 28px 2px 18px;
+  }
+
+  .hero-visual {
+    min-height: 190px;
+  }
+
+  .slim {
+    padding: 22px;
+  }
+}

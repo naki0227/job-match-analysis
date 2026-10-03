@@ -18,12 +18,16 @@ export function HistoryScreen({
   onOpen,
 }: Props) {
   return (
-    <section className="page-head narrow" aria-labelledby="history-heading">
-      <div className="eyebrow">ANALYSIS HISTORY</div>
-      <h1 id="history-heading">分析済み企業</h1>
-      <p className="sub">
-        分析した求人が自動で並びます。絞り込んで見返せます。
-      </p>
+    <section
+      className="page-head narrow history-screen"
+      aria-labelledby="history-heading"
+    >
+      <div className="history-intro">
+        <h1 id="history-heading">分析済み企業</h1>
+        <p className="sub">
+          分析した求人が自動で並びます。気になる条件で絞り込んで、根拠を見返せます。
+        </p>
+      </div>
       <HistoryFilters filter={filter} onChange={onFilterChange} />
       {history.status === "loading" && (
         <p role="status">分析履歴を読み込み中です。</p>

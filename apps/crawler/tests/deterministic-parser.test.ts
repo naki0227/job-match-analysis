@@ -128,6 +128,26 @@ describe("deterministic job parser", () => {
     );
   });
 
+  it("does not include technologies from related-job cards", () => {
+    const document = extractSourceDocument(
+      `<script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "Backend Developer (Go)",
+        hiringOrganization: { name: "Example Ltd" },
+      })}</script><main data-job>
+        <p>Develop Go services on AWS using Docker. ${"This posting describes the current backend role in detail. ".repeat(3)}</p>
+        <h2>Example Ltd の求人</h2>
+        <p>Backend Developer (Kotlin/Java) with Spring Boot.</p>
+      </main>`,
+      url,
+      now,
+    );
+    expect(parseDeterministicJobFacts(document).techStack).toMatchObject({
+      status: "known",
+      value: ["Go", "Docker", "AWS"],
+    });
+  });
+
   it("unions structured main location with additional visible job locations", () => {
     const document = extractSourceDocument(
       `<script type="application/ld+json">${JSON.stringify({

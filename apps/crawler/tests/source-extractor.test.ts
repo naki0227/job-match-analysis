@@ -39,7 +39,7 @@ describe("source document extraction", () => {
       sourceUrlId: "source-id",
       contentHash: document.contentHash,
       fetchedAt: document.fetchedAt,
-      extractorVersion: "html-v3",
+      extractorVersion: "html-v4",
       extractedText: document.extractedText,
     });
   });
@@ -58,6 +58,33 @@ describe("source document extraction", () => {
     expect(texts).toContain("業務内容です。");
     expect(texts).toContain("応募条件です。");
     expect(texts.some((text) => text.includes("週2出社必須"))).toBe(true);
+  });
+
+  it("excludes related-job cards appended inside the current job main", () => {
+    const document = extractSourceDocument(
+      `<script type="application/ld+json">${JSON.stringify({
+        "@type": "JobPosting",
+        title: "Backend Developer (Go)",
+        hiringOrganization: { name: "Example Ltd" },
+      })}</script><main data-job>
+        <h1>Backend Developer (Go)</h1>
+        <p>${jobText}</p>
+        <p>Stack: Go, AWS, Docker.</p>
+        <h2>Example Ltd の求人</h2>
+        <article><h3>Backend Developer (Kotlin/Java)</h3><p>Kotlin Java Spring Boot</p></article>
+      </main>`,
+      "https://jobs.example/go",
+      new Date("2026-10-03T00:00:00Z"),
+    );
+    expect(document.extractedText).toContain("Backend Developer (Go)");
+    expect(document.extractedText).toContain("Go, AWS, Docker");
+    expect(document.extractedText).not.toContain(
+      "Backend Developer (Kotlin/Java)",
+    );
+    expect(document.extractedText).not.toContain("Spring Boot");
+    expect(
+      document.fragments.some((item) => item.text.includes("Kotlin")),
+    ).toBe(false);
   });
 
   it("keeps content hash stable across fetch times and whitespace", () => {

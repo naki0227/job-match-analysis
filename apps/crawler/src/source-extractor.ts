@@ -5,7 +5,7 @@ import {
   type StructuredJobPosting,
 } from "./json-ld-job-posting.js";
 
-export const EXTRACTOR_VERSION = "html-v3";
+export const EXTRACTOR_VERSION = "html-v4";
 export const MIN_JOB_CHARACTERS = 100;
 
 export type SourceSection = {
@@ -283,12 +283,74 @@ function collectFragments(
   return fragments;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, (match) => `\\${match}`);
+}
+
+function relatedListingMarker(
+  text: string,
+  employerName: string | undefined,
+): number | undefined {
+  const generic =
+    /(?:^|\s)(?:関連求人|その他の求人|おすすめ求人|同じ会社の求人|related\s+(?:jobs|positions|openings)|other\s+(?:jobs|positions|openings)|similar\s+(?:jobs|positions|openings))(?:\s|$)/iu.exec(
+      text,
+    );
+  const employer = employerName
+    ? new RegExp(`${escapeRegExp(employerName)}\\s*の求人`, "u").exec(text)
+    : null;
+  const indexes = [generic?.index, employer?.index].filter(
+    (index): index is number => index !== undefined,
+  );
+  return indexes.length ? Math.min(...indexes) : undefined;
+}
+
+/**
+ * ATS pages often append cards for other openings inside the same <main>.
+ * They are navigation, not evidence about the current posting. When the
+ * employer-specific or generic related-jobs heading appears after a complete
+ * posting, trim that tail from both the whole job text and its fragments.
+ */
+function trimRelatedListings(
+  whole: SourceSection | undefined,
+  fragments: readonly SourceFragment[],
+  employerName: string | undefined,
+): { whole: SourceSection | undefined; fragments: SourceFragment[] } {
+  if (!whole || fragments.length === 0)
+    return { whole, fragments: [...fragments] };
+
+  let cursor = 0;
+  const kept: SourceFragment[] = [];
+  for (const fragment of fragments) {
+    const marker = relatedListingMarker(fragment.text, employerName);
+    const index = whole.text.indexOf(fragment.text, cursor);
+    const absolute =
+      marker !== undefined && index >= 0 ? index + marker : undefined;
+
+    if (
+      marker !== undefined &&
+      absolute !== undefined &&
+      absolute >= MIN_JOB_CHARACTERS
+    ) {
+      const prefix = fragment.text.slice(0, marker).trim();
+      if (prefix) kept.push({ ...fragment, text: prefix });
+      return {
+        whole: { ...whole, text: whole.text.slice(0, absolute).trim() },
+        fragments: kept,
+      };
+    }
+
+    kept.push(fragment);
+    if (index >= 0) cursor = index + fragment.text.length;
+  }
+  return { whole, fragments: kept };
+}
 export function extractSourceDocument(
   html: string,
   url: string,
   fetchedAt: Date,
 ): ExtractedSourceDocument {
   const root = parse(html, { sourceCodeLocationInfo: true });
+  const structuredJob = readJobPosting(jsonLdScripts(root));
   const jobNode =
     collect(root, (node) => attribute(node, "data-job") !== undefined) ??
     collect(
@@ -302,19 +364,25 @@ export function extractSourceDocument(
       root,
       (node) => attribute(node, "itemtype")?.endsWith("/Organization") ?? false,
     );
-  const sections = [
-    section("job", jobNode),
-    section("company", companyNode),
-  ].filter((item): item is SourceSection => item !== undefined);
+  const rawJobSection = section("job", jobNode);
+  const rawJobFragments = collectFragments("job", jobNode);
+  const trimmedJob = trimRelatedListings(
+    rawJobSection,
+    rawJobFragments,
+    structuredJob?.employerName,
+  );
+  const companySection = section("company", companyNode);
+  const sections = [trimmedJob.whole, companySection].filter(
+    (item): item is SourceSection => item !== undefined,
+  );
   const fragments = [
-    ...collectFragments("job", jobNode),
+    ...trimmedJob.fragments,
     ...collectFragments("company", companyNode),
   ];
   const extractedText = sections
     .map((item) => `[${item.scope}]\n${item.text}`)
     .join("\n\n");
-  const structuredJob = readJobPosting(jsonLdScripts(root));
-  const jobText = sections.find((item) => item.scope === "job")?.text ?? "";
+  const jobText = trimmedJob.whole?.text ?? "";
   return {
     url,
     fetchedAt: fetchedAt.toISOString(),

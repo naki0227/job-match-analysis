@@ -34,9 +34,16 @@ export type DiscoveryPolicy = {
   retentionSeconds: number;
 };
 
-/** Search terms only; never user or profile data (ADR-047). */
+/**
+ * Bump when discovery semantics change so stale negative/partial results from
+ * an older crawler are not reused for the full freshness window.
+ */
+const DISCOVERY_CACHE_VERSION = "discovery-v2";
+
+/** Search terms plus a static strategy version; never user or profile data. */
 export function discoveryQueryKey(query: JobSearchQuery): string {
   return [
+    DISCOVERY_CACHE_VERSION,
     normalizeCompanyName(query.company),
     roleTerms(query.roleQuery).join(" "),
     query.employmentType ?? "",

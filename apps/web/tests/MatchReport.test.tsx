@@ -214,8 +214,6 @@ test("a range axis shows the posting's range and is counted as 一部近い", ()
   const item = within(job).getByText("役割の幅").closest("li") as HTMLElement;
   expect(item).toHaveTextContent("一部近い");
   expect(item).toHaveTextContent("50〜100");
-  expect(item).toHaveTextContent(
-    /隣り合う2段階のどちらにも当てはまり/,
-  );
+  expect(item).toHaveTextContent(/隣り合う2段階のどちらにも当てはまり/);
   expect(item).toHaveTextContent(/中間値を推定したものではありません/);
 });

@@ -9,7 +9,7 @@
     "test:auth": "pnpm --filter api test:auth",
     "test:e2e": "pnpm --filter web test:e2e",
     "format": "prettier --write .",
-    "format:check": "prettier --write . && git diff --exit-code",
+    "format:check": "prettier --check .",
     "lint": "oxlint apps/web/src apps/web/tests apps/web/e2e apps/web/playwright.config.ts apps/api/src apps/api/scripts apps/api/tests apps/crawler/src apps/crawler/tests packages/domain/src packages/domain/tests packages/application/src packages/application/tests packages/contracts/src packages/contracts/tests",
     "lint:fix": "oxlint --fix apps/web/src apps/web/tests apps/web/e2e apps/web/playwright.config.ts apps/api/src apps/api/scripts apps/api/tests apps/crawler/src apps/crawler/tests packages/domain/src packages/domain/tests packages/application/src packages/application/tests packages/contracts/src packages/contracts/tests",
     "typecheck": "pnpm --filter @job-match/contracts typecheck && pnpm --filter @job-match/contracts build && pnpm --filter @job-match/domain typecheck && pnpm --filter @job-match/domain build && pnpm --filter @job-match/application typecheck && pnpm --filter crawler typecheck && pnpm --filter api typecheck && pnpm --filter web exec tsc -b",

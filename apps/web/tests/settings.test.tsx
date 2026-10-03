@@ -80,7 +80,7 @@ test("tabs follow the ARIA keyboard pattern", () => {
   const privacy = screen.getByRole("tab", { name: "プライバシー" });
   expect(privacy).toHaveAttribute("aria-selected", "true");
   expect(privacy).toHaveFocus();
-  expect(screen.getAllByRole("note")[0]).toHaveTextContent("Issue #40");
+  expect(screen.getAllByRole("note")[0]).toHaveTextContent("順次対応しています");
   fireEvent.keyDown(privacy, { key: "Home" });
   expect(screen.getByRole("tab", { name: "プロフィール" })).toHaveAttribute(
     "aria-selected",

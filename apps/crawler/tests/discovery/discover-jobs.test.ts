@@ -128,9 +128,9 @@ describe("web discovery", () => {
     expect(result.postings).toHaveLength(1);
     expect(result.postings[0]?.sourceKind).toBe("ats");
     expect(search.inputs.map((input) => input.query)).toEqual([
-      '"サンプル" 採用 Go バックエンド 新卒',
-      '"サンプル" 求人 Go バックエンド 新卒',
-      '"サンプル" 募集要項 Go バックエンド 新卒',
+      '"サンプル" 新卒採用 Go バックエンド',
+      '"サンプル" 新卒 募集要項 Go バックエンド',
+      '"サンプル" new graduate careers Go バックエンド',
     ]);
   });
 
@@ -183,6 +183,65 @@ describe("web discovery", () => {
         sourceKind: "official",
       }),
     ]);
+  });
+
+  it("accepts an open new-grad recruitment landing page, even with an older closed notice", async () => {
+    const url = "https://sample.example/ja/recruit/newgrads/";
+    const html = `
+      <html>
+        <head>
+          <title>新卒採用 | 株式会社サンプル</title>
+          <meta property="og:site_name" content="株式会社サンプル">
+        </head>
+        <body>
+          <main>
+            <h1>新卒採用</h1>
+            <p>2028年度新卒採用のプレエントリーを受付中です。</p>
+            <p>2027年度新卒採用のエントリー受付は終了しました。</p>
+            <h2>募集職種・募集要項</h2>
+            <p>勤務地: 東京</p>
+          </main>
+        </body>
+      </html>`;
+    const result = await discoverJobs({
+      query: { company: "サンプル", employmentType: "new_grad" },
+      search: provider([lead(url)]),
+      fetchPage: pages({ [url]: html }),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.postings).toEqual([
+      expect.objectContaining({
+        url,
+        title: "新卒採用",
+        companyName: "サンプル",
+        sourceKind: "official",
+      }),
+    ]);
+  });
+
+  it("rejects a third-party career article that only discusses the company", async () => {
+    const url = "https://media.example/career/get-into-sample/";
+    const html = `
+      <html>
+        <head><title>サンプルに転職するには？選考対策</title></head>
+        <body>
+          <main>
+            <h1>サンプルに転職するには？</h1>
+            <p>仕事内容、応募資格、勤務地、給与、雇用形態を解説します。</p>
+            <p>中途採用の応募方法や面接対策も紹介します。</p>
+          </main>
+        </body>
+      </html>`;
+    const result = await discoverJobs({
+      query: { company: "サンプル", employmentType: "new_grad" },
+      search: provider([lead(url)]),
+      fetchPage: pages({ [url]: html }),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.postings).toEqual([]);
+    expect(result.stats.rejected).toEqual({ not_job_posting: 1 });
   });
 
   it("expands a deeper generic careers listing when it contains job links", async () => {

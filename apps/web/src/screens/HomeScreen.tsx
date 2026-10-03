@@ -5,6 +5,7 @@ import type { AnalysisHistoryState } from "../features/history/useAnalysisHistor
 import { JobFinder } from "../features/job-resolver/JobFinder";
 import "../features/analysis/analysis.css";
 import "../features/history/history.css";
+import "./home.css";
 
 type Props = {
   /** Saved profile version; null when none is saved, undefined while unknown. */
@@ -45,11 +46,16 @@ function RecentAnalyses({
             key={item.matchResultId}
             item={item}
             onOpen={onOpenMatch}
+            compact
           />
         ))}
       </ul>
-      <button className="text-btn" type="button" onClick={onShowHistory}>
-        すべて見る
+      <button
+        className="text-btn home-all-link"
+        type="button"
+        onClick={onShowHistory}
+      >
+        分析履歴をすべて見る <span aria-hidden="true">↗</span>
       </button>
     </>
   );
@@ -65,9 +71,9 @@ export function HomeScreen({
   onOpenMatch,
 }: Props) {
   return (
-    <section aria-labelledby="home-heading">
+    <section className="home-screen" aria-labelledby="home-heading">
       <div className="hero">
-        <div>
+        <div className="hero-copy">
           <div className="eyebrow">CAREER MATCH</div>
           <h1 id="home-heading">
             気になる求人を、
@@ -82,25 +88,37 @@ export function HomeScreen({
           <Mascot pose="laptop" />
         </div>
       </div>
-      <p className="muted">
-        まず企業名から公開求人を探します。職種を入れると候補を絞り込めます。
-      </p>
-      <JobFinder getAccessToken={getAccessToken} onAnalyze={onAnalyze} />
-      <details className="direct-url">
-        <summary>求人URLを直接入力</summary>
-        <AnalyzeForm busy={false} invalid={false} onSubmit={onAnalyze} />
-      </details>
-      <section className="section" aria-labelledby="recent-heading">
-        <h2 id="recent-heading">最近の分析</h2>
+      <section className="home-discovery" aria-labelledby="discover-heading">
+        <div className="home-section-heading">
+          <div>
+            <h2 id="discover-heading">気になる会社から探す</h2>
+          </div>
+          <p>
+            企業名から公開求人を探します。職種を入れると候補を絞り込めます。
+          </p>
+        </div>
+        <JobFinder getAccessToken={getAccessToken} onAnalyze={onAnalyze} />
+        <details className="direct-url">
+          <summary>求人URLを直接入力</summary>
+          <AnalyzeForm busy={false} invalid={false} onSubmit={onAnalyze} />
+        </details>
+      </section>
+      <section className="section home-recent" aria-labelledby="recent-heading">
+        <div className="home-section-heading">
+          <div>
+            <h2 id="recent-heading">最近の分析</h2>
+          </div>
+          <p>気になった求人を、あとから見返せます。</p>
+        </div>
         <RecentAnalyses
           history={history}
           onShowHistory={onShowHistory}
           onOpenMatch={onOpenMatch}
         />
       </section>
-      <div className="slim">
+      <div className="slim home-profile">
         <div>
-          <strong>希望条件（Career Profile）</strong>
+          <strong>希望条件を、今の自分に合わせる。</strong>
           <p className="meta">
             {profileVersion === null
               ? "未入力です。比較の前に入力してください。"
@@ -110,7 +128,8 @@ export function HomeScreen({
           </p>
         </div>
         <button className="text-btn" type="button" onClick={onEditProfile}>
-          {profileVersion === null ? "入力する" : "見直す"}
+          {profileVersion === null ? "入力する" : "見直す"}{" "}
+          <span aria-hidden="true">↗</span>
         </button>
       </div>
     </section>

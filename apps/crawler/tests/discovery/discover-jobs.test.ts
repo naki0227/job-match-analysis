@@ -187,14 +187,12 @@ describe("web discovery", () => {
 
   it("expands a deeper generic careers listing when it contains job links", async () => {
     const root = "https://sample.example/ja/recruit/career/job-categories/";
-    const job =
-      "https://sample.example/ja/recruit/career/job-openings/backend";
+    const job = "https://sample.example/ja/recruit/career/job-openings/backend";
     const result = await discoverJobs({
       query: { company: "サンプル" },
       search: provider([lead(root)]),
       fetchPage: pages({
-        [root]:
-          `<html><body><main><h1>求人一覧</h1><a href="/ja/recruit/career/job-openings/backend">バックエンドエンジニア</a></main></body></html>`,
+        [root]: `<html><body><main><h1>求人一覧</h1><a href="/ja/recruit/career/job-openings/backend">バックエンドエンジニア</a></main></body></html>`,
         [job]: jobPage({ title: "Backend Engineer", org: "サンプル" }),
       }),
       limits: { ...limits, maxQueries: 1 },

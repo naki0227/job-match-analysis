@@ -38,7 +38,7 @@ export type DiscoveryPolicy = {
  * Bump when discovery semantics change so stale negative/partial results from
  * an older crawler are not reused for the full freshness window.
  */
-const DISCOVERY_CACHE_VERSION = "discovery-v2";
+const DISCOVERY_CACHE_VERSION = "discovery-v3";
 
 /** Search terms plus a static strategy version; never user or profile data. */
 export function discoveryQueryKey(query: JobSearchQuery): string {

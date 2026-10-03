@@ -195,6 +195,8 @@ psql_cmd < supabase/tests/job_facts_employment_type.sql
 # commit section facts; it depends only on the migration above.
 psql_cmd < supabase/migrations/20261002053703_job_sections_facts.sql
 psql_cmd < supabase/tests/20261002053703_job_sections_facts.sql
+psql_cmd < supabase/migrations/20261002104119_axis_range_observation.sql
+psql_cmd < supabase/tests/20261002104119_axis_range_observation.sql
 # The worker writes every current fact kind, so it runs on the latest schema.
 # Earlier tests leave queued jobs; retire them so the worker claims its own.
 psql_cmd -c "update public.analysis_jobs set status = 'failed', lease_until = null, worker_token = null where status = 'queued';"
@@ -263,6 +265,8 @@ psql_cmd < supabase/tests/legal_documents_v1_0_rollback.sql
 psql_cmd < supabase/rollback/20261001004539_legal_acknowledgement_rpcs.sql
 psql_cmd < supabase/tests/legal_acknowledgement_rpcs_rollback.sql
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-job-resolver-db.ts
+psql_cmd < supabase/rollback/20261002104119_axis_range_observation.sql
+psql_cmd < supabase/tests/20261002104119_axis_range_observation_rollback.sql
 psql_cmd < supabase/rollback/20261002053703_job_sections_facts.sql
 psql_cmd < supabase/tests/20261002053703_job_sections_facts_rollback.sql
 psql_cmd < supabase/rollback/20261001143100_privacy_policy_v1_1_current_order.sql

@@ -188,3 +188,32 @@ test("a report without posting sections says they could not be read", () => {
     screen.getByRole("region", { name: "仕事内容・役割" }),
   ).toHaveTextContent("求人ページから確認できず");
 });
+
+test("a range axis shows the posting's range and is counted as 一部近い", () => {
+  if (sampleReport.job.status !== "comparable") throw new Error("job");
+  const axes = sampleReport.job.axes.map((axis) =>
+    axis.axisKey === "role_breadth"
+      ? {
+          ...axis,
+          status: "partial" as const,
+          importance: 100,
+          observed: null,
+          observedRange: { minimum: 50 as const, maximum: 100 as const },
+        }
+      : axis,
+  );
+  render(
+    <MatchReport
+      report={{ ...sampleReport, job: { ...sampleReport.job, axes } }}
+    />,
+  );
+  expect(screen.getByLabelText("求人の軸別の比較結果")).toHaveTextContent(
+    "1一部近い",
+  );
+  const job = screen.getByRole("region", { name: "働き方・仕事観の比較" });
+  const item = within(job).getByText("役割の幅").closest("li") as HTMLElement;
+  expect(item).toHaveTextContent("一部近い");
+  expect(item).toHaveTextContent("50〜100");
+  expect(item).toHaveTextContent(/隣り合う2段階のどちらにも当てはまり/);
+  expect(item).toHaveTextContent(/中間値を推定したものではありません/);
+});

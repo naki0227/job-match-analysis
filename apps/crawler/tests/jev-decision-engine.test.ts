@@ -178,12 +178,55 @@ describe("Jev whole-context DecisionEngine", () => {
         evidenceIds: ["a", "b"],
       },
       {
+        // 0.6 / 0.4 between adjacent anchors, grounded: a range, not a guess.
         axisKey: "customer_contact",
-        status: "unknown",
-        anchorValue: null,
-        evidenceIds: [],
+        status: "range",
+        anchorValue: 50,
+        anchorMax: 100,
+        evidenceIds: ["c"],
       },
     ]);
+  });
+
+  it("keeps a split across non-adjacent anchors or a weak single anchor unknown", async () => {
+    const twoAxes = { ...input };
+    const unknown = (axisKey: string) => ({
+      axisKey,
+      status: "unknown",
+      anchorValue: null,
+      evidenceIds: [],
+    });
+    for (const judge of [
+      answer("100", { "100": 0.55, "0": 0.4 }),
+      // Concentrated on 50 but unconfident: not widened into 0〜50.
+      answer("50", { "50": 0.88, "0": 0.06, "100": 0.06 }, 0.6),
+      answer("50", { "50": 0.45, "100": 0.3, none: 0.25 }),
+    ]) {
+      const result = await engine(async () =>
+        respond({
+          judge_work_location: judge,
+          locate_work_location: answer("f1", { f1: 0.9, none: 0.1 }),
+          judge_customer_contact: answer("none", { none: 0.9 }),
+          locate_customer_contact: answer("none", { none: 0.9 }),
+        }),
+      ).evaluate(twoAxes);
+      expect(result.decisions).toEqual([
+        unknown("work_location"),
+        unknown("customer_contact"),
+      ]);
+    }
+  });
+
+  it("does not report a range without grounded evidence", async () => {
+    const result = await engine(async () =>
+      respond({
+        judge_work_location: answer("50", { "50": 0.5, "100": 0.45 }),
+        locate_work_location: answer("none", { f1: 0.3, none: 0.7 }),
+        judge_customer_contact: answer("none", { none: 0.9 }),
+        locate_customer_contact: answer("none", { none: 0.9 }),
+      }),
+    ).evaluate(input);
+    expect(result.decisions[0]).toMatchObject({ status: "unknown" });
   });
 
   it("locates facts with fragment choices only, under the grounding threshold", async () => {

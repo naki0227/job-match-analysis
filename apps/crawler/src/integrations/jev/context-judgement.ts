@@ -20,6 +20,19 @@ export const MIN_CONFIDENCE = 0.8;
 export const MIN_GROUNDING = 0.8;
 export const MIN_EVIDENCE_PROBABILITY = 0.1;
 
+/**
+ * Two adjacent anchors the judgement splits between. When neither alone is
+ * confident but together they hold MIN_CONFIDENCE of the probability, and
+ * each holds at least MIN_RANGE_SHARE, the posting states a range rather
+ * than a single anchor (ADR-049). A judgement concentrated on one anchor
+ * with low confidence stays unknown instead of widening into a range.
+ */
+export const MIN_RANGE_SHARE = 0.15;
+const ADJACENT_PAIRS = [
+  ["0", "50"],
+  ["50", "100"],
+] as const;
+
 const ANCHORS = ["0", "50", "100"] as const;
 
 const judgeKey = (axisKey: string) => `judge_${axisKey}`;
@@ -114,11 +127,8 @@ export function decisionsFromJudgement(
     const judge = choiceAnswer(response, judgeKey(rubric.axisKey));
     const locate = choiceAnswer(response, locateKey(rubric.axisKey));
     if (!judge || !locate) return unknown;
-    const certainty = Math.min(
-      judge.confidence,
-      judge.probabilities[judge.choice] ?? 0,
-    );
-    if (judge.choice === "none" || certainty < MIN_CONFIDENCE) return unknown;
+    const probability = (choice: string) => judge.probabilities[choice] ?? 0;
+    const certainty = Math.min(judge.confidence, probability(judge.choice));
     const grounding = 1 - (locate.probabilities.none ?? 0);
     const evidenceIds = fragments
       .map((fragment, index) => ({
@@ -131,6 +141,22 @@ export function decisionsFromJudgement(
       .map((item) => item.id);
     // A judgement no fragment supports is treated as a guess.
     if (grounding < MIN_GROUNDING || evidenceIds.length === 0) return unknown;
+    if (judge.choice === "none" || certainty < MIN_CONFIDENCE) {
+      const pair = ADJACENT_PAIRS.find(
+        ([low, high]) =>
+          probability(low) >= MIN_RANGE_SHARE &&
+          probability(high) >= MIN_RANGE_SHARE &&
+          probability(low) + probability(high) >= MIN_CONFIDENCE,
+      );
+      if (!pair) return unknown;
+      return {
+        axisKey: rubric.axisKey,
+        status: "range",
+        anchorValue: Number(pair[0]) as 0 | 50,
+        anchorMax: Number(pair[1]) as 50 | 100,
+        evidenceIds,
+      };
+    }
     if (judge.choice === "conflicting") {
       return { ...unknown, status: "conflicting", evidenceIds };
     }

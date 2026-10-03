@@ -68,6 +68,62 @@ describe("axis comparison", () => {
     });
   });
 
+  it("compares a range by both ends: close, partial or different", () => {
+    const range = evidence({ status: "range", minimum: 50, maximum: 100 });
+    const at = (preference: number) =>
+      axisStatus(compareTarget(profile(preference), job([range]), "job"));
+    // Both documented anchors are within 25.
+    expect(at(75)).toMatchObject({
+      status: "close",
+      difference: 25,
+      differenceMax: 25,
+    });
+    // One documented anchor is close and the other is far: neither confirmed nor ruled out.
+    expect(at(100)).toMatchObject({
+      status: "partial",
+      difference: 0,
+      differenceMax: 50,
+    });
+    expect(at(30)).toMatchObject({
+      status: "partial",
+      difference: 20,
+      differenceMax: 70,
+    });
+    // Even the nearest end is more than 25 away.
+    expect(at(24)).toMatchObject({
+      status: "different",
+      difference: 26,
+      differenceMax: 76,
+    });
+    expect(at(25)).toMatchObject({ status: "partial", difference: 25 });
+  });
+
+  it("accepts only a range of two adjacent anchors", () => {
+    for (const observation of [
+      { status: "range", minimum: 0, maximum: 100 },
+      { status: "range", minimum: 50, maximum: 50 },
+      { status: "range", minimum: 100, maximum: 50 },
+      { status: "range", minimum: 25, maximum: 75 },
+    ]) {
+      expect(() =>
+        compareTarget(
+          profile(),
+          job([evidence(observation as AxisEvidence["observation"])]),
+          "job",
+        ),
+      ).toThrow(RangeError);
+    }
+    expect(
+      axisStatus(
+        compareTarget(
+          profile(0),
+          job([evidence({ status: "range", minimum: 0, maximum: 50 })]),
+          "job",
+        ),
+      ),
+    ).toMatchObject({ status: "partial", difference: 0, differenceMax: 50 });
+  });
+
   it("excludes importance zero while retaining preference", () => {
     const result = compareTarget(
       profile(75, 0),

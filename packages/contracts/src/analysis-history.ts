@@ -34,6 +34,7 @@ export const analysisHistoryItemSchema = z.object({
   summary: z.object({
     close: z.number().int().nonnegative(),
     different: z.number().int().nonnegative(),
+    partial: z.number().int().nonnegative(),
     unknown: z.number().int().nonnegative(),
   }),
   staleConditions: z.boolean(),

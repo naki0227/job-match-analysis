@@ -22,6 +22,7 @@ const rowSchema = z.object({
   company_evaluated_at: z.iso.datetime({ offset: true }).nullable(),
   close_count: z.number().int().nonnegative(),
   different_count: z.number().int().nonnegative(),
+  partial_count: z.number().int().nonnegative(),
   unknown_count: z.number().int().nonnegative(),
   stale_conditions: z.boolean(),
   sort_count: z.number().int(),
@@ -66,6 +67,7 @@ function toItem(row: Row): AnalysisHistoryItem {
     summary: {
       close: row.close_count,
       different: row.different_count,
+      partial: row.partial_count,
       unknown: row.unknown_count,
     },
     staleConditions: row.stale_conditions,
@@ -130,7 +132,7 @@ export function createSupabaseHistoryPageRepository() {
   });
   return createHistoryPageRepository(async (args) => {
     const { data, error } = await client.rpc(
-      "list_analysis_history_page_v2",
+      "list_analysis_history_page_v3",
       args,
     );
     if (error) throw new HistoryPageReadError();

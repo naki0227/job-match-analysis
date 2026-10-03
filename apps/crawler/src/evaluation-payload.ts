@@ -55,7 +55,13 @@ export function buildEvaluationPayload(args: {
       (decision.status === "known" &&
         (decision.evidenceIds.length === 0 ||
           ![0, 50, 100].includes(decision.anchorValue))) ||
-      (decision.status !== "known" && decision.anchorValue !== null)
+      (decision.status === "range" &&
+        (decision.evidenceIds.length === 0 ||
+          ![0, 50].includes(decision.anchorValue) ||
+          decision.anchorMax !== decision.anchorValue + 50)) ||
+      (decision.status !== "known" &&
+        decision.status !== "range" &&
+        decision.anchorValue !== null)
     ) {
       throw new EvaluationPayloadError();
     }
@@ -64,6 +70,7 @@ export function buildEvaluationPayload(args: {
       axisVersion: input.axisCatalogVersion,
       observationStatus: decision.status,
       anchorValue: decision.anchorValue,
+      anchorMax: decision.status === "range" ? decision.anchorMax : null,
       evaluationMethod: args.methods?.get(rubric.axisKey) ?? "jev",
     });
     // One axis may cite several fragments; each is stored once.

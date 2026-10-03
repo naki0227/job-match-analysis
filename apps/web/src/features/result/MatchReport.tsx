@@ -42,6 +42,11 @@ function TargetSection({
           <span>
             <b>{summary.different}</b>相違
           </span>
+          {summary.partial > 0 && (
+            <span>
+              <b>{summary.partial}</b>一部近い
+            </span>
+          )}
           <span>
             <b>{summary.unknown}</b>不明
           </span>

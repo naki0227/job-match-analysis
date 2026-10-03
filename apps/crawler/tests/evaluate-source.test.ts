@@ -239,6 +239,7 @@ describe("public source evaluation pipeline", () => {
       unresolvedAfterRules: 7,
       axesSentToJev: 7,
       known: 3,
+      range: 0,
       unknown: 5,
       conflicting: 0,
       evidencePerAxis: [1, 1, 1],

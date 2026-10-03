@@ -25,8 +25,9 @@ export function HistoryRow({
           <strong>{item.companyName}</strong>
           <span className="meta">{item.jobTitle}</span>
           <span className="statusline">
-            近い {item.summary.close}　相違 {item.summary.different}　不明{" "}
-            {item.summary.unknown}
+            近い {item.summary.close}　相違 {item.summary.different}
+            {item.summary.partial > 0 && <>　一部近い {item.summary.partial}</>}
+            　不明 {item.summary.unknown}
           </span>
           <span className="meta">
             {`${formatDateTime(item.analyzedAt)}・希望条件 第${item.profileVersion}版`}

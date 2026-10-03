@@ -95,6 +95,7 @@ export function shareCardTree(projection: SharedMatch): Node {
         h("div", { display: "flex", gap: 22, marginTop: 20 }, [
           stat(summary.close, "近い"),
           stat(summary.different, "相違"),
+          ...(summary.partial > 0 ? [stat(summary.partial, "一部近い")] : []),
           stat(summary.unknown, "不明"),
         ]),
         h(

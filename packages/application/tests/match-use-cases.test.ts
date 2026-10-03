@@ -78,6 +78,11 @@ const jobSource: MatchEvaluationSource = {
       axisVersion: 1,
       observation: { status: "known", value: 50 },
     },
+    {
+      axisKey: "role_breadth",
+      axisVersion: 1,
+      observation: { status: "range", minimum: 50, maximum: 100 },
+    },
   ]),
   jobConditions: {
     salary: {
@@ -137,10 +142,21 @@ describe("createMatch", () => {
       preference: 90,
       importance: 60,
       observed: 50,
+      observedRange: null,
       evidence: [
         { quote: "週3日オフィス勤務", sourceUrl: jobUrl, fetchedAt: at },
       ],
     });
+    // Preference 50 vs a 50〜100 posting: one end matches, the other is 50 away.
+    expect(byKey.get("role_breadth")).toMatchObject({
+      status: "partial",
+      observed: null,
+      observedRange: { minimum: 50, maximum: 100 },
+    });
+    const committedRange = vi.mocked(deps.commitMatch).mock.calls[0]![0];
+    expect(
+      committedRange.axes.find((axis) => axis.axisKey === "role_breadth"),
+    ).toMatchObject({ status: "partial", difference: 0, differenceMax: 50 });
     expect(byKey.get("autonomy")).toMatchObject({
       status: "close",
       evidence: [],

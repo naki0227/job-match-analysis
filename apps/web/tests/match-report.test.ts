@@ -16,6 +16,7 @@ test("summary counts unknown, conflicting and stale as not yet known", () => {
   expect(summarizeTarget({ ...target, axes: jobAxes })).toEqual({
     close: 1,
     different: 1,
+    partial: 0,
     unknown: 2,
     excluded: 1,
   });
@@ -25,6 +26,7 @@ test("empty and incompatible targets are summarized safely", () => {
   expect(summarizeTarget({ ...target, axes: [] })).toEqual({
     close: 0,
     different: 0,
+    partial: 0,
     unknown: 0,
     excluded: 0,
   });

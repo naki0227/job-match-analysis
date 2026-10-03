@@ -158,6 +158,16 @@ test("Match保存は1 RPCで軸と必須条件のsnapshotを渡す", async () =>
         observation: { status: "unknown" },
         status: "unknown",
       },
+      {
+        axisKey: "role_breadth",
+        source: "job",
+        preference: 100,
+        importance: 50,
+        observation: { status: "range", minimum: 50, maximum: 100 },
+        status: "partial",
+        difference: 0,
+        differenceMax: 50,
+      },
     ],
     constraints: [
       { kind: "min_salary", status: "unknown", reason: "missing_information" },
@@ -172,8 +182,10 @@ test("Match保存は1 RPCで軸と必須条件のsnapshotを渡す", async () =>
       importance: 50,
       observationStatus: "known",
       observedAnchor: 50,
+      observedAnchorMax: null,
       comparisonStatus: "close",
       difference: 10,
+      differenceMax: null,
     },
     {
       axisKey: "autonomy",
@@ -181,8 +193,21 @@ test("Match保存は1 RPCで軸と必須条件のsnapshotを渡す", async () =>
       importance: 50,
       observationStatus: "unknown",
       observedAnchor: null,
+      observedAnchorMax: null,
       comparisonStatus: "unknown",
       difference: null,
+      differenceMax: null,
+    },
+    {
+      axisKey: "role_breadth",
+      preference: 100,
+      importance: 50,
+      observationStatus: "range",
+      observedAnchor: 50,
+      observedAnchorMax: 100,
+      comparisonStatus: "partial",
+      difference: 0,
+      differenceMax: 50,
     },
   ]);
   assert.deepEqual(captured.p_constraints, [
@@ -241,4 +266,87 @@ test("保存済みMatchを軸カタログ順で読み、他人・不在はnull�
     status: "not_required",
   });
   assert.equal(await repository.readMatch(randomUUID(), matchResultId), null);
+});
+
+test("範囲の観測を読み、隣接しない範囲や片側だけの値は保存エラーにする", async () => {
+  const withAxis = (axis: Record<string, unknown>) => ({
+    ...evaluationRow,
+    evaluation: {
+      ...snapshot(evaluationId),
+      axisValues: [{ axisKey: "role_breadth", axisVersion: 1, ...axis }],
+    },
+  });
+  const source = await createMatchRepository(async () =>
+    withAxis({ observationStatus: "range", anchorValue: 50, anchorMax: 100 }),
+  ).readEvaluation(evaluationId);
+  assert.deepEqual(source?.evaluation.axisValues[0]?.observation, {
+    status: "range",
+    minimum: 50,
+    maximum: 100,
+  });
+  for (const axis of [
+    { observationStatus: "range", anchorValue: 0, anchorMax: 100 },
+    { observationStatus: "range", anchorValue: 50, anchorMax: null },
+    { observationStatus: "known", anchorValue: 50, anchorMax: 100 },
+  ]) {
+    await assert.rejects(
+      createMatchRepository(async () => withAxis(axis)).readEvaluation(
+        evaluationId,
+      ),
+      MatchStoreError,
+    );
+  }
+});
+
+test("保存済みMatchの範囲と最大差を復元する", async () => {
+  const axes = careerAxisKeys.map((axisKey) =>
+    axisKey === "role_breadth"
+      ? {
+          axisKey,
+          preference: 100,
+          importance: 50,
+          observationStatus: "range",
+          observedAnchor: 50,
+          observedAnchorMax: 100,
+          comparisonStatus: "partial",
+          difference: 0,
+          differenceMax: 50,
+        }
+      : {
+          axisKey,
+          preference: 40,
+          importance: 50,
+          observationStatus: "unknown",
+          observedAnchor: null,
+          comparisonStatus: "unknown",
+          difference: null,
+        },
+  );
+  const stored = await createMatchRepository(async () => ({
+    matchResultId,
+    createdAt: at,
+    algorithmVersion: "match-engine-v3",
+    evaluationId,
+    profileVersion: 2,
+    axisCatalogVersion: 1,
+    axes,
+    constraints: [
+      { kind: "min_salary", status: "not_required", reason: null },
+      { kind: "location", status: "not_required", reason: null },
+      { kind: "full_remote", status: "not_required", reason: null },
+    ],
+  })).readMatch(userId, matchResultId);
+  assert.deepEqual(
+    stored?.axes.find((axis) => axis.axisKey === "role_breadth"),
+    {
+      axisKey: "role_breadth",
+      source: "job",
+      preference: 100,
+      importance: 50,
+      observation: { status: "range", minimum: 50, maximum: 100 },
+      status: "partial",
+      difference: 0,
+      differenceMax: 50,
+    },
+  );
 });

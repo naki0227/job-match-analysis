@@ -51,6 +51,8 @@ export const constraintReasonLabels: Record<ConstraintReason, string> = {
 export type TargetSummary = {
   close: number;
   different: number;
+  /** Close to one end of the posting's range, far from the other. */
+  partial: number;
   unknown: number;
   excluded: number;
 };
@@ -58,10 +60,17 @@ export type TargetSummary = {
 /** unknown / conflicting / stale are all "not yet known", never a mismatch. */
 export function summarizeTarget(target: TargetResult): TargetSummary | null {
   if (target.status === "incompatible") return null;
-  const summary = { close: 0, different: 0, unknown: 0, excluded: 0 };
+  const summary = {
+    close: 0,
+    different: 0,
+    partial: 0,
+    unknown: 0,
+    excluded: 0,
+  };
   for (const axis of target.axes) {
     if (axis.status === "close") summary.close += 1;
     else if (axis.status === "different") summary.different += 1;
+    else if (axis.status === "partial") summary.partial += 1;
     else if (axis.status === "excluded") summary.excluded += 1;
     else summary.unknown += 1;
   }

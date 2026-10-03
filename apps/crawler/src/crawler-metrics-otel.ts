@@ -138,6 +138,7 @@ function createEvaluationInstruments(
     for (const count of event.evidencePerAxis) evidence.record(count, labels);
     duration.record(event.durationMs / 1_000, labels);
     axes.add(event.known, { ...labels, status: "known" });
+    axes.add(event.range, { ...labels, status: "range" });
     axes.add(event.unknown, { ...labels, status: "unknown" });
     axes.add(event.conflicting, { ...labels, status: "conflicting" });
   };

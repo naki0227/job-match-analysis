@@ -55,7 +55,8 @@ export function renderShareHtml(share: PublicShare, urls: ShareUrls): string {
   const { projection } = share;
   const summary = summarizeSharedMatch(projection);
   const title = `${projection.companyName}（${projection.jobTitle}）を自分の軸で比べた結果`;
-  const description = `近い${summary.close}・相違${summary.different}・不明${summary.unknown}。採否や能力の判定ではなく、公開情報との比較です。`;
+  const partial = summary.partial > 0 ? `・一部近い${summary.partial}` : "";
+  const description = `近い${summary.close}・相違${summary.different}${partial}・不明${summary.unknown}。採否や能力の判定ではなく、公開情報との比較です。`;
   const meta = [
     `<title>${escapeHtml(title)} | job match</title>`,
     `<meta name="description" content="${escapeHtml(description)}">`,
@@ -78,7 +79,7 @@ export function renderShareHtml(share: PublicShare, urls: ShareUrls): string {
   const body = `<div class="eyebrow">PUBLIC SHARE</div><h1>共有された比較結果</h1>
 <p class="sub">ある利用者の希望と、この求人の公開情報を軸ごとに比べた結果です。</p>
 <section class="card" aria-label="共有カード"><p class="company">${escapeHtml(projection.companyName)}</p><p class="sub">${escapeHtml(projection.jobTitle)}</p>
-<div class="stats"><div class="stat"><b>${summary.close}</b><span>近い</span></div><div class="stat"><b>${summary.different}</b><span>相違</span></div><div class="stat"><b>${summary.unknown}</b><span>不明</span></div></div></section>
+<div class="stats"><div class="stat"><b>${summary.close}</b><span>近い</span></div><div class="stat"><b>${summary.different}</b><span>相違</span></div>${summary.partial > 0 ? `<div class="stat"><b>${summary.partial}</b><span>一部近い</span></div>` : ""}<div class="stat"><b>${summary.unknown}</b><span>不明</span></div></div></section>
 <ul aria-label="軸ごとの判定">${axes}</ul>
 <p class="sub">求人の評価日: ${escapeHtml(formatter.format(new Date(projection.evaluatedAt)))}・共有日: ${escapeHtml(formatter.format(new Date(share.sharedAt)))}</p>
 <p class="note">採否・能力・人柄を判定するものではありません。求人の最新情報は掲載元で確認してください。</p>

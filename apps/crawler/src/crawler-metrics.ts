@@ -23,6 +23,8 @@ export type EvaluationEvent = {
   unresolvedAfterRules: number;
   axesSentToJev: number;
   known: number;
+  /** Axes whose posting supports a range of two adjacent anchors. */
+  range: number;
   unknown: number;
   conflicting: number;
   /** Evidence fragments stored for each axis that has any. */

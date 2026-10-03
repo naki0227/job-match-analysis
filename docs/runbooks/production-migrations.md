@@ -37,6 +37,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 | `20261001020540_job_discovery` | Web探索のjob・結果・利用者ごとの回数記録とRPC（ADR-047） | なし（表と関数の追加のみ。rollbackは探索記録を消すが、保存済みの求人は残る） |
 | `20261001135230_legal_documents_v1_0_effective_20261001` | v1.0法的文書の公開・適用日を2026-10-01へ前倒し | **確認記録0件の時だけ可**。確認済みなら停止して新しい版を追加する |
 | `20261002053703_job_sections_facts` | job factsに`duties`・`requirements`・`workStyle`を追加（ADR-048）。**crawlerのdeploy前に適用する**（古い関数は新しい種類を拒否し、解析が失敗する） | なし（CHECK制約と関数のkey一覧の拡張のみ。rollbackは該当factを削除） |
+| `20261002104119_axis_range_observation` | 軸の範囲観測と、範囲での比較（ADR-049）。**crawlerとAPIのdeploy前に適用する**（古い関数は`anchorMax`を保存しない） | なし（列とCHECKの追加、関数の差し替え。既存の行はそのまま有効。rollbackは範囲を不明に戻す） |
 
 rollbackは`supabase/rollback/`に同名のファイルがある。本番で戻すのは、アプリを1つ前のdigestへ戻した**後**に限る（新しいAPIは新しいRPCを前提にするため）。
 

@@ -62,7 +62,7 @@ const readPage: ReadHistoryPage = async (args) => {
   // RPCs run as service_role, like the API's secret key.
   return queryJson(`set role service_role; select coalesce(json_agg(row_to_json(r)
       order by r.sort_count desc, r.analyzed_at desc, r.match_result_id desc), '[]'::json)::text
-    from public.list_analysis_history_page_v2(${params.map(literal).join(", ")}) r`);
+    from public.list_analysis_history_page_v3(${params.map(literal).join(", ")}) r`);
 };
 const pending = createPendingAnalysisStore(async (args) => {
   pendingCalls += 1;

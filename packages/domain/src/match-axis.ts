@@ -5,10 +5,23 @@ import { getKnownValue, type Observation } from "./observation.js";
 export type Anchor = 0 | 50 | 100;
 export type EvaluationSource = "job" | "company";
 
+/**
+ * The posting supports two adjacent anchors but the evidence does not justify
+ * choosing one of them (ADR-049). The pair is ambiguity between documented
+ * anchors, not an estimate that the true value lies continuously between them.
+ */
+export type AnchorRange = Readonly<{
+  status: "range";
+  minimum: 0 | 50;
+  maximum: 50 | 100;
+}>;
+
+export type AxisObservation = Observation<Anchor> | AnchorRange;
+
 export type AxisEvidence = Readonly<{
   axisKey: AxisKey;
   axisVersion: number;
-  observation: Observation<number>;
+  observation: Observation<number> | AnchorRange;
 }>;
 
 export type TargetEvaluation = Readonly<{
@@ -16,18 +29,34 @@ export type TargetEvaluation = Readonly<{
   axisValues: readonly AxisEvidence[];
 }>;
 
+/**
+ * `partial`: the preference is close to one end of an observed range and
+ * far from the other, so the posting neither confirms nor rules it out.
+ */
 export type AxisComparisonStatus =
-  "close" | "different" | "excluded" | "unknown" | "conflicting" | "stale";
+  | "close"
+  | "different"
+  | "partial"
+  | "excluded"
+  | "unknown"
+  | "conflicting"
+  | "stale";
 
 export type AxisComparison = Readonly<{
   axisKey: AxisKey;
   source: EvaluationSource;
   preference: number;
   importance: number;
-  observation: Observation<Anchor>;
+  observation: AxisObservation;
   status: AxisComparisonStatus;
+  /** Smallest possible difference; the only difference for one anchor. */
   difference?: number;
+  /** Largest possible difference, for a range observation only. */
+  differenceMax?: number;
 }>;
+
+/** A difference at or below this is close. */
+const CLOSE_DIFFERENCE = 25;
 
 export type TargetComparison =
   | Readonly<{
@@ -52,11 +81,19 @@ function parseAnchor(value: unknown): Anchor {
   throw new RangeError("Observed axis value must be a documented anchor");
 }
 
-function parseObservation(value: unknown): Observation<Anchor> {
+function parseObservation(value: unknown): AxisObservation {
   if (!isRecord(value)) {
     throw new TypeError("Axis observation must be an object");
   }
   switch (value.status) {
+    case "range": {
+      const minimum = parseAnchor(value.minimum);
+      const maximum = parseAnchor(value.maximum);
+      if (minimum === 100 || maximum === 0 || maximum - minimum !== 50) {
+        throw new RangeError("An axis range spans two adjacent anchors");
+      }
+      return Object.freeze({ status: "range", minimum, maximum });
+    }
     case "known":
     case "stale":
       return Object.freeze({
@@ -76,11 +113,11 @@ function parseObservation(value: unknown): Observation<Anchor> {
 
 function indexObservations(
   evidence: readonly AxisEvidence[],
-): ReadonlyMap<AxisKey, Observation<Anchor>> {
+): ReadonlyMap<AxisKey, AxisObservation> {
   if (!Array.isArray(evidence)) {
     throw new TypeError("Axis evidence must be an array");
   }
-  const byKey = new Map<AxisKey, Observation<Anchor>>();
+  const byKey = new Map<AxisKey, AxisObservation>();
   for (const item of evidence) {
     if (!isRecord(item)) {
       throw new TypeError("Axis evidence must be an object");
@@ -136,6 +173,23 @@ export function compareTarget(
     if (answer.importance === 0) {
       return Object.freeze({ ...common, status: "excluded" });
     }
+    if (observation.status === "range") {
+      const toMinimum = Math.abs(answer.preference - observation.minimum);
+      const toMaximum = Math.abs(answer.preference - observation.maximum);
+      const difference = Math.min(toMinimum, toMaximum);
+      const differenceMax = Math.max(toMinimum, toMaximum);
+      return Object.freeze({
+        ...common,
+        status:
+          differenceMax <= CLOSE_DIFFERENCE
+            ? "close"
+            : difference > CLOSE_DIFFERENCE
+              ? "different"
+              : "partial",
+        difference,
+        differenceMax,
+      });
+    }
     const observedValue = getKnownValue(observation);
     if (observedValue === undefined) {
       const status = observation.status;
@@ -147,7 +201,7 @@ export function compareTarget(
     const difference = Math.abs(answer.preference - observedValue);
     return Object.freeze({
       ...common,
-      status: difference <= 25 ? "close" : "different",
+      status: difference <= CLOSE_DIFFERENCE ? "close" : "different",
       difference,
     });
   });

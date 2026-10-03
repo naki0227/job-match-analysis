@@ -66,6 +66,8 @@ export function toSharedMatch(report: MatchReport): SharedMatch {
 export type SharedMatchSummary = {
   close: number;
   different: number;
+  /** Close to one end of the posting's range and far from the other. */
+  partial: number;
   /** unknown, conflicting and stale together: not yet known, never a score. */
   unknown: number;
   closeAxes: SharedMatch["axes"][number]["axisKey"][];
@@ -80,6 +82,7 @@ export function summarizeSharedMatch(
   return {
     close: count(["close"]),
     different: count(["different"]),
+    partial: count(["partial"]),
     unknown: count(["unknown", "conflicting", "stale"]),
     closeAxes: projection.axes
       .filter((axis) => axis.status === "close")

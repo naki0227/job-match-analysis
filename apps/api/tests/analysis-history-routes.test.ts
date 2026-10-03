@@ -24,7 +24,7 @@ const item = {
   jobEvaluatedAt: analyzedAt,
   companyEvaluationId: null,
   companyEvaluatedAt: null,
-  summary: { close: 2, different: 1, unknown: 5 },
+  summary: { close: 2, different: 1, partial: 0, unknown: 5 },
   staleConditions: true,
 };
 

@@ -167,7 +167,7 @@ export const historyItems: HistoryItem[] = [
     companyEvaluatedAt: null,
     analyzedAt: "2026-09-28T01:00:00.000Z",
     profileVersion: 2,
-    summary: { close: 5, different: 1, unknown: 2 },
+    summary: { close: 5, different: 1, partial: 0, unknown: 2 },
     staleConditions: false,
   },
   {
@@ -184,7 +184,7 @@ export const historyItems: HistoryItem[] = [
     companyEvaluatedAt: null,
     analyzedAt: "2026-09-29T01:00:00.000Z",
     profileVersion: 2,
-    summary: { close: 2, different: 4, unknown: 2 },
+    summary: { close: 2, different: 4, partial: 0, unknown: 2 },
     staleConditions: true,
   },
   {
@@ -201,7 +201,7 @@ export const historyItems: HistoryItem[] = [
     companyEvaluatedAt: null,
     analyzedAt: "2026-09-20T01:00:00.000Z",
     profileVersion: 1,
-    summary: { close: 6, different: 0, unknown: 0 },
+    summary: { close: 6, different: 0, partial: 0, unknown: 0 },
     staleConditions: false,
   },
 ];

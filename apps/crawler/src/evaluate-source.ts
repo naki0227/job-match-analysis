@@ -130,6 +130,7 @@ export async function evaluateSource(args: {
     unresolvedAfterRules: unresolved.rubrics.length,
     axesSentToJev: jevCalled ? unresolved.rubrics.length : 0,
     known: count("known"),
+    range: count("range"),
     unknown: count("unknown"),
     conflicting: count("conflicting"),
     evidencePerAxis: ordered

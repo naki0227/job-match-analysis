@@ -78,7 +78,9 @@ describe("source document extraction", () => {
     );
     expect(document.extractedText).toContain("Backend Developer (Go)");
     expect(document.extractedText).toContain("Go, AWS, Docker");
-    expect(document.extractedText).not.toContain("Backend Developer (Kotlin/Java)");
+    expect(document.extractedText).not.toContain(
+      "Backend Developer (Kotlin/Java)",
+    );
     expect(document.extractedText).not.toContain("Spring Boot");
     expect(
       document.fragments.some((item) => item.text.includes("Kotlin")),

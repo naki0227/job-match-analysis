@@ -39,9 +39,8 @@ export function buildDiscoveryQueries(
   const role = clean(input.roleQuery ?? "");
   const newGrad = input.employmentType === "new_grad" ? " 新卒" : "";
   const suffix = `${role ? ` ${role}` : ""}${newGrad}`;
-  const japaneseCompany = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(
-    company,
-  );
+  const japaneseCompany =
+    /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(company);
   const queries = [
     `"${company}" 採用${suffix}`,
     `"${company}" 求人${suffix}`,

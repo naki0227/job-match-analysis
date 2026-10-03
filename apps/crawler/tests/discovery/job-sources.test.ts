@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readJobPostings } from "../../src/discovery/job-posting-ld.js";
 import {
   herpSource,
+  hostedAtsSource,
   hrmosSource,
   postingLinks,
   sourceFor,
@@ -24,6 +25,41 @@ describe("job source adapters", () => {
     expect(sourceFor(new URL("https://sample.example/careers")).name).toBe(
       "generic",
     );
+  });
+
+  it("recognises deeper careers listings and common hosted ATS pages", () => {
+    expect(
+      sourceFor(
+        new URL("https://sample.example/ja/recruit/career/job-categories/"),
+      ).isListing(
+        new URL("https://sample.example/ja/recruit/career/job-categories/"),
+      ),
+    ).toBe(true);
+    expect(
+      sourceFor(
+        new URL(
+          "https://sample.wd3.myworkdayjobs.com/en-US/careers/job/Tokyo/Engineer_R123",
+        ),
+      ),
+    ).toBe(hostedAtsSource);
+  });
+
+  it("follows generic same-origin jobs and hosted ATS handoffs", () => {
+    const html = `
+      <a href="/ja/recruit/career/job-openings/123">バックエンドエンジニア</a>
+      <a href="https://boards.greenhouse.io/sample/jobs/456">Apply</a>
+      <a href="/ja/company/about/">会社情報</a>
+      <a href="https://evil.example/jobs/999">Other</a>`;
+    expect(
+      postingLinks(
+        html,
+        "https://sample.example/ja/recruit/career/job-categories/",
+        10,
+      ),
+    ).toEqual([
+      "https://sample.example/ja/recruit/career/job-openings/123",
+      "https://boards.greenhouse.io/sample/jobs/456",
+    ]);
   });
 
   it("follows only same-company posting links on the same origin", () => {

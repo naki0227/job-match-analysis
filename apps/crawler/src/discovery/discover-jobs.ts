@@ -152,21 +152,21 @@ export async function discoverJobs(args: {
       }
       continue;
     }
-    const listing =
+    const canExpand =
       item.depth === 0 &&
       (verdict.reason === "not_job_posting" ||
-        verdict.reason === "multiple_postings") &&
-      source.isListing(new URL(finalUrl));
-    if (!listing) {
+        verdict.reason === "multiple_postings");
+    const links = canExpand
+      ? postingLinks(page.html, finalUrl, args.limits.maxLinksPerListing)
+      : [];
+    const listing =
+      canExpand && (source.isListing(new URL(finalUrl)) || links.length > 0);
+    if (!listing || links.length === 0) {
       reject(verdict.reason);
       continue;
     }
     stats.listingsExpanded += 1;
-    for (const link of postingLinks(
-      page.html,
-      finalUrl,
-      args.limits.maxLinksPerListing,
-    )) {
+    for (const link of links) {
       const url = normalized(link);
       if (url && !seen.has(url)) {
         seen.add(url);

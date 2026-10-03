@@ -83,7 +83,7 @@ export function ResolverResult({ result, onAnalyze }: Props) {
       )}
       {result.status === "not_found" && (
         <p role="status">
-          公開されている求人の中から見つけられませんでした。求人URLを直接入力してください。
+          この企業の求人を自動で取得できませんでした。求人が公開されていても、サイトによっては検索に対応できない場合があります。求人URLを直接入力すると分析できます。
         </p>
       )}
       {result.partial && (

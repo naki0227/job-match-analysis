@@ -72,7 +72,7 @@ test("searching needs a company and sends only what the user entered", async () 
   });
   expect(screen.getByRole("button", { name: "求人を探す" })).toBeEnabled();
   searchFor("  マネーフォワード ", " 法人営業 ", "new_grad");
-  await screen.findByText(/見つけられませんでした/);
+  await screen.findByText(/自動で取得できませんでした/);
   const [url, init] = fetcher.mock.calls[0]!;
   expect(url).toBe("/api/v1/job-resolver/search");
   expect(JSON.parse(String(init?.body))).toEqual({

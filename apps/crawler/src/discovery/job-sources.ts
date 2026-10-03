@@ -48,10 +48,8 @@ export const hostedAtsSource: JobSourceAdapter = {
   name: "hosted-ats",
   kind: "ats",
   canHandle: (url) => HOSTED_ATS.test(url.hostname),
-  isListing: (url) =>
-    !ATS_DETAIL.test(`${url.pathname}${url.search}`),
-  isPostingLink: (link) =>
-    ATS_DETAIL.test(`${link.pathname}${link.search}`),
+  isListing: (url) => !ATS_DETAIL.test(`${url.pathname}${url.search}`),
+  isPostingLink: (link) => ATS_DETAIL.test(`${link.pathname}${link.search}`),
 };
 
 const CAREER_PATH =

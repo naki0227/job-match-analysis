@@ -41,6 +41,34 @@ describe("JobPosting JSON-LD", () => {
     });
   });
 
+  it("accepts the hiring organization written as plain text", () => {
+    // Regression: Accenture publishes "hiringOrganization": "Accenture", and
+    // the whole JobPosting (and so the job identity) was discarded.
+    expect(
+      readJobPosting([
+        posting({
+          title: "＜障がい者採用＞軽作業 / 一般庶務",
+          hiringOrganization: "Accenture",
+          employmentType: "Part Time",
+          jobLocation: [
+            {
+              "@type": "Place",
+              address: {
+                addressLocality: "Tokyo",
+                addressRegion: "unavailable",
+                addressCountry: "日本",
+              },
+            },
+          ],
+        }),
+      ]),
+    ).toMatchObject({
+      title: "＜障がい者採用＞軽作業 / 一般庶務",
+      employerName: "Accenture",
+      employmentTypes: ["PART_TIME"],
+    });
+  });
+
   it("has no identity for pages listing several jobs or with broken JSON", () => {
     const other = JSON.stringify({
       "@type": "JobPosting",

@@ -106,7 +106,16 @@ export function createCrawlPolicy(args: {
         if (new URL(response.url).origin !== url.origin) {
           throw new CrawlPolicyError("robots redirected across origins");
         }
-        if (response.status === 404 || response.status === 410) return null;
+        // RFC 9309 2.3.1.3: an "unavailable" robots.txt (4xx) means no
+        // rules apply. 429 is a request to slow down, not an answer, and
+        // 5xx/network failures are "unreachable": both keep the page on hold
+        // (ADR-050). LINEヤフー answers 403 for robots.txt to every client.
+        if (
+          response.status >= 400 &&
+          response.status < 500 &&
+          response.status !== 429
+        )
+          return null;
         if (response.status !== 200) {
           throw new CrawlPolicyError("robots is unavailable");
         }

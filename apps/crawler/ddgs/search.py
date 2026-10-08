@@ -65,11 +65,14 @@ def main() -> int:
     except TimeoutException:
         respond({"error": "timeout"})
         return 0
-    except DDGSException as error:
-        if "No results found" in str(error):
-            respond({"results": []})
-        else:
-            respond({"error": "unavailable"})
+    except DDGSException:
+        # DDGS also raises "No results found" when DuckDuckGo answers with its
+        # bot challenge (HTTP 202 "anomaly"), which it does after the first
+        # query from a busy address. That is not an empty result: reporting
+        # it as one made a discovery "complete" with nothing and cached it.
+        # A company search that truly has no results is retried and then
+        # fails the same way, which is safe.
+        respond({"error": "unavailable"})
         return 0
     respond(
         {

@@ -53,6 +53,7 @@
 | [ADR-048](adr/048-full-page-job-understanding.md) | 求人ページ全体を落とさず読む。描画用subresourceに別の上限、ラベルと値を1 fragmentに、自然な位置で分割し、見出し単位の内容を原文で引用する。parserで読めない事実と見出しのないsectionは、Jevに位置だけを選ばせて原文から読む | どの値にもページ上の根拠があり、推測でunknownを減らさない。比較の前に求人の内容を原文で確認できる | 描画の通信量の上限が増え、Jevへの質問が最大7問増える。見出しの語彙に頼る |
 | [ADR-049](adr/049-axis-range-observation.md) | 根拠はあるが隣接する2つのanchorに割れる軸を範囲（例: 50〜100）として記録し、両端で比較する（close / partial「一部近い」/ different） | 「書いていない」と「幅がある」を区別し、推測なしで比較できる範囲を広げる | DB・domain・contract・UIの変更が大きい。履歴の集計はpartialをまだ数えていない |
 | [ADR-050](adr/050-non-ats-job-pages.md) | robots.txtの4xx（429を除く）はルールなし（RFC 9309）。ランドマークのないページはbodyを本文にし、JSON-LDのない求人はh1・og:site_name・titleの一致から同一性を作る。文字列の`hiringOrganization`を受け付ける。DDGSの「結果なし」は再試行できる失敗にする | LINEヤフー・アクセンチュアなどATS以外の求人をURLから解析できる | 4xxのrobotsを根拠に取得するサイトが増える。探索の質は残課題 |
+| [ADR-051](adr/051-official-site-discovery.md) | 企業名からの探索は、Wikipedia/Wikidata（robots.txtが許可するページだけ）で公式サイトを特定し、公式サイトのトップ・sitemap・ATSリンクから求人を集める。検索エンジン（DDGS）は、それで見つからない時だけ使う | 無料で、bot判定に左右されない。LINEヤフー・アクセンチュアなど6/8社で求人が見つかる | Wikipediaに記事がない企業や、JSでしか描画しない採用サイトは見つからない |
 
 ## 技術スパイクで検証・継続確認する項目
 

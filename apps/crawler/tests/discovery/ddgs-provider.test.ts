@@ -85,4 +85,32 @@ describe("discovery configuration", () => {
       expect(() => parseDiscoveryConfig(broken)).toThrow();
     }
   });
+
+  it("reads official-site limits with defaults and supports official-only discovery", () => {
+    // Existing deployments (ddgs) keep working and gain official sites.
+    expect(parseDiscoveryConfig(full)?.official).toEqual({
+      maxSitemapFetches: 6,
+      maxDetailLeads: 15,
+    });
+    const official = parseDiscoveryConfig({
+      CRAWLER_WEB_SEARCH_PROVIDER: "official",
+      CRAWLER_DISCOVERY_MAX_QUERIES: "1",
+      CRAWLER_DISCOVERY_RESULTS_PER_QUERY: "1",
+      CRAWLER_DISCOVERY_MAX_FETCHES: "20",
+      CRAWLER_DISCOVERY_MAX_LINKS_PER_LISTING: "20",
+      CRAWLER_DISCOVERY_MAX_RESULTS: "20",
+      CRAWLER_DISCOVERY_MAX_SITEMAP_FETCHES: "8",
+    });
+    expect(official?.ddgs).toBeNull();
+    expect(official?.official).toEqual({
+      maxSitemapFetches: 8,
+      maxDetailLeads: 15,
+    });
+    expect(() =>
+      parseDiscoveryConfig({
+        ...full,
+        CRAWLER_DISCOVERY_MAX_SITEMAP_FETCHES: "11",
+      }),
+    ).toThrow();
+  });
 });

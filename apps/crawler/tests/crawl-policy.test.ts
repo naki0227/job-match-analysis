@@ -60,15 +60,31 @@ describe("crawler robots and terms policy", () => {
     expect(fetchCount).toBe(1);
   });
 
-  it.each([403, 429, 503])("defers when robots returns %i", async (status) => {
-    const check = createCrawlPolicy({
-      siteApproved: async () => true,
-      fetchRobots: async () => robots(status),
-    });
-    await expect(check(new URL("https://jobs.example/jobs/1"))).rejects.toThrow(
-      "robots",
-    );
-  });
+  it.each([401, 403, 404, 410, 451])(
+    "treats an unavailable robots.txt (%i) as no rules, per RFC 9309",
+    async (status) => {
+      const check = createCrawlPolicy({
+        siteApproved: async () => true,
+        fetchRobots: async () => robots(status),
+      });
+      await expect(
+        check(new URL("https://jobs.example/jobs/1")),
+      ).resolves.toBeUndefined();
+    },
+  );
+
+  it.each([429, 500, 503, 302])(
+    "defers when robots returns %i",
+    async (status) => {
+      const check = createCrawlPolicy({
+        siteApproved: async () => true,
+        fetchRobots: async () => robots(status),
+      });
+      await expect(
+        check(new URL("https://jobs.example/jobs/1")),
+      ).rejects.toThrow("robots");
+    },
+  );
 
   it("rejects cross-origin robots redirects", async () => {
     const check = createCrawlPolicy({

@@ -6,6 +6,8 @@ import {
   type PageFetcher,
 } from "./discover-jobs.js";
 import type { DiscoveryErrorCode, DiscoveryStore } from "./discovery-store.js";
+import type { OfficialLeadResult } from "./official-leads.js";
+import type { DiscoveryQuery } from "./queries.js";
 import type { WebSearchFailure, WebSearchProvider } from "./web-search.js";
 
 export type DiscoveryRuntime = {
@@ -13,6 +15,10 @@ export type DiscoveryRuntime = {
   search: WebSearchProvider;
   /** A fresh fetcher per discovery, so robots.txt is cached only per run. */
   createFetcher: () => PageFetcher;
+  /** Leads from the employer's own sites (ADR-051), using that fetcher. */
+  createOfficialLeads?: (
+    fetchPage: PageFetcher,
+  ) => (query: DiscoveryQuery) => Promise<OfficialLeadResult>;
   limits: DiscoveryLimits;
   leaseSeconds: number;
   maxAttempts: number;
@@ -41,10 +47,14 @@ export async function consumeOneDiscovery(
   if (!claimed) return "idle";
   const started = performance.now();
   try {
+    const fetchPage = runtime.createFetcher();
     const result = await discoverJobs({
       query: claimed.query,
       search: runtime.search,
-      fetchPage: runtime.createFetcher(),
+      fetchPage,
+      ...(runtime.createOfficialLeads
+        ? { officialLeads: runtime.createOfficialLeads(fetchPage) }
+        : {}),
       limits: runtime.limits,
       now: now(),
     });
@@ -76,6 +86,7 @@ export async function consumeOneDiscovery(
       .fail(claimed.discoveryId, token, "internal", runtime.maxAttempts)
       .catch(() => undefined);
     metrics.discovery({
+      officialLeads: 0,
       queries: 0,
       searchFailures: {},
       searchResults: 0,

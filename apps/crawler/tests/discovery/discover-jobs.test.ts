@@ -418,3 +418,171 @@ describe("web discovery", () => {
     expect(result.stats.rejected).toEqual({ invalid_url: 5 });
   });
 });
+
+/** A careers page without JobPosting JSON-LD, accepted on page evidence. */
+function careersPage(title: string, links: readonly string[] = []): string {
+  return `<html><head><title>${title}｜サンプル株式会社</title>
+    <meta property="og:site_name" content="サンプル株式会社"></head>
+    <body><h1>${title}</h1><p>業務内容 プロダクトの企画と推進</p>
+    <p>応募資格 実務経験3年以上</p><p>勤務地 東京</p>
+    <ul>${links.map((href) => `<li><a href="${href}">${title}</a></li>`).join("")}</ul></body></html>`;
+}
+
+describe("official-site discovery (ADR-051)", () => {
+  const site = "https://www.sample.co.jp";
+  const posting = (i: number) => `${site}/recruit/career/jobs/ly${100 + i}/`;
+
+  it("takes leads from the official site first and never asks the search engine", async () => {
+    const search = provider([lead("https://jobs.example/x")]);
+    const fetchPage = pages({
+      [posting(0)]: careersPage("プロダクト企画", [
+        posting(1),
+        posting(2),
+        posting(3),
+      ]),
+      [posting(1)]: careersPage("データ分析", [
+        posting(0),
+        posting(2),
+        posting(3),
+      ]),
+    });
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search,
+      officialLeads: async () => ({
+        leads: [posting(0), posting(1)],
+        aliases: [],
+        domains: ["sample.co.jp"],
+      }),
+      fetchPage,
+      limits,
+      now,
+    });
+    // Each posting links to related postings of its own shape: still a posting.
+    expect(
+      result.postings.map((item) => [item.title, item.sourceKind]),
+    ).toEqual([
+      ["プロダクト企画", "official"],
+      ["データ分析", "official"],
+    ]);
+    expect(search.inputs).toHaveLength(0);
+    expect(result.stats.officialLeads).toBe(2);
+  });
+
+  it("expands a careers landing page that links to sibling postings", async () => {
+    const landing = `${site}/recruit/career/`;
+    const fetchPage = pages({
+      [landing]: careersPage("キャリア採用", [
+        posting(0),
+        posting(1),
+        posting(2),
+      ]),
+      [posting(0)]: careersPage("プロダクト企画"),
+      [posting(1)]: careersPage("データ分析"),
+      [posting(2)]: careersPage("法人営業"),
+    });
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([]),
+      officialLeads: async () => ({
+        leads: [landing],
+        aliases: [],
+        domains: [],
+      }),
+      fetchPage,
+      limits,
+      now,
+    });
+    expect(result.postings.map((item) => item.url)).toEqual([
+      posting(0),
+      posting(1),
+      posting(2),
+    ]);
+    expect(result.stats.listingsExpanded).toBe(1);
+  });
+
+  it("accepts a posting that names the company by an alias, under the searched name", async () => {
+    const url = "https://www.acn.example/jp-ja/careers/jobdetails?id=R1_ja";
+    const fetchPage = pages({
+      [url]: jobPage({ title: "コンサルタント", org: "Accenture" }),
+    });
+    const withoutAlias = await discoverJobs({
+      query: { company: "アクセンチュア" },
+      search: provider([]),
+      officialLeads: async () => ({ leads: [url], aliases: [], domains: [] }),
+      fetchPage,
+      limits,
+      now,
+    });
+    expect(withoutAlias.postings).toEqual([]);
+    expect(withoutAlias.stats.rejected).toEqual({ company_mismatch: 1 });
+
+    const result = await discoverJobs({
+      query: { company: "アクセンチュア" },
+      search: provider([]),
+      officialLeads: async () => ({
+        leads: [url],
+        aliases: ["アクセンチュア", "Accenture"],
+        domains: ["acn.example"],
+      }),
+      fetchPage,
+      limits,
+      now,
+    });
+    expect(result.postings).toEqual([
+      expect.objectContaining({
+        title: "コンサルタント",
+        companyName: "アクセンチュア",
+        sourceKind: "official",
+      }),
+    ]);
+  });
+
+  it("falls back to search with the budget kept for it when official leads find nothing", async () => {
+    const found = "https://hrmos.co/pages/sample/jobs/1";
+    const search = provider([lead(found)]);
+    const fetchPage = pages({
+      [found]: jobPage({ title: "Backend", org: "サンプル株式会社" }),
+    });
+    const officialLeadUrls = Array.from(
+      { length: 30 },
+      (_, i) => `${site}/recruit/missing-${i}/`,
+    );
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search,
+      officialLeads: async () => ({
+        leads: officialLeadUrls,
+        aliases: [],
+        domains: [],
+      }),
+      fetchPage,
+      limits,
+      now,
+    });
+    expect(result.postings.map((item) => item.url)).toEqual([found]);
+    expect(search.inputs.length).toBeGreaterThan(0);
+    expect(result.stats.fetched).toBeLessThanOrEqual(limits.maxFetches);
+    // Official leads used at most three quarters of the budget.
+    expect(fetchPage.calls.filter((url) => url.startsWith(site)).length).toBe(
+      15,
+    );
+  });
+
+  it("falls back to search when the reference data or official site fails", async () => {
+    const found = "https://hrmos.co/pages/sample/jobs/2";
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(found)]),
+      officialLeads: async () => {
+        throw new Error("reference data unavailable");
+      },
+      fetchPage: pages({
+        [found]: jobPage({ title: "QA", org: "サンプル株式会社" }),
+      }),
+      limits,
+      now,
+    });
+    expect(result.postings.map((item) => item.title)).toEqual(["QA"]);
+  });
+});

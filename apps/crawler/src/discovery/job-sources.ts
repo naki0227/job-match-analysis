@@ -13,6 +13,11 @@ export type JobSourceAdapter = {
   isListing: (url: URL) => boolean;
   /** Links on a listing that may be postings. */
   isPostingLink: (link: URL, listing: URL) => boolean;
+  /**
+   * For an ATS whose posting URLs have one known shape: whether this is a
+   * posting. Other pages on the ATS (job groups, product pages) are not.
+   */
+  isPosting?: (url: URL) => boolean;
 };
 
 const HRMOS_DETAIL = /^\/pages\/[A-Za-z0-9_-]{1,64}\/jobs\/\d+$/;
@@ -21,26 +26,33 @@ const HERP_DETAIL = /^\/v1\/[A-Za-z0-9_-]{1,64}\/[A-Za-z0-9_-]{4,}$/;
 export const hrmosSource: JobSourceAdapter = {
   name: "hrmos",
   kind: "ats",
-  canHandle: (url) => url.hostname === "hrmos.co",
+  // Only company pages; the rest of hrmos.co is HRMOS's own product site.
+  canHandle: (url) =>
+    url.hostname === "hrmos.co" && url.pathname.startsWith("/pages/"),
   isListing: (url) =>
     /^\/pages\/[A-Za-z0-9_-]{1,64}\/jobs\/?$/.test(url.pathname),
   isPostingLink: (link, listing) =>
     HRMOS_DETAIL.test(link.pathname) &&
     link.pathname.startsWith(listing.pathname.replace(/\/?$/, "/")),
+  isPosting: (url) => HRMOS_DETAIL.test(url.pathname),
 };
 
 export const herpSource: JobSourceAdapter = {
   name: "herp",
   kind: "ats",
-  canHandle: (url) => url.hostname === "herp.careers",
+  canHandle: (url) =>
+    url.hostname === "herp.careers" && url.pathname.startsWith("/v1/"),
   isListing: (url) => /^\/v1\/[A-Za-z0-9_-]{1,64}\/?$/.test(url.pathname),
+  // Postings of the same company, also from its job group pages
+  // (/v1/{company}/requisition-groups/{id}).
   isPostingLink: (link, listing) =>
     HERP_DETAIL.test(link.pathname) &&
-    link.pathname.startsWith(listing.pathname.replace(/\/?$/, "/")),
+    link.pathname.split("/")[2] === listing.pathname.split("/")[2],
+  isPosting: (url) => HERP_DETAIL.test(url.pathname),
 };
 
 const HOSTED_ATS =
-  /(?:^|\.)(?:greenhouse\.io|lever\.co|myworkdayjobs\.com|smartrecruiters\.com|workable\.com|ashbyhq\.com|talentio\.com|jobcan\.jp)$/iu;
+  /(?:^|\.)(?:greenhouse\.io|lever\.co|myworkdayjobs\.com|smartrecruiters\.com|workable\.com|ashbyhq\.com|talentio\.com|jobcan\.jp|axol\.jp)$/iu;
 const ATS_DETAIL =
   /(?:\/jobs?\/[^/?#]+|\/positions?\/[^/?#]+|\/openings?\/[^/?#]+|\/job[-_]?details?(?:\/|\?|$)|[?&](?:job|jobId|job_id|req|requisition)[=_-])/iu;
 
@@ -50,10 +62,14 @@ export const hostedAtsSource: JobSourceAdapter = {
   canHandle: (url) => HOSTED_ATS.test(url.hostname),
   isListing: (url) => !ATS_DETAIL.test(`${url.pathname}${url.search}`),
   isPostingLink: (link) => ATS_DETAIL.test(`${link.pathname}${link.search}`),
+  // Posting URLs differ by ATS (talentio uses /pages/{id}); only the
+  // site top and job lists ("/job/list") are known not to be postings.
+  isPosting: (url) =>
+    url.pathname !== "/" && !/\/(?:list|search)\/?$/iu.test(url.pathname),
 };
 
 const CAREER_PATH =
-  /(?:^|\/)(?:careers?|jobs?|job-openings?|job-categories|jobsearch|job-details?|recruit(?:ing|ment)?|saiyou|saiyo|positions?|openings?|open-position|join(?:-us)?|採用|求人|募集)(?:\/|$|[-_.])/iu;
+  /(?:^|\/)(?:careers?|jobs?|job-openings?|job-categories|jobsearch|job-details?|recruit(?:ing|ment)?|saiyou|saiyo|positions?|openings?|open-position|join(?:-us)?|採用|求人|募集|ジョブ)(?:\/|$|[-_.])/iu;
 const GENERIC_DETAIL =
   /(?:\/jobs?\/[^/?#]+|\/job-openings?\/[^/?#]+|\/job-details?\/[^/?#]+|\/positions?\/[^/?#]+|\/openings?\/[^/?#]+|[?&](?:job|jobId|job_id|position|opening|requisition)[=_-])/iu;
 
@@ -117,12 +133,14 @@ const NON_JOB_PATH =
 
 /**
  * Likely posting links from a listing page. Same-origin links are preferred,
- * but a company careers page may legitimately hand off to a known hosted ATS.
+ * but a company careers page may legitimately hand off to a known hosted ATS
+ * or to the employer's own careers site on another domain (`related`).
  */
 export function postingLinks(
   html: string,
   listingUrl: string,
   limit: number,
+  related: (url: URL) => boolean = () => false,
 ): string[] {
   const listing = new URL(listingUrl);
   const source = sourceFor(listing);
@@ -155,7 +173,7 @@ export function postingLinks(
             CAREER_PATH.test(
               decodeURIComponent(`${link.pathname}${link.search}`),
             )))) ||
-      (!sameOrigin && isKnownAtsLink(link));
+      (!sameOrigin && (isKnownAtsLink(link) || related(link)));
 
     if (!accepted) continue;
     links.add(link.href);

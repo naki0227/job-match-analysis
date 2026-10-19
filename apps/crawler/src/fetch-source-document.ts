@@ -211,15 +211,19 @@ function discoveryNeedsBrowser(html: string): boolean {
 
 /**
  * One public HTML page for job discovery (ADR-047). Static HTML is preferred.
- * If it looks like a client-rendered shell, Chromium gets one bounded chance
- * to render it through the same DNS/robots/request boundary used by analysis.
+ * If it looks like a client-rendered shell, or the caller asks (a careers page
+ * whose job list is drawn by script), Chromium gets one bounded chance to
+ * render it through the same DNS/robots/request boundary used by analysis.
  * Redirects of the top-level page must stay on the starting origin.
  */
 export function createPublicPageFetcher(args: {
   browser?: Browser;
   resolve?: ResolveAddresses;
   send?: RequestOnce;
-}): (url: string) => Promise<{ url: string; html: string }> {
+}): (
+  url: string,
+  options?: { render?: boolean },
+) => Promise<{ url: string; html: string }> {
   const resolve = args.resolve ?? systemResolver;
   const send = args.send ?? requestOnce;
   const policy = createCrawlPolicy({
@@ -231,7 +235,7 @@ export function createPublicPageFetcher(args: {
         }
       }),
   });
-  return async (url) => {
+  return async (url, options) => {
     const origin = parsePublicUrl(url).origin;
     const response = await fetchPublic(url, resolve, send, async (next) => {
       if (next.origin !== origin) {
@@ -241,7 +245,7 @@ export function createPublicPageFetcher(args: {
     });
     const html = requireHtml(response);
     rejectAccessGate(html);
-    if (!args.browser || !discoveryNeedsBrowser(html)) {
+    if (!args.browser || (!options?.render && !discoveryNeedsBrowser(html))) {
       return { url: response.url, html };
     }
 
@@ -263,6 +267,11 @@ export function createPublicPageFetcher(args: {
           { timeout: 4_000 },
         )
         .catch(() => undefined);
+      // A page that already has content loads its job list afterwards.
+      if (options?.render)
+        await page
+          .waitForLoadState("networkidle", { timeout: 5_000 })
+          .catch(() => undefined);
       await page.waitForTimeout(500);
       const finalUrl = parsePublicUrl(page.url());
       if (finalUrl.origin !== origin) {

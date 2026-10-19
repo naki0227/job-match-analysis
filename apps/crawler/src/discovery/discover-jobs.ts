@@ -1,8 +1,8 @@
 import { normalizeAnalysisUrl } from "@job-match/contracts";
-import { shapeOf, siteOf } from "./career-links.js";
+import { CAREER, decode, shapeOf, siteOf } from "./career-links.js";
 import type { OfficialLeadResult } from "./official-leads.js";
 import { readJobPostings } from "./job-posting-ld.js";
-import { postingLinks, sourceFor } from "./job-sources.js";
+import { genericSource, postingLinks, sourceFor } from "./job-sources.js";
 import { buildDiscoveryQueries, type DiscoveryQuery } from "./queries.js";
 import {
   verifyPosting,
@@ -40,7 +40,31 @@ export type DiscoveryStats = {
 
 export type PageFetcher = (
   url: string,
+  /** Render with the browser even when the static page has content. */
+  options?: { render?: boolean },
 ) => Promise<{ url: string; html: string }>;
+
+/** Domain labels that do not name the employer. */
+const GENERIC_LABEL =
+  /^(?:www|global|group|corp|corporate|careers?|jobs?|recruit|saiyo|info|online)$/iu;
+
+/**
+ * The employer's own careers sites on another domain, named after its
+ * official domain: toyota-recruit.com for global.toyota,
+ * japan-job-jp.rakuten.careers for rakuten.co.jp.
+ */
+function relatedCareersSite(domains: readonly string[]): (url: URL) => boolean {
+  const brands = [
+    ...new Set(
+      domains
+        .flatMap((domain) => domain.split("."))
+        .filter((label) => label.length >= 4 && !GENERIC_LABEL.test(label)),
+    ),
+  ];
+  return (url) =>
+    brands.some((brand) => url.hostname.split(/[.-]/u).includes(brand)) &&
+    CAREER.test(decode(`${url.hostname}${url.pathname}`));
+}
 
 function normalized(url: string): string | null {
   try {
@@ -52,6 +76,22 @@ function normalized(url: string): string | null {
 
 /** Listing pages may be followed this deep: careers site → category → listing → posting. */
 const MAX_EXPANSION_DEPTH = 3;
+const JAPANESE = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
+/** A Japanese-language site or section: japan-job-jp.…, /ja/, /jp/. */
+const JAPANESE_SITE = /(?:^https:\/\/|[/._-])(?:ja|jp)(?:[/._-]|$)/iu;
+const depth = (url: URL) => url.pathname.split("/").filter(Boolean).length;
+/**
+ * A link well below its listing on the same site, like a posting under a
+ * search page (/検索ジョブ → /ジョブ/東京都/{title}/{id}/{id}).
+ */
+function deeperPosting(link: URL, listing: URL): boolean {
+  return link.origin === listing.origin && depth(link) >= depth(listing) + 2;
+}
+
+/** Careers pages rendered with the browser in one discovery. */
+const MAX_RENDERS = 2;
+/** Links read from a rendered page before the hand-offs are put first. */
+const RENDERED_LINK_SCAN = 1_000;
 /** Sibling posting links that make a page a listing rather than a posting. */
 const LISTING_SIBLINGS = 3;
 
@@ -116,17 +156,33 @@ export async function discoverJobs(args: {
     // Reference data or the official site being down falls back to search.
   }
   stats.officialLeads = official.length;
+  const officialRelated = relatedCareersSite(officialDomains);
+  const renders = { count: 0 };
+  const japanese = JAPANESE.test(args.query.company);
   const seen = new Set<string>();
   const found = new Map<string, DiscoveredPosting>();
   /** Fetch, verify and expand leads until the fetch limit or enough results. */
-  const crawl = async (urls: readonly string[], fetchLimit: number) => {
+  /**
+   * `fromOfficial`: the leads came from the employer's own sites, so the
+   * careers sites they hand off to (named after it) can be trusted. Search
+   * results never can: anyone can register a domain with the name in it.
+   */
+  const crawl = async (
+    urls: readonly string[],
+    fetchLimit: number,
+    fromOfficial: boolean,
+  ) => {
+    const related = fromOfficial ? officialRelated : () => false;
     const queue = urls
       .filter((url) => !seen.has(url))
       .map((url) => ({ url, depth: 0 }));
     for (const item of queue) seen.add(item.url);
-    while (queue.length && stats.fetched < fetchLimit) {
+    // Job sites a careers page hands off to (an ATS, the employer's careers
+    // domain) are fetched before anything else that is queued.
+    const handOffs: typeof queue = [];
+    while ((handOffs.length || queue.length) && stats.fetched < fetchLimit) {
       if (found.size >= args.limits.maxResults) break;
-      const item = queue.shift()!;
+      const item = handOffs.shift() ?? queue.shift()!;
       stats.fetched += 1;
       let page: { url: string; html: string };
       try {
@@ -164,9 +220,66 @@ export async function discoverJobs(args: {
           };
       }
       const expandable = item.depth < MAX_EXPANSION_DEPTH;
-      const links = expandable
-        ? postingLinks(page.html, finalUrl, args.limits.maxLinksPerListing)
+      let links = expandable
+        ? postingLinks(
+            page.html,
+            finalUrl,
+            args.limits.maxLinksPerListing,
+            related,
+          )
         : [];
+      // A careers page whose job list is drawn by script (メルカリ, 楽天)
+      // shows only its menu in static HTML. The first such pages are
+      // rendered once, within the fetch budget, and the job sites they
+      // hand off to (ATS, the employer's careers domain) are read first.
+      const handsOff = (link: string) => {
+        const url = new URL(link);
+        return (
+          url.origin !== new URL(finalUrl).origin &&
+          (sourceFor(url).kind === "ats" || related(url))
+        );
+      };
+      if (
+        expandable &&
+        !verdict.ok &&
+        verdict.reason === "not_job_posting" &&
+        !links.some(handsOff) &&
+        source === genericSource &&
+        genericSource.isListing(new URL(finalUrl)) &&
+        renders.count < MAX_RENDERS &&
+        stats.fetched < fetchLimit
+      ) {
+        renders.count += 1;
+        stats.fetched += 1;
+        try {
+          const drawn = await args.fetchPage(finalUrl, { render: true });
+          if (normalized(drawn.url) === finalUrl) {
+            const all = postingLinks(
+              drawn.html,
+              finalUrl,
+              RENDERED_LINK_SCAN,
+              related,
+            );
+            // A Japanese search reads the Japanese job site first
+            // (japan-job-jp before japan-job-en).
+            const local = (link: string) =>
+              japanese && JAPANESE_SITE.test(link) ? 0 : 1;
+            const handOffs = all
+              .filter(handsOff)
+              .map((link, index) => ({ link, index }))
+              .sort(
+                (a, b) => local(a.link) - local(b.link) || a.index - b.index,
+              )
+              .map(({ link }) => link);
+            links = [...new Set([...handOffs, ...links, ...all])].slice(
+              0,
+              args.limits.maxLinksPerListing,
+            );
+          }
+        } catch {
+          // The static page stays the only view of it.
+        }
+      }
       // A careers page accepted only on page evidence (no JobPosting) that
       // links to several sibling postings is their listing, not a posting.
       // A posting that links to related postings shares their shape; a
@@ -179,11 +292,13 @@ export async function discoverJobs(args: {
         !siblings.has(shapeOf(new URL(finalUrl)));
       if (verdict.ok && !landing) {
         if (!found.has(finalUrl)) {
-          // A page on the employer's official site (per reference data) is
-          // an official posting even when its JSON-LD does not say so.
+          // A page on the employer's official site (per reference data), or
+          // on its careers site named after it, is an official posting even
+          // when its JSON-LD does not say so.
           const official =
             verdict.posting.sourceKind === "web" &&
-            officialDomains.includes(siteOf(new URL(finalUrl).hostname));
+            (officialDomains.includes(siteOf(new URL(finalUrl).hostname)) ||
+              related(new URL(finalUrl)));
           found.set(
             finalUrl,
             official
@@ -205,23 +320,32 @@ export async function discoverJobs(args: {
         continue;
       }
       stats.listingsExpanded += 1;
-      // Likely postings (siblings on the listing, or ATS pages) are fetched
-      // before other pages already queued, so the budget reaches postings.
+      // Likely postings (siblings on the listing, links well below it) are
+      // fetched before other pages already queued, so the budget reaches
+      // postings.
+      // Job sites found on this page go before the ones queued earlier, so
+      // a job group page leads to its postings before the next group. On a
+      // job site itself, its likely postings go there too.
       const likely: { url: string; depth: number }[] = [];
+      const jobSites: { url: string; depth: number }[] = [];
+      const onJobSite = source.kind === "ats" || related(new URL(finalUrl));
       for (const link of links) {
         const url = normalized(link);
         if (url && !seen.has(url)) {
           seen.add(url);
           const next = { url, depth: item.depth + 1 };
-          if (
+          if (sourceFor(new URL(url)).kind === "ats" || handsOff(url))
+            jobSites.push(next);
+          else if (
             siblings.has(shapeOf(new URL(link))) ||
-            sourceFor(new URL(url)).kind === "ats"
+            deeperPosting(new URL(url), new URL(finalUrl))
           )
-            likely.push(next);
+            (onJobSite ? jobSites : likely).push(next);
           else queue.push(next);
         }
       }
       queue.unshift(...likely);
+      handOffs.unshift(...jobSites);
     }
   };
 
@@ -233,6 +357,7 @@ export async function discoverJobs(args: {
     searchable
       ? Math.ceil((args.limits.maxFetches * 3) / 4)
       : args.limits.maxFetches,
+    true,
   );
   if (found.size > 0 || !searchable)
     return { postings: [...found.values()], stats, searchFailure: null };
@@ -280,6 +405,6 @@ export async function discoverJobs(args: {
         Number(sourceFor(new URL(a)).kind === "ats") ||
       leads.get(a)! - leads.get(b)!,
   );
-  await crawl(searched, args.limits.maxFetches);
+  await crawl(searched, args.limits.maxFetches, false);
   return { postings: [...found.values()], stats, searchFailure };
 }

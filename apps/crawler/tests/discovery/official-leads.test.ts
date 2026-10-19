@@ -33,6 +33,23 @@ describe("leads from the employer's own sites", () => {
     );
   });
 
+  it("does not take a file named after the company for a careers page", () => {
+    const urls = [
+      // リクルート: IR documents named "Recruit_...", not careers pages.
+      ...details(
+        "https://recruit.example/ja/ir/library/Recruit_2025Q",
+        10,
+        ".html",
+      ),
+      "https://recruit.example/ja/careers/jobs/",
+      ...details("https://recruit.example/ja/careers/jobs/", 9),
+    ];
+    const { listings, details: found } = classifySitemapUrls(urls, true);
+    expect(found).toHaveLength(9);
+    expect(found.every((url) => url.includes("/careers/jobs/"))).toBe(true);
+    expect(listings).toEqual(["https://recruit.example/ja/careers/jobs/"]);
+  });
+
   it("groups query-string postings and prefers the Japanese locale", () => {
     const urls = [
       ...Array.from(

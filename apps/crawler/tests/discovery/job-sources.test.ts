@@ -25,6 +25,31 @@ describe("job source adapters", () => {
     expect(sourceFor(new URL("https://sample.example/careers")).name).toBe(
       "generic",
     );
+    // A hosted ATS job list has the posting shape but is not a posting.
+    expect(
+      hostedAtsSource.isPosting?.(
+        new URL("https://axol.jp/zw/c/sample/public/job/list"),
+      ),
+    ).toBe(false);
+    expect(
+      hostedAtsSource.isPosting?.(
+        new URL("https://axol.jp/zw/c/sample/public/job/detail/AbC1"),
+      ),
+    ).toBe(true);
+    // HRMOS's own product pages are not a company's job pages.
+    expect(sourceFor(new URL("https://hrmos.co/payroll/")).name).toBe(
+      "generic",
+    );
+    expect(
+      hrmosSource.isPosting?.(
+        new URL("https://hrmos.co/pages/sample/jobs/123"),
+      ),
+    ).toBe(true);
+    expect(
+      herpSource.isPosting?.(
+        new URL("https://herp.careers/v1/sample/requisition-groups/abc-123"),
+      ),
+    ).toBe(false);
   });
 
   it("recognises deeper careers listings and common hosted ATS pages", () => {
@@ -62,6 +87,25 @@ describe("job source adapters", () => {
     ]);
   });
 
+  it("follows the employer's careers site on another domain only when asked", () => {
+    const html = `
+      <a href="https://japan-job-jp.sample.careers/戦略?l-id=1">戦略</a>
+      <a href="/ジョブ/東京都/企画/1/2">企画</a>
+      <a href="https://news.example/careers/x">News</a>`;
+    const listing = "https://corp.sample.co.jp/careers/midcareer/";
+    expect(postingLinks(html, listing, 10)).toEqual([
+      "https://corp.sample.co.jp/%E3%82%B8%E3%83%A7%E3%83%96/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E4%BC%81%E7%94%BB/1/2",
+    ]);
+    expect(
+      postingLinks(html, listing, 10, (url) =>
+        url.hostname.endsWith(".sample.careers"),
+      ),
+    ).toEqual([
+      "https://japan-job-jp.sample.careers/%E6%88%A6%E7%95%A5?l-id=1",
+      "https://corp.sample.co.jp/%E3%82%B8%E3%83%A7%E3%83%96/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E4%BC%81%E7%94%BB/1/2",
+    ]);
+  });
+
   it("follows only same-company posting links on the same origin", () => {
     const html = `
       <a href="/pages/sample/jobs/111?utm=x#top">Backend</a>
@@ -80,6 +124,14 @@ describe("job source adapters", () => {
       postingLinks(
         '<a href="/v1/sample/AbC12">x</a>',
         "https://herp.careers/v1/sample",
+        10,
+      ),
+    ).toEqual(["https://herp.careers/v1/sample/AbC12"]);
+    // A HERP job group page lists postings of the same company.
+    expect(
+      postingLinks(
+        '<a href="/v1/sample/AbC12">x</a><a href="/v1/other/XyZ34">y</a>',
+        "https://herp.careers/v1/sample/requisition-groups/abc-123",
         10,
       ),
     ).toEqual(["https://herp.careers/v1/sample/AbC12"]);

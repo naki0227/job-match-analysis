@@ -115,4 +115,73 @@ describe("official site from reference data", () => {
       resolveOfficialSites({ company: "サンプル", fetchResource }),
     ).resolves.toEqual({ sites: [], names: [] });
   });
+
+  it("allows a larger size for articles on large companies", async () => {
+    const limits: (number | undefined)[] = [];
+    const base = fetcher({
+      [`${WIKI}${encodeURIComponent("サンプル")}`]: article("Q5"),
+      [`${ENTITY}Q5.json`]: entity("Q5", {
+        types: ["Q4830453"],
+        sites: ["https://www.sample.co.jp/"],
+      }),
+    });
+    const fetchResource: PublicResourceFetcher = (url, accept, maxBytes) => {
+      limits.push(maxBytes);
+      return base(url, accept);
+    };
+    await expect(
+      resolveOfficialSites({ company: "サンプル", fetchResource }),
+    ).resolves.toMatchObject({ sites: ["https://www.sample.co.jp/"] });
+    // The article (about 2 MB for トヨタ自動車) may exceed the page limit;
+    // Wikidata JSON keeps the usual one.
+    expect(limits[0]).toBeGreaterThan(2 * 1024 * 1024);
+    expect(limits[1]).toBeUndefined();
+  });
+
+  it("prefers the Japanese official site and drops deprecated ones", async () => {
+    const value = (v: unknown) => ({ mainsnak: { datavalue: { value: v } } });
+    const site = (url: string, rank: string, language?: string) => ({
+      ...value(url),
+      rank,
+      ...(language
+        ? { qualifiers: { P407: [{ datavalue: { value: { id: language } } }] } }
+        : {}),
+    });
+    const fetchResource = fetcher({
+      [`${WIKI}${encodeURIComponent("任天堂")}`]: article("Q6"),
+      [`${ENTITY}Q6.json`]: JSON.stringify({
+        entities: {
+          Q6: {
+            labels: { ja: { value: "任天堂" } },
+            claims: {
+              P31: [value({ id: "Q4830453" })],
+              P856: [
+                site(
+                  "https://www.nintendo.com/countryselector/",
+                  "deprecated",
+                  "Q1860",
+                ),
+                site(
+                  "https://www.nintendo.com/region-selector/",
+                  "preferred",
+                  "Q1860",
+                ),
+                site("https://www.nintendo.de/", "normal", "Q188"),
+                site("https://www.nintendo.com/jp/", "normal", "Q5287"),
+              ],
+            },
+          },
+        },
+      }),
+    });
+    await expect(
+      resolveOfficialSites({ company: "任天堂", fetchResource }),
+    ).resolves.toMatchObject({
+      sites: [
+        "https://www.nintendo.com/jp/",
+        "https://www.nintendo.com/region-selector/",
+        "https://www.nintendo.de/",
+      ],
+    });
+  });
 });

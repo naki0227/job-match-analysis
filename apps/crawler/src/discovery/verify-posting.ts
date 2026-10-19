@@ -1,4 +1,4 @@
-import { sameCompany } from "@job-match/domain";
+import { normalizeCompanyName, sameCompany } from "@job-match/domain";
 import { parse, type DefaultTreeAdapterTypes as Html } from "parse5";
 import { readJobPostings } from "./job-posting-ld.js";
 import type { JobSourceAdapter } from "./job-sources.js";
@@ -92,6 +92,15 @@ function host(url: string): string | null {
 const GENERIC_TITLE =
   /^(?:採用情報|求人一覧|募集職種(?:を探す)?|募集ポジション|キャリア採用|中途採用|新卒採用|careers?|jobs?|job search|search jobs|open positions?)$/iu;
 
+/**
+ * Careers pages that are never a posting: the careers site itself, FAQs and
+ * application forms.
+ */
+const CAREERS_SITE_TITLE =
+  /採用(?:サイト|情報|ページ)|よくある(?:質問|ご質問)|\bfaq\b|^(?:かんたん)?(?:応募|エントリー)(?:フォーム)?$/iu;
+/** A whole hiring track ("第二新卒採用", "キャリア採用・中途採用"). */
+const HIRING_TRACK_TITLE = /^[^\s]{0,10}採用(?:[・/／][^\s]{0,10}採用)*$/u;
+
 const EMPLOYMENT_TEXT: Readonly<Record<string, RegExp>> = {
   new_grad: /新卒|新卒採用|new.?grad|graduate|entry.?level/iu,
   intern: /インターン|internship?|intern/iu,
@@ -99,6 +108,17 @@ const EMPLOYMENT_TEXT: Readonly<Record<string, RegExp>> = {
   contract: /契約社員|業務委託|contract/iu,
   part_time: /アルバイト|パート|part.?time/iu,
 };
+
+/** The employer's name, possibly with its abbreviation ("NRI 野村総合研究所"). */
+function namesOnlyCompany(company: string, value: string): boolean {
+  const name = normalizeCompanyName(company);
+  const rest = normalizeCompanyName(value).replace(name, "");
+  return (
+    name.length > 0 &&
+    rest.length < normalizeCompanyName(value).length &&
+    /^[a-z0-9&]{0,5}$/u.test(rest)
+  );
+}
 
 function postingTitle(
   root: Html.Node,
@@ -127,13 +147,13 @@ function postingTitle(
     if (employmentTitle && employmentTitle.length <= 300)
       return employmentTitle;
 
-    const preferred =
-      parts.find(
-        (part) => !GENERIC_TITLE.test(part) && !sameCompany(company, part),
-      ) ?? parts.find((part) => !GENERIC_TITLE.test(part));
-    const title = (preferred ?? raw).replace(/\s+/g, " ").trim();
-    if (title.length >= 2 && title.length <= 300 && !GENERIC_TITLE.test(title))
-      return title;
+    // A value naming only the employer (a logo heading such as
+    // "NRI 野村総合研究所") is not a job title; try the next one.
+    const preferred = parts.find(
+      (part) => !GENERIC_TITLE.test(part) && !namesOnlyCompany(company, part),
+    );
+    const title = preferred?.replace(/\s+/g, " ").trim();
+    if (title && title.length >= 2 && title.length <= 300) return title;
   }
   return null;
 }
@@ -151,6 +171,9 @@ const DETAIL_URL =
   /(?:\/jobs?\/[^/?#]+|\/job-openings?\/[^/?#]+|\/job-details?\/[^/?#]+|\/positions?\/[^/?#]+|\/openings?\/[^/?#]+|[?&](?:job|jobId|job_id|position|opening|req|requisition)[=_-])/iu;
 const LISTING_URL =
   /(?:jobsearch|job-categories|\/jobs?\/?$|\/careers?\/?$|\/recruit(?:ing|ment)?\/?$)/iu;
+/** The top of a careers site, never one posting. */
+const CAREERS_ROOT_URL =
+  /\/(?:careers?|jobs?|recruit(?:ing|ment)?|saiyou?)(?:\/index\.html?)?\/?$/iu;
 const RECRUITMENT_PATH =
   /(?:^|\/)(?:recruit(?:ing|ment)?|careers|jobs|newgrads?|new-grads?|graduates?|entry-level|join-us)(?:\/|$|[-_.])/iu;
 
@@ -166,6 +189,10 @@ function genericPosting(args: {
   if (!title) return null;
 
   const siteName = metaContent(args.root, "property", "og:site_name");
+  // A page titled only by the employer or its careers site names no job.
+  const careersSite =
+    CAREERS_SITE_TITLE.test(title) || (siteName !== null && title === siteName);
+  if (careersSite) return null;
   const pageTitle = firstElementText(args.root, "title");
   const pageHeading = firstElementText(args.root, "h1");
   const companyEvidence = [
@@ -198,10 +225,16 @@ function genericPosting(args: {
     requestedEmployment &&
     markerCount >= 1;
 
+  // Landing pages are only accepted for the employment type asked for;
+  // otherwise the page must name one job, and an ATS page must be a posting.
+  const atsPosting =
+    args.source.kind === "ats" && (args.source.isPosting?.(url) ?? true);
   const enoughEvidence =
-    (args.source.kind === "ats" && markerCount >= 2) ||
-    (detailUrl && markerCount >= 2) ||
-    (siteNameMatches && markerCount >= 2) ||
+    (!HIRING_TRACK_TITLE.test(title) &&
+      markerCount >= 2 &&
+      (atsPosting ||
+        detailUrl ||
+        (siteNameMatches && !CAREERS_ROOT_URL.test(url.pathname)))) ||
     recruitmentLanding;
   if (!enoughEvidence) return null;
 

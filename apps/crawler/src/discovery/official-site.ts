@@ -13,6 +13,11 @@ import type { PublicResourceFetcher } from "./public-resource.js";
 const WIKIPEDIA = "https://ja.wikipedia.org/wiki/";
 const ENTITY_DATA = "https://www.wikidata.org/wiki/Special:EntityData/";
 const HTML = /^\s*text\/html\b/i;
+/**
+ * Articles on large companies exceed the usual page limit (トヨタ自動車 is
+ * about 2 MB), and the Wikidata link is only found in the full page.
+ */
+const ARTICLE_MAX_BYTES = 6 * 1024 * 1024;
 const JSON_TYPE = /^\s*application\/json\b/i;
 
 /** Wikidata "instance of" values that mean a company or other employer. */
@@ -35,6 +40,17 @@ const claim = z.object({
   mainsnak: z.object({
     datavalue: z.object({ value: z.unknown() }).optional(),
   }),
+  rank: z.string().optional(),
+  qualifiers: z
+    .record(
+      z.string(),
+      z.array(
+        z.object({
+          datavalue: z.object({ value: z.unknown() }).optional(),
+        }),
+      ),
+    )
+    .optional(),
 });
 const entitySchema = z.object({
   labels: z.record(z.string(), z.object({ value: z.string() })).optional(),
@@ -54,6 +70,35 @@ function claimValues(
   return (entity.claims?.[property] ?? [])
     .map((item) => item.mainsnak.datavalue?.value)
     .filter((value) => value !== undefined);
+}
+
+const JAPANESE_LANGUAGE = "Q5287";
+const JAPANESE = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
+
+/**
+ * Official websites, best first: deprecated ones are dropped, then the
+ * site in Japanese for a Japanese name (任天堂 lists nintendo.com/jp/ beside
+ * other countries'), then the preferred ones, in Wikidata's order.
+ */
+function officialWebsites(
+  entity: z.infer<typeof entitySchema>,
+  japanese: boolean,
+): string[] {
+  const score = (item: z.infer<typeof claim>) => {
+    const languages = itemIds(
+      (item.qualifiers?.P407 ?? []).map((q) => q.datavalue?.value),
+    );
+    return (
+      (japanese && languages.includes(JAPANESE_LANGUAGE) ? 0 : 2) +
+      (item.rank === "preferred" ? 0 : 1)
+    );
+  };
+  return (entity.claims?.P856 ?? [])
+    .filter((item) => item.rank !== "deprecated")
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => score(a.item) - score(b.item) || a.index - b.index)
+    .map(({ item }) => httpsUrl(item.mainsnak.datavalue?.value))
+    .filter((url): url is string => url !== null);
 }
 
 function itemIds(values: readonly unknown[]): string[] {
@@ -112,6 +157,7 @@ export async function resolveOfficialSites(args: {
       article = await args.fetchResource(
         `${WIKIPEDIA}${encodeURIComponent(title.replace(/ /g, "_"))}`,
         HTML,
+        ARTICLE_MAX_BYTES,
       );
     } catch {
       continue;
@@ -144,9 +190,7 @@ export async function resolveOfficialSites(args: {
     // The item must be the company that was asked for, not a namesake.
     if (!names(entity).some((name) => sameCompany(args.company, name)))
       continue;
-    const sites = claimValues(entity, "P856")
-      .map(httpsUrl)
-      .filter((url): url is string => url !== null);
+    const sites = officialWebsites(entity, JAPANESE.test(args.company));
     if (sites.length)
       return {
         sites: [...new Set(sites)].slice(0, 4),

@@ -46,6 +46,23 @@ function audienceRank(href: string, employmentType: string | null): number {
   return students === studentPage ? 0 : 1;
 }
 
+const CAREERS_ROOT =
+  /^(?:careers?|jobs?|recruit(?:ing|ment)?|saiyou?|採用(?:情報)?|求人)$/iu;
+
+/**
+ * A careers path names the folder the page is in (/recruit/career/x/,
+ * /careers/jobdetails?id=1), not just the file: a company's name in a file
+ * name ("/ir/library/Recruit_2025Q3.html") is not a careers page.
+ */
+function underCareers(url: URL): boolean {
+  const path = decode(url.pathname).replace(/\/$/u, "");
+  const folder = url.search ? path : path.replace(/[^/]*$/u, "");
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  return (
+    CAREER.test(`${folder}${decode(url.search)}`) || CAREERS_ROOT.test(name)
+  );
+}
+
 /**
  * Posting details are the many sibling URLs under one careers path (for
  * example /job-categories/ly00372/, /jobdetails?id=R001_ja). Their parent
@@ -66,9 +83,7 @@ export function classifySitemapUrls(
     })
     .filter(
       (url): url is URL =>
-        url !== null &&
-        url.protocol === "https:" &&
-        CAREER.test(decode(`${url.pathname}${url.search}`)),
+        url !== null && url.protocol === "https:" && underCareers(url),
     );
   const groups = new Map<string, URL[]>();
   for (const url of parsed) {

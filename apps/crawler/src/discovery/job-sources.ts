@@ -13,6 +13,11 @@ export type JobSourceAdapter = {
   isListing: (url: URL) => boolean;
   /** Links on a listing that may be postings. */
   isPostingLink: (link: URL, listing: URL) => boolean;
+  /**
+   * For an ATS whose posting URLs have one known shape: whether this is a
+   * posting. Other pages on the ATS (job groups, product pages) are not.
+   */
+  isPosting?: (url: URL) => boolean;
 };
 
 const HRMOS_DETAIL = /^\/pages\/[A-Za-z0-9_-]{1,64}\/jobs\/\d+$/;
@@ -21,22 +26,29 @@ const HERP_DETAIL = /^\/v1\/[A-Za-z0-9_-]{1,64}\/[A-Za-z0-9_-]{4,}$/;
 export const hrmosSource: JobSourceAdapter = {
   name: "hrmos",
   kind: "ats",
-  canHandle: (url) => url.hostname === "hrmos.co",
+  // Only company pages; the rest of hrmos.co is HRMOS's own product site.
+  canHandle: (url) =>
+    url.hostname === "hrmos.co" && url.pathname.startsWith("/pages/"),
   isListing: (url) =>
     /^\/pages\/[A-Za-z0-9_-]{1,64}\/jobs\/?$/.test(url.pathname),
   isPostingLink: (link, listing) =>
     HRMOS_DETAIL.test(link.pathname) &&
     link.pathname.startsWith(listing.pathname.replace(/\/?$/, "/")),
+  isPosting: (url) => HRMOS_DETAIL.test(url.pathname),
 };
 
 export const herpSource: JobSourceAdapter = {
   name: "herp",
   kind: "ats",
-  canHandle: (url) => url.hostname === "herp.careers",
+  canHandle: (url) =>
+    url.hostname === "herp.careers" && url.pathname.startsWith("/v1/"),
   isListing: (url) => /^\/v1\/[A-Za-z0-9_-]{1,64}\/?$/.test(url.pathname),
+  // Postings of the same company, also from its job group pages
+  // (/v1/{company}/requisition-groups/{id}).
   isPostingLink: (link, listing) =>
     HERP_DETAIL.test(link.pathname) &&
-    link.pathname.startsWith(listing.pathname.replace(/\/?$/, "/")),
+    link.pathname.split("/")[2] === listing.pathname.split("/")[2],
+  isPosting: (url) => HERP_DETAIL.test(url.pathname),
 };
 
 const HOSTED_ATS =

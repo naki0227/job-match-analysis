@@ -25,6 +25,20 @@ describe("job source adapters", () => {
     expect(sourceFor(new URL("https://sample.example/careers")).name).toBe(
       "generic",
     );
+    // HRMOS's own product pages are not a company's job pages.
+    expect(sourceFor(new URL("https://hrmos.co/payroll/")).name).toBe(
+      "generic",
+    );
+    expect(
+      hrmosSource.isPosting?.(
+        new URL("https://hrmos.co/pages/sample/jobs/123"),
+      ),
+    ).toBe(true);
+    expect(
+      herpSource.isPosting?.(
+        new URL("https://herp.careers/v1/sample/requisition-groups/abc-123"),
+      ),
+    ).toBe(false);
   });
 
   it("recognises deeper careers listings and common hosted ATS pages", () => {
@@ -80,6 +94,14 @@ describe("job source adapters", () => {
       postingLinks(
         '<a href="/v1/sample/AbC12">x</a>',
         "https://herp.careers/v1/sample",
+        10,
+      ),
+    ).toEqual(["https://herp.careers/v1/sample/AbC12"]);
+    // A HERP job group page lists postings of the same company.
+    expect(
+      postingLinks(
+        '<a href="/v1/sample/AbC12">x</a><a href="/v1/other/XyZ34">y</a>',
+        "https://herp.careers/v1/sample/requisition-groups/abc-123",
         10,
       ),
     ).toEqual(["https://herp.careers/v1/sample/AbC12"]);

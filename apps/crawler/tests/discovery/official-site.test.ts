@@ -115,4 +115,26 @@ describe("official site from reference data", () => {
       resolveOfficialSites({ company: "サンプル", fetchResource }),
     ).resolves.toEqual({ sites: [], names: [] });
   });
+
+  it("allows a larger size for articles on large companies", async () => {
+    const limits: (number | undefined)[] = [];
+    const base = fetcher({
+      [`${WIKI}${encodeURIComponent("サンプル")}`]: article("Q5"),
+      [`${ENTITY}Q5.json`]: entity("Q5", {
+        types: ["Q4830453"],
+        sites: ["https://www.sample.co.jp/"],
+      }),
+    });
+    const fetchResource: PublicResourceFetcher = (url, accept, maxBytes) => {
+      limits.push(maxBytes);
+      return base(url, accept);
+    };
+    await expect(
+      resolveOfficialSites({ company: "サンプル", fetchResource }),
+    ).resolves.toMatchObject({ sites: ["https://www.sample.co.jp/"] });
+    // The article (about 2 MB for トヨタ自動車) may exceed the page limit;
+    // Wikidata JSON keeps the usual one.
+    expect(limits[0]).toBeGreaterThan(2 * 1024 * 1024);
+    expect(limits[1]).toBeUndefined();
+  });
 });

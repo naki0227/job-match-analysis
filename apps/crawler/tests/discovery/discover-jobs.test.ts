@@ -351,6 +351,84 @@ describe("web discovery", () => {
     });
   });
 
+  it("rejects careers pages that name no single job (FAQ, track, form, careers top)", async () => {
+    const page = (title: string, h1 = title) => `
+      <html><head><title>${title}｜サンプル株式会社</title>
+        <meta property="og:title" content="${title}">
+        <meta property="og:site_name" content="サンプル株式会社"></head>
+      <body><h1>${h1}</h1><p>仕事内容 企画</p><p>応募資格 経験</p>
+      <p>勤務地 東京</p><a href="/apply">応募する</a></body></html>`;
+    const map = {
+      "https://sample.example/recruit/newgrads/faq/": page("FAQ よくある質問"),
+      "https://sample.example/recruit/second-career/": page("第二新卒採用"),
+      "https://sample.example/applicants/new?job_id=1": page("かんたん応募"),
+      "https://sample.example/careers/": page("キャリア採用・中途採用"),
+      "https://sample.example/careers/disability/": page(
+        "障がい者採用",
+        "SMP サンプル",
+      ),
+      "https://sample.example/careers/about/": page("サンプル株式会社"),
+    };
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider(Object.keys(map).map((url) => lead(url))),
+      fetchPage: pages(map),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.postings).toEqual([]);
+    expect(result.stats.rejected).toEqual({ not_job_posting: 6 });
+  });
+
+  it("names a posting by its job, not by a logo heading with the company name", async () => {
+    const url =
+      "https://sample.example/ja/recruit/career/job-categories/sm001/";
+    const html = `
+      <html><head><title>データ分析｜サンプル株式会社</title>
+        <meta property="og:title" content="データ分析">
+        <meta property="og:site_name" content="サンプル株式会社"></head>
+      <body><h1><span>SMP サンプル</span></h1><h1>データ分析</h1>
+      <p>仕事内容 分析</p><p>応募資格 経験</p></body></html>`;
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(url)]),
+      fetchPage: pages({ [url]: html }),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.postings).toEqual([
+      expect.objectContaining({ url, title: "データ分析" }),
+    ]);
+  });
+
+  it("expands an ATS job group page instead of keeping it as a posting", async () => {
+    const group = "https://herp.careers/v1/sample/requisition-groups/abc-123";
+    const posting = "https://herp.careers/v1/sample/AbC12";
+    const atsPage = (title: string, links = "") =>
+      `<html><head><title>${title}｜サンプル株式会社</title></head>
+      <body><h1>${title}</h1><p>仕事内容 開発</p><p>応募資格 経験</p>${links}</body></html>`;
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(group)]),
+      fetchPage: pages({
+        [group]: atsPage(
+          "Engineer の求人一覧",
+          '<a href="/v1/sample/AbC12">x</a>',
+        ),
+        [posting]: atsPage("バックエンドエンジニア"),
+      }),
+      limits: { ...limits, maxQueries: 1 },
+      now,
+    });
+    expect(result.postings).toEqual([
+      expect.objectContaining({
+        url: posting,
+        title: "バックエンドエンジニア",
+        sourceKind: "ats",
+      }),
+    ]);
+  });
+
   it("never treats a job board as official just because it says so", async () => {
     const url = "https://jobboard.example/jobs/123";
     const result = await discoverJobs({

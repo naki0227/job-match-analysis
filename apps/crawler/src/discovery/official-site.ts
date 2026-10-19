@@ -13,6 +13,11 @@ import type { PublicResourceFetcher } from "./public-resource.js";
 const WIKIPEDIA = "https://ja.wikipedia.org/wiki/";
 const ENTITY_DATA = "https://www.wikidata.org/wiki/Special:EntityData/";
 const HTML = /^\s*text\/html\b/i;
+/**
+ * Articles on large companies exceed the usual page limit (トヨタ自動車 is
+ * about 2 MB), and the Wikidata link is only found in the full page.
+ */
+const ARTICLE_MAX_BYTES = 6 * 1024 * 1024;
 const JSON_TYPE = /^\s*application\/json\b/i;
 
 /** Wikidata "instance of" values that mean a company or other employer. */
@@ -112,6 +117,7 @@ export async function resolveOfficialSites(args: {
       article = await args.fetchResource(
         `${WIKIPEDIA}${encodeURIComponent(title.replace(/ /g, "_"))}`,
         HTML,
+        ARTICLE_MAX_BYTES,
       );
     } catch {
       continue;

@@ -18,6 +18,8 @@ export type PublicResource = { url: string; body: string };
 export type PublicResourceFetcher = (
   url: string,
   accept: RegExp,
+  /** A larger size limit for a resource known to be big (Wikipedia articles). */
+  maxBytes?: number,
 ) => Promise<PublicResource>;
 
 /**
@@ -41,14 +43,20 @@ export function createPublicResourceFetcher(args: {
         }
       }),
   });
-  return async (url, accept) => {
+  return async (url, accept, maxBytes) => {
     const origin = parsePublicUrl(url).origin;
-    const response = await fetchPublic(url, resolve, send, async (next) => {
-      if (next.origin !== origin) {
-        throw new PublicResourceError("redirected to another origin");
-      }
-      await policy(next);
-    });
+    const response = await fetchPublic(
+      url,
+      resolve,
+      send,
+      async (next) => {
+        if (next.origin !== origin) {
+          throw new PublicResourceError("redirected to another origin");
+        }
+        await policy(next);
+      },
+      maxBytes,
+    );
     if (response.status < 200 || response.status >= 300) {
       throw new PublicResourceError("resource response was not successful");
     }

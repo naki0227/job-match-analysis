@@ -135,4 +135,54 @@ describe("leads from the employer's own sites", () => {
     expect(calls).not.toContain("https://elsewhere.example/sitemap.xml");
     expect(calls).toHaveLength(3);
   });
+
+  it("puts the registry's site first for a Japanese name and keeps Wikidata's", async () => {
+    const { createOfficialLeadSource } =
+      await import("../../src/discovery/official-leads.js");
+    const wiki = "https://ja.wikipedia.org/wiki/";
+    const entity = "https://www.wikidata.org/wiki/Special:EntityData/";
+    const resources: Record<string, string> = {
+      [`${wiki}${encodeURIComponent("サンプル")}`]:
+        '<a href="https://www.wikidata.org/wiki/Special:EntityPage/Q9">x</a>',
+      [`${entity}Q9.json`]: JSON.stringify({
+        entities: {
+          Q9: {
+            labels: { ja: { value: "サンプル" } },
+            claims: {
+              P31: [{ mainsnak: { datavalue: { value: { id: "Q4830453" } } } }],
+              P856: [
+                {
+                  mainsnak: { datavalue: { value: "https://www.sample.com/" } },
+                },
+              ],
+            },
+          },
+        },
+      }),
+    };
+    const fetchResource: PublicResourceFetcher = async (url) => {
+      const body = resources[url];
+      if (body === undefined) throw new Error("not found");
+      return { url, body };
+    };
+    const homepages: string[] = [];
+    const leads = createOfficialLeadSource(
+      { maxSitemapFetches: 0, maxDetailLeads: 0 },
+      () => fetchResource,
+      async () => ({
+        sites: ["https://www.sample.co.jp/"],
+        names: ["SAMPLE CORPORATION"],
+      }),
+    )(async (url) => {
+      homepages.push(url);
+      return { url, html: "<html></html>" };
+    });
+    const result = await leads({ company: "サンプル" });
+    expect(homepages).toEqual([
+      "https://www.sample.co.jp/",
+      "https://www.sample.com/",
+    ]);
+    expect(result.domains).toEqual(["sample.co.jp", "sample.com"]);
+    expect(result.aliases).toContain("SAMPLE CORPORATION");
+  });
 });

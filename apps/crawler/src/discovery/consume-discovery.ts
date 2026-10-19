@@ -5,6 +5,7 @@ import {
   type DiscoveryLimits,
   type PageFetcher,
 } from "./discover-jobs.js";
+import type { AtsBoardReader } from "./ats-boards.js";
 import type { DiscoveryErrorCode, DiscoveryStore } from "./discovery-store.js";
 import type { OfficialLeadResult } from "./official-leads.js";
 import type { DiscoveryQuery } from "./queries.js";
@@ -19,6 +20,8 @@ export type DiscoveryRuntime = {
   createOfficialLeads?: (
     fetchPage: PageFetcher,
   ) => (query: DiscoveryQuery) => Promise<OfficialLeadResult>;
+  /** Public job board APIs of hosted ATS (ADR-052), one reader per run. */
+  createAtsBoardReader?: () => AtsBoardReader;
   limits: DiscoveryLimits;
   leaseSeconds: number;
   maxAttempts: number;
@@ -54,6 +57,9 @@ export async function consumeOneDiscovery(
       fetchPage,
       ...(runtime.createOfficialLeads
         ? { officialLeads: runtime.createOfficialLeads(fetchPage) }
+        : {}),
+      ...(runtime.createAtsBoardReader
+        ? { readAtsBoard: runtime.createAtsBoardReader() }
         : {}),
       limits: runtime.limits,
       now: now(),

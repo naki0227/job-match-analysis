@@ -2,7 +2,7 @@ import { parse, type DefaultTreeAdapterTypes as Html } from "parse5";
 import { sourceFor } from "./job-sources.js";
 
 export const CAREER =
-  /(?:^|[/._-])(?:careers?|jobs?|job-?categor(?:y|ies)|job-?details?|recruit(?:ing|ment)?|saiyou|saiyo|positions?|openings?|join(?:-us)?)(?:$|[/._-])|採用|求人|募集/iu;
+  /(?:^|[/._-])(?:careers?|jobs?|job-?categor(?:y|ies)|job-?details?|recruit(?:ing|ment)?|saiyou|saiyo|positions?|openings?|join(?:-us)?)(?:$|[/._-])|採用|求人|募集|ジョブ/iu;
 const CAREER_TEXT = /採用|求人|募集|キャリア|recruit|careers?|jobs?|join us/iu;
 
 export const decode = (value: string) => {

@@ -295,7 +295,13 @@ describe("web discovery", () => {
     expect(
       fetchPage.calls.every((url) => url.startsWith("https://sample.example/")),
     ).toBe(true);
-    expect(fetchPage.calls).toHaveLength(4);
+    // The root, rendered once more (it hands off to no job site), then the
+    // three postings.
+    expect(fetchPage.calls).toEqual([
+      root,
+      root,
+      ...links.slice(0, 3).map((path) => `https://sample.example${path}`),
+    ]);
   });
 
   it("stops at the fetch budget", async () => {
@@ -577,6 +583,79 @@ describe("official-site discovery (ADR-051)", () => {
       posting(2),
     ]);
     expect(result.stats.listingsExpanded).toBe(1);
+  });
+
+  it("renders a careers page whose job list is drawn by script, and reads its job sites first", async () => {
+    const careers = `${site}/careers/jobs/engineering/`;
+    const posting = "https://sample.workable.com/jobs/101";
+    const careersSite =
+      "https://japan-job-jp.sample.careers/job/tokyo/plan/1/2";
+    const menu = `<html><head><title>エンジニア｜サンプル株式会社</title></head><body>
+      <h1>エンジニア</h1><a href="${careers}">エンジニア</a></body></html>`;
+    const drawn = menu.replace(
+      "</body>",
+      `<a href="${posting}">Backend</a><a href="${careersSite}">企画</a></body>`,
+    );
+    const calls: [string, boolean][] = [];
+    const fetchPage: PageFetcher = async (url, options) => {
+      calls.push([url, options?.render ?? false]);
+      if (url === careers) return { url, html: options?.render ? drawn : menu };
+      if (url === posting)
+        return {
+          url,
+          html: jobPage({ title: "Backend Engineer", org: "サンプル" }),
+        };
+      if (url === careersSite)
+        return { url, html: jobPage({ title: "事業企画", org: "サンプル" }) };
+      throw new Error("not reachable");
+    };
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([]),
+      officialLeads: async () => ({
+        leads: [careers],
+        aliases: [],
+        domains: ["sample.co.jp"],
+      }),
+      fetchPage,
+      limits,
+      now,
+    });
+    expect(calls).toEqual([
+      [careers, false],
+      [careers, true],
+      // A Japanese search reads the Japanese careers site first.
+      [careersSite, false],
+      [posting, false],
+    ]);
+    // The employer's own careers domain (named after it) is official.
+    expect(
+      result.postings.map((item) => [item.title, item.sourceKind]),
+    ).toEqual([
+      ["事業企画", "official"],
+      ["Backend Engineer", "ats"],
+    ]);
+  });
+
+  it("never trusts a search result just because its domain has the employer's name", async () => {
+    const url = "https://sample-jobs.example/careers/job/1";
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(url)]),
+      officialLeads: async () => ({
+        leads: [],
+        aliases: [],
+        domains: ["sample.co.jp"],
+      }),
+      fetchPage: pages({
+        [url]: jobPage({ title: "法人営業", org: "サンプル" }),
+      }),
+      limits,
+      now,
+    });
+    expect(result.postings).toEqual([
+      expect.objectContaining({ url, sourceKind: "web" }),
+    ]);
   });
 
   it("accepts a posting that names the company by an alias, under the searched name", async () => {

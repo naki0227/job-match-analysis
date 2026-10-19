@@ -83,6 +83,14 @@ describe("job source adapters", () => {
         10,
       ),
     ).toEqual(["https://herp.careers/v1/sample/AbC12"]);
+    // An ATS company page leads to its own job list only.
+    expect(
+      postingLinks(
+        '<a href="/pages/sample/jobs">Jobs</a><a href="/pages/other/jobs">Other</a><a href="/pages/sample">Top</a>',
+        "https://hrmos.co/pages/sample",
+        10,
+      ),
+    ).toEqual(["https://hrmos.co/pages/sample/jobs"]);
   });
 
   it("reads JobPosting JSON-LD including @graph, remote work and validity", () => {

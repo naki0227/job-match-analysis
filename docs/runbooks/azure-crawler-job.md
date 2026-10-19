@@ -113,3 +113,13 @@ API側もDeploy APIでJob Resolver/Discoveryの上限を設定する。Privacy P
 解析jobは`CRAWLER_LEASE_SECONDS=120`、`CRAWLER_MAX_ATTEMPTS=2`で起動する。transient failureは`requeue_analysis_job`で直ちにqueuedへ戻し、lease満了まで待たない。これにより一時的なJev/network failureで画面が10分近くrunningのままになる状態を避ける。
 
 DDGSがblockまたはtimeoutした場合、探索jobだけがretry/failedになり、既知求人検索とURL直接入力は引き続き利用できる。
+
+### 公式サイトからの探索（ADR-051）
+
+探索は、まず公式サイトから手がかりを集める（Wikipedia/Wikidataで公式サイトを特定し、そのトップページ・sitemap・ATSリンクを使う）。追加のsecretや費用は不要。DDGSは、公式サイトから求人が見つからない時だけ使われる。
+
+- `CRAWLER_WEB_SEARCH_PROVIDER=ddgs`: 公式サイト＋DDGS（既存の設定のまま有効になる）
+- `CRAWLER_WEB_SEARCH_PROVIDER=official`: 公式サイトのみ。DDGSを使わない（DDGSの設定は不要）
+- `CRAWLER_DISCOVERY_MAX_SITEMAP_FETCHES`（既定6、最大10）: 1回の探索で取得するrobots.txtとsitemapの数
+- `CRAWLER_DISCOVERY_MAX_SITEMAP_DETAILS`（既定15、最大30）: sitemapから取る求人詳細の候補数
+- metric `job_match.discovery.official_leads`で、公式サイトから得た手がかりの数を確認する。

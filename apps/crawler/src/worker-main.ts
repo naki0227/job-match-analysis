@@ -19,6 +19,8 @@ import { createDdgsProvider } from "./discovery/ddgs-provider.js";
 import { parseDiscoveryConfig } from "./discovery/discovery-config.js";
 import { createSupabaseDiscoveryStore } from "./discovery/discovery-store.js";
 import { createPublicPageFetcher } from "./fetch-source-document.js";
+import { createOfficialLeadSource } from "./discovery/official-leads.js";
+import { noWebSearch } from "./discovery/web-search.js";
 
 const configSchema = z.object({
   SUPABASE_URL: z.url(),
@@ -100,8 +102,13 @@ async function main(): Promise<void> {
           config.SUPABASE_URL,
           config.SUPABASE_SECRET_KEY,
         ),
-        search: createDdgsProvider(config.discovery.ddgs),
+        search: config.discovery.ddgs
+          ? createDdgsProvider(config.discovery.ddgs)
+          : noWebSearch,
         createFetcher: () => createPublicPageFetcher({ browser }),
+        createOfficialLeads: createOfficialLeadSource(
+          config.discovery.official,
+        ),
         limits: config.discovery.limits,
         leaseSeconds: config.CRAWLER_LEASE_SECONDS,
         maxAttempts: config.CRAWLER_MAX_ATTEMPTS,

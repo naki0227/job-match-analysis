@@ -144,6 +144,13 @@ export function postingLinks(
     const accepted =
       (sameOrigin &&
         (source.isPostingLink(link, listing) ||
+          // An ATS company page links to its own job list (same company
+          // path, not the page itself).
+          (source.kind === "ats" &&
+            source.isListing(link) &&
+            link.pathname.replace(/\/$/, "") !==
+              listing.pathname.replace(/\/$/, "") &&
+            link.pathname.startsWith(listing.pathname.replace(/\/?$/, "/"))) ||
           (JOB_LINK_TEXT.test(item.text) &&
             CAREER_PATH.test(
               decodeURIComponent(`${link.pathname}${link.search}`),

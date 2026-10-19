@@ -26,3 +26,12 @@ export class WebSearchError extends Error {
     this.name = "WebSearchError";
   }
 }
+
+/**
+ * No search engine (CRAWLER_WEB_SEARCH_PROVIDER=official): only the
+ * employer's own sites give leads, so a company without them has none.
+ */
+export const noWebSearch: WebSearchProvider = {
+  name: "none",
+  search: async () => [],
+};

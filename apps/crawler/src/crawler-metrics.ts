@@ -34,6 +34,8 @@ export type EvaluationEvent = {
 
 /** One web discovery (ADR-047): counts and bounded reasons only. */
 export type DiscoveryEvent = {
+  /** Leads from the employer's own sites (ADR-051). */
+  officialLeads: number;
   queries: number;
   searchFailures: Partial<
     Record<"timeout" | "blocked" | "unavailable", number>

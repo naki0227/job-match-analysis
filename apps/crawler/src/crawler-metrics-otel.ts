@@ -82,6 +82,10 @@ function createDiscoveryInstruments(
     meter.createCounter(`job_match.discovery.${name}`, { description });
   const runs = counter("runs", "Web discoveries by outcome");
   const searches = counter("searches", "External search calls");
+  const officialLeads = counter(
+    "official_leads",
+    "Leads from employers' own sites and sitemaps",
+  );
   const failures = counter("search_failures", "Failed searches by kind");
   const results = counter("search_results", "Search results (leads)");
   const fetched = counter("fetched", "Pages fetched while verifying");
@@ -95,6 +99,7 @@ function createDiscoveryInstruments(
   return (event) => {
     runs.add(1, { outcome: event.outcome });
     searches.add(event.queries);
+    officialLeads.add(event.officialLeads);
     for (const [kind, count] of Object.entries(event.searchFailures))
       failures.add(count ?? 0, { kind });
     results.add(event.searchResults);

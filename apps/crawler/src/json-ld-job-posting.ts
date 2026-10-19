@@ -36,7 +36,9 @@ const place = z
 const jobPostingSchema = z.object({
   "@type": z.union([z.string(), z.array(z.string())]),
   title: text,
-  hiringOrganization: z.object({ name: text }),
+  // schema.org allows the organization's name as plain text; Accenture's
+  // career pages publish "hiringOrganization": "Accenture".
+  hiringOrganization: z.union([text, z.object({ name: text })]),
   employmentType: oneOrMany(text).optional(),
   jobLocation: oneOrMany(place).optional(),
   jobLocationType: oneOrMany(text).optional(),
@@ -92,7 +94,10 @@ export function readJobPosting(
       const data = parsed.data;
       postings.push({
         title: data.title,
-        employerName: data.hiringOrganization.name,
+        employerName:
+          typeof data.hiringOrganization === "string"
+            ? data.hiringOrganization
+            : data.hiringOrganization.name,
         employmentTypes: list(data.employmentType)
           .map((item) => item.toUpperCase().replace(/[\s-]+/g, "_"))
           .filter((item) => EMPLOYMENT_TYPES.has(item)),

@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { parse, type DefaultTreeAdapterTypes as Html } from "parse5";
+import { readPageJobIdentity } from "./page-job-identity.js";
 import {
   readJobPosting,
   type StructuredJobPosting,
 } from "./json-ld-job-posting.js";
 
-export const EXTRACTOR_VERSION = "html-v4";
+export const EXTRACTOR_VERSION = "html-v5";
 export const MIN_JOB_CHARACTERS = 100;
 
 export type SourceSection = {
@@ -292,7 +293,7 @@ function relatedListingMarker(
   employerName: string | undefined,
 ): number | undefined {
   const generic =
-    /(?:^|\s)(?:関連求人|その他の求人|おすすめ求人|同じ会社の求人|related\s+(?:jobs|positions|openings)|other\s+(?:jobs|positions|openings)|similar\s+(?:jobs|positions|openings))(?:\s|$)/iu.exec(
+    /(?:^|\s)(?:関連求人|関連ポジション|その他の求人|その他のポジション|おすすめ求人|おすすめのポジション|同じ会社の求人|related\s+(?:jobs|positions|openings)|other\s+(?:jobs|positions|openings)|similar\s+(?:jobs|positions|openings))(?:\s|$)/iu.exec(
       text,
     );
   const employer = employerName
@@ -350,14 +351,19 @@ export function extractSourceDocument(
   fetchedAt: Date,
 ): ExtractedSourceDocument {
   const root = parse(html, { sourceCodeLocationInfo: true });
-  const structuredJob = readJobPosting(jsonLdScripts(root));
+  const scripts = jsonLdScripts(root);
+  const structuredJob = readJobPosting(scripts);
   const jobNode =
     collect(root, (node) => attribute(node, "data-job") !== undefined) ??
     collect(
       root,
       (node) => attribute(node, "itemtype")?.endsWith("/JobPosting") ?? false,
     ) ??
-    collect(root, (node) => node.tagName === "main");
+    collect(root, (node) => node.tagName === "main") ??
+    collect(root, (node) => attribute(node, "role") === "main") ??
+    // Corporate career sites often have no landmarks at all (LINEヤフー).
+    // The body still excludes nav/footer/script and hidden text.
+    collect(root, (node) => node.tagName === "body");
   const companyNode =
     collect(root, (node) => attribute(node, "data-company") !== undefined) ??
     collect(
@@ -383,6 +389,11 @@ export function extractSourceDocument(
     .map((item) => `[${item.scope}]\n${item.text}`)
     .join("\n\n");
   const jobText = trimmedJob.whole?.text ?? "";
+  // JobPosting JSON-LD wins; otherwise only what the page states about
+  // itself, under every condition of readPageJobIdentity (ADR-050).
+  const pageIdentity = structuredJob
+    ? undefined
+    : readPageJobIdentity({ root, jsonLdScripts: scripts, jobText });
   return {
     url,
     fetchedAt: fetchedAt.toISOString(),
@@ -400,6 +411,8 @@ export function extractSourceDocument(
           },
           structuredJob,
         }
-      : {}),
+      : pageIdentity
+        ? { jobIdentity: pageIdentity }
+        : {}),
   };
 }

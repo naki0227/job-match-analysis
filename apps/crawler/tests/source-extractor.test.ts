@@ -39,7 +39,7 @@ describe("source document extraction", () => {
       sourceUrlId: "source-id",
       contentHash: document.contentHash,
       fetchedAt: document.fetchedAt,
-      extractorVersion: "html-v4",
+      extractorVersion: "html-v5",
       extractedText: document.extractedText,
     });
   });

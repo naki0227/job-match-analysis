@@ -174,6 +174,29 @@ test("the Azure starter can override the execution with the pinned crawler image
   assert.equal(values.get("CRAWLER_LEASE_SECONDS"), "120");
   assert.equal(values.get("SUPABASE_SECRET_KEY"), "secret:supabase-secret-key");
   assert.equal(values.get("JEV_API_KEY"), "secret:jev-api-key");
+  // The gBizINFO token is optional and passed only when configured.
+  assert.equal(values.has("CRAWLER_GBIZINFO_API_TOKEN"), false);
+});
+
+test("the gBizINFO token reaches the crawler as a secret reference", () => {
+  const config = azureJobConfigFromEnv({
+    ...executionEnv,
+    CRAWLER_GBIZINFO_SECRET_REF: "gbizinfo-api-token",
+  });
+  assert.deepEqual(
+    config?.execution?.environment.find(
+      (item) => item.name === "CRAWLER_GBIZINFO_API_TOKEN",
+    ),
+    { name: "CRAWLER_GBIZINFO_API_TOKEN", secretRef: "gbizinfo-api-token" },
+  );
+  assert.throws(
+    () =>
+      azureJobConfigFromEnv({
+        ...executionEnv,
+        CRAWLER_GBIZINFO_SECRET_REF: "not a valid name!",
+      }),
+    /execution configuration is invalid/,
+  );
 });
 
 test("configuration is all-or-nothing and needs a cooldown", () => {

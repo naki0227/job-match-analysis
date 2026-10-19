@@ -82,6 +82,8 @@ export function azureJobConfigFromEnv(
   const image = env.CRAWLER_EXECUTION_IMAGE ?? "";
   const supabaseSecretRef = env.CRAWLER_SUPABASE_SECRET_REF ?? "";
   const jevSecretRef = env.CRAWLER_JEV_SECRET_REF ?? "";
+  // Optional: the gBizINFO API token for discovery (ADR-052).
+  const gbizSecretRef = env.CRAWLER_GBIZINFO_SECRET_REF ?? "";
   const supabaseUrl = env.SUPABASE_URL ?? "";
   const anyExecutionConfig =
     image !== "" ||
@@ -96,6 +98,7 @@ export function azureJobConfigFromEnv(
       !namePattern.test(supabaseSecretRef) ||
       !namePattern.test(jevSecretRef) ||
       !z.url().safeParse(supabaseUrl).success ||
+      (gbizSecretRef !== "" && !namePattern.test(gbizSecretRef)) ||
       executionValues.some((name) => !env[name])
     ) {
       throw new Error("Azure crawler execution configuration is invalid");
@@ -106,6 +109,9 @@ export function azureJobConfigFromEnv(
         { name: "SUPABASE_URL", value: supabaseUrl },
         { name: "SUPABASE_SECRET_KEY", secretRef: supabaseSecretRef },
         { name: "JEV_API_KEY", secretRef: jevSecretRef },
+        ...(gbizSecretRef
+          ? [{ name: "CRAWLER_GBIZINFO_API_TOKEN", secretRef: gbizSecretRef }]
+          : []),
         { name: "CRAWLER_RUN_MODE", value: "drain" },
         ...executionValues.map((name) => ({ name, value: env[name]! })),
       ],

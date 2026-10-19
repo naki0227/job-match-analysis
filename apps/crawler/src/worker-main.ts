@@ -19,13 +19,18 @@ import { createDdgsProvider } from "./discovery/ddgs-provider.js";
 import { parseDiscoveryConfig } from "./discovery/discovery-config.js";
 import { createSupabaseDiscoveryStore } from "./discovery/discovery-store.js";
 import { createPublicPageFetcher } from "./fetch-source-document.js";
+import { createAtsBoardReader } from "./discovery/ats-boards.js";
+import { createGbizSource } from "./discovery/gbizinfo.js";
 import { createOfficialLeadSource } from "./discovery/official-leads.js";
+import { createPublicResourceFetcher } from "./discovery/public-resource.js";
 import { noWebSearch } from "./discovery/web-search.js";
 
 const configSchema = z.object({
   SUPABASE_URL: z.url(),
   SUPABASE_SECRET_KEY: z.string().min(1),
   JEV_API_KEY: z.string().min(1),
+  /** gBizINFO API token (ADR-052); discovery uses the registry only with it. */
+  CRAWLER_GBIZINFO_API_TOKEN: z.string().min(1).optional(),
   CRAWLER_BROWSER_EXECUTABLE: z.string().min(1),
   CRAWLER_LEASE_SECONDS: z.coerce.number().int().min(1).max(3600),
   CRAWLER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100),
@@ -108,7 +113,13 @@ async function main(): Promise<void> {
         createFetcher: () => createPublicPageFetcher({ browser }),
         createOfficialLeads: createOfficialLeadSource(
           config.discovery.official,
+          undefined,
+          config.CRAWLER_GBIZINFO_API_TOKEN
+            ? createGbizSource(config.CRAWLER_GBIZINFO_API_TOKEN)
+            : undefined,
         ),
+        createAtsBoardReader: () =>
+          createAtsBoardReader(createPublicResourceFetcher({})),
         limits: config.discovery.limits,
         leaseSeconds: config.CRAWLER_LEASE_SECONDS,
         maxAttempts: config.CRAWLER_MAX_ATTEMPTS,

@@ -1,4 +1,6 @@
 import { normalizeAnalysisUrl } from "@job-match/contracts";
+import { sameCompany } from "@job-match/domain";
+import { atsBoardOf, type AtsBoardReader } from "./ats-boards.js";
 import { CAREER, decode, shapeOf, siteOf } from "./career-links.js";
 import type { OfficialLeadResult } from "./official-leads.js";
 import { readJobPostings } from "./job-posting-ld.js";
@@ -120,6 +122,8 @@ export async function discoverJobs(args: {
   search: WebSearchProvider;
   officialLeads?: (query: DiscoveryQuery) => Promise<OfficialLeadResult>;
   fetchPage: PageFetcher;
+  /** Public job board APIs of hosted ATS (ADR-052). */
+  readAtsBoard?: AtsBoardReader;
   limits: DiscoveryLimits;
   now: Date;
 }): Promise<{
@@ -161,8 +165,10 @@ export async function discoverJobs(args: {
   const japanese = JAPANESE.test(args.query.company);
   const seen = new Set<string>();
   const found = new Map<string, DiscoveredPosting>();
-  /** Fetch, verify and expand leads until the fetch limit or enough results. */
+  /** ATS boards read through their API: whether their postings were kept. */
+  const boards = new Map<string, boolean>();
   /**
+   * Fetch, verify and expand leads until the fetch limit or enough results.
    * `fromOfficial`: the leads came from the employer's own sites, so the
    * careers sites they hand off to (named after it) can be trusted. Search
    * results never can: anyone can register a domain with the name in it.
@@ -183,6 +189,53 @@ export async function discoverJobs(args: {
     while ((handOffs.length || queue.length) && stats.fetched < fetchLimit) {
       if (found.size >= args.limits.maxResults) break;
       const item = handOffs.shift() ?? queue.shift()!;
+      // A page of an ATS board with a public API: the API lists all of the
+      // board's postings in one request (ADR-052). They are kept when the
+      // board was reached from the employer's own site, or when the board
+      // names the employer; otherwise the page is verified as usual.
+      const board = args.readAtsBoard ? atsBoardOf(new URL(item.url)) : null;
+      const boardKey = board && `${board.provider}:${board.id.toLowerCase()}`;
+      if (board && boardKey && !boards.has(boardKey)) {
+        boards.set(boardKey, false);
+        stats.fetched += 1;
+        try {
+          const listing = await args.readAtsBoard!(board);
+          const named = listing.companyName;
+          if (
+            fromOfficial ||
+            (named !== null &&
+              [args.query.company, ...aliases].some((name) =>
+                sameCompany(name, named),
+              ))
+          ) {
+            boards.set(boardKey, true);
+            stats.listingsExpanded += 1;
+            for (const posting of listing.postings) {
+              if (found.size >= args.limits.maxResults) break;
+              const url = normalized(posting.url);
+              if (!url || found.has(url)) continue;
+              seen.add(url);
+              found.set(url, {
+                url,
+                title: posting.title,
+                companyName: args.query.company,
+                sourceKind: "ats",
+                employmentTypes: posting.employmentTypes,
+                location: posting.location,
+                validThrough: null,
+              });
+              stats.verified += 1;
+            }
+            continue;
+          }
+        } catch {
+          // An unreachable API leaves the board's pages to be fetched.
+        }
+        if (stats.fetched >= fetchLimit) break;
+      } else if (boardKey && boards.get(boardKey)) {
+        // Its postings are already kept.
+        continue;
+      }
       stats.fetched += 1;
       let page: { url: string; html: string };
       try {

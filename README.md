@@ -47,6 +47,7 @@ Node.js 24、pnpm 11、DB統合テスト用のDockerを用意する。ルート�
 - 検索結果は手がかりにとどめ、安全な取得とJobPosting JSON-LDの検証を通った求人だけを保存します。
 - 利用者の増加、rate limitやblockの頻発、検索品質の不足、提供側の仕様変更、SLAが必要になった時、商用規模への拡大のいずれかがあれば、正式なSearch API（Tavily、Brave Search API等）への移行を検討します。`WebSearchProvider`のadapterを差し替えるだけで移行できます。
 - 詳細は [ADR-047](docs/adr/047-web-job-discovery-ddgs.md) を参照してください。
+- 現在は、まず公式サイト（Wikipedia/Wikidata、gBizINFO）から求人を探し、DDGSは見つからない時だけ使います（[ADR-051](docs/adr/051-official-site-discovery.md)、[ADR-052](docs/adr/052-gbizinfo-and-ats-board-apis.md)）。gBizINFOを使うには、[APIトークン](https://content.info.gbiz.go.jp/api/index.html)（無料。利用申請が必要）をcrawlerの`CRAWLER_GBIZINFO_API_TOKEN`に設定します。Azureでは、Container Apps Jobにsecretを作り、APIの`CRAWLER_GBIZINFO_SECRET_REF`にその名前を設定します。
 
 ## Issues / 進め方
 

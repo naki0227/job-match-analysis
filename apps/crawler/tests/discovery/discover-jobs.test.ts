@@ -658,6 +658,112 @@ describe("official-site discovery (ADR-051)", () => {
     ]);
   });
 
+  it("lists an ATS board's postings through its API when the official site links it", async () => {
+    const careers = `${site}/careers/`;
+    const board = "https://job-boards.greenhouse.io/sample";
+    const boards: { provider: string; id: string }[] = [];
+    const fetchPage = pages({
+      [careers]: careersPage("キャリア採用", [`${board}/jobs/1`]),
+    });
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([]),
+      officialLeads: async () => ({
+        leads: [careers],
+        aliases: [],
+        domains: ["sample.co.jp"],
+      }),
+      fetchPage,
+      readAtsBoard: async (item) => {
+        boards.push(item);
+        return {
+          // A board that does not repeat the name is still the employer's:
+          // its own site links to it.
+          companyName: null,
+          postings: [1, 2, 3].map((n) => ({
+            url: `${board}/jobs/${n}`,
+            title: `職種${n}`,
+            location: "東京",
+            employmentTypes: ["FULL_TIME"],
+          })),
+        };
+      },
+      limits,
+      now,
+    });
+    expect(boards).toEqual([{ provider: "greenhouse", id: "sample" }]);
+    // The posting pages are not fetched one by one.
+    expect(fetchPage.calls).toEqual([careers]);
+    expect(result.postings).toEqual(
+      [1, 2, 3].map((n) => ({
+        url: `${board}/jobs/${n}`,
+        title: `職種${n}`,
+        companyName: "サンプル",
+        sourceKind: "ats",
+        employmentTypes: ["FULL_TIME"],
+        location: "東京",
+        validThrough: null,
+      })),
+    );
+  });
+
+  it("trusts a board from search only when it names the employer", async () => {
+    const named = "https://jobs.lever.co/sample/1";
+    const other = "https://jobs.lever.co/other/2";
+    const read = async ({ id }: { id: string }) => ({
+      companyName: id === "sample" ? "Sample" : null,
+      postings: [
+        {
+          url: `https://jobs.lever.co/${id}/9`,
+          title: "Engineer",
+          location: null,
+          employmentTypes: [],
+        },
+      ],
+    });
+    const fetchPage = pages({
+      [other]: "<html><body><h1>Engineer</h1></body></html>",
+    });
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(named), lead(other)]),
+      officialLeads: async () => ({
+        leads: [],
+        aliases: ["Sample"],
+        domains: [],
+      }),
+      fetchPage,
+      readAtsBoard: read,
+      limits,
+      now,
+    });
+    // "sample" names the employer by its alias; "other" does not, so its
+    // page is verified as usual (and is not a posting of サンプル).
+    expect(result.postings.map((item) => item.url)).toEqual([
+      "https://jobs.lever.co/sample/9",
+    ]);
+    expect(fetchPage.calls).toEqual([other]);
+  });
+
+  it("falls back to the board's pages when its API is unreachable", async () => {
+    const posting = "https://jobs.ashbyhq.com/sample/1";
+    const fetchPage = pages({
+      [posting]: jobPage({ title: "Designer", org: "サンプル" }),
+    });
+    const result = await discoverJobs({
+      query: { company: "サンプル" },
+      search: provider([lead(posting)]),
+      fetchPage,
+      readAtsBoard: async () => {
+        throw new Error("rate limited");
+      },
+      limits,
+      now,
+    });
+    expect(result.postings.map((item) => item.title)).toEqual(["Designer"]);
+    expect(fetchPage.calls).toEqual([posting]);
+  });
+
   it("accepts a posting that names the company by an alias, under the searched name", async () => {
     const url = "https://www.acn.example/jp-ja/careers/jobdetails?id=R1_ja";
     const fetchPage = pages({

@@ -5,6 +5,7 @@ import {
   shapeOf,
   siteOf,
 } from "./career-links.js";
+import type { GbizSource } from "./gbizinfo.js";
 import { sourceFor } from "./job-sources.js";
 import { resolveOfficialSites } from "./official-site.js";
 import {
@@ -280,6 +281,8 @@ export function createOfficialLeadSource(
   limits: OfficialLeadLimits,
   fetchResource: () => PublicResourceFetcher = () =>
     createPublicResourceFetcher({}),
+  /** The corporate registry (ADR-052), when an API token is configured. */
+  gbiz?: GbizSource,
 ): (
   fetchPage: (url: string) => Promise<{ url: string; html: string }>,
 ) => (query: {
@@ -289,16 +292,31 @@ export function createOfficialLeadSource(
   return (fetchPage) => {
     const fetcher = fetchResource();
     return async (query) => {
-      const { sites, names } = await resolveOfficialSites({
-        company: query.company,
-        fetchResource: fetcher,
-      });
+      const none = { sites: [] as string[], names: [] as string[] };
+      const [reference, registry] = await Promise.all([
+        resolveOfficialSites({
+          company: query.company,
+          fetchResource: fetcher,
+        }),
+        gbiz ? gbiz(query.company).catch(() => none) : none,
+      ]);
+      // The registry names the Japanese site (keyence.co.jp where Wikidata
+      // has keyence.com): it goes first for a Japanese name.
+      const japanese = JAPANESE.test(query.company);
+      const sites = [
+        ...new Set(
+          japanese
+            ? [...registry.sites, ...reference.sites]
+            : [...reference.sites, ...registry.sites],
+        ),
+      ].slice(0, 4);
+      const names = [...new Set([...reference.names, ...registry.names])];
       if (sites.length === 0) return { leads: [], aliases: [], domains: [] };
       const leads = await officialLeads({
         sites,
         fetchPage,
         fetchResource: fetcher,
-        japanese: JAPANESE.test(query.company),
+        japanese,
         employmentType: query.employmentType ?? null,
         limits,
       });

@@ -10,6 +10,8 @@ on:
       - "supabase/rollback/**"
       - "scripts/test-db-migration.sh"
       - "scripts/test-db-restore.sh"
+      - "scripts/test-db-backup-encryption.sh"
+      - "scripts/backup/**"
       - "apps/api/scripts/test-analysis-history-db.ts"
       - "apps/api/scripts/test-analysis-parallel.ts"
       - "apps/api/scripts/test-match-share-db.ts"
@@ -29,6 +31,8 @@ on:
       - "supabase/rollback/**"
       - "scripts/test-db-migration.sh"
       - "scripts/test-db-restore.sh"
+      - "scripts/test-db-backup-encryption.sh"
+      - "scripts/backup/**"
       - "apps/api/scripts/test-analysis-history-db.ts"
       - "apps/api/scripts/test-analysis-parallel.ts"
       - "apps/api/scripts/test-match-share-db.ts"
@@ -70,3 +74,9 @@ jobs:
 
       - name: Test dummy-data backup and isolated restore
         run: sh scripts/test-db-restore.sh
+
+      - name: Install age
+        run: sudo apt-get update -q && sudo apt-get install -y -q age
+
+      - name: Test the encrypted daily backup format and restore
+        run: sh scripts/test-db-backup-encryption.sh

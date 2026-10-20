@@ -19,8 +19,11 @@ COPY apps/web/ ./apps/web/
 
 RUN pnpm --filter web build
 
-FROM nginx:stable-alpine AS runtime
+# Unprivileged nginx (uid 101) listening on 8080; no root at runtime.
+FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime
 
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 8080

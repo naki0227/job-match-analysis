@@ -222,3 +222,45 @@ test("GETは本人のMatchだけを返し、不正IDと不在を区別する", a
   assert.equal((await get(randomUUID())).status, 404);
   assert.equal((await get("not-a-uuid")).status, 400);
 });
+
+test("返せない比較は、requestIdと失敗箇所だけを記録して503を返す", async (t) => {
+  const logged: string[] = [];
+  t.mock.method(console, "error", (line: string) => logged.push(line));
+  const response = await post(
+    routes({ readEvaluation: async () => ({ ...evaluation, jobTitle: " " }) })
+      .app,
+    JSON.stringify({ evaluationId }),
+  );
+  assert.equal(response.status, 503);
+  const body = (await response.json()) as { requestId: string };
+  assert.equal(response.headers.get("X-Request-ID"), body.requestId);
+  assert.deepEqual(
+    logged.map((line) => JSON.parse(line)),
+    [
+      {
+        event: "match_unavailable",
+        requestId: body.requestId,
+        reason: "report_invalid",
+        paths: ["jobTitle"],
+      },
+    ],
+  );
+
+  logged.length = 0;
+  await post(
+    routes({
+      readEvaluation: async () => {
+        throw new TypeError("storage down");
+      },
+    }).app,
+    JSON.stringify({ evaluationId }),
+  );
+  assert.deepEqual(JSON.parse(logged[0]!), {
+    event: "match_unavailable",
+    requestId: JSON.parse(logged[0]!).requestId,
+    reason: "exception",
+    error: "TypeError",
+  });
+  // Nothing from the profile or the posting is written.
+  assert.ok(!logged[0]!.includes("storage down"));
+});

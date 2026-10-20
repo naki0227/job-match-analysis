@@ -43,6 +43,26 @@ export function createSupabaseMatchPorts(caller: MatchCaller): MatchPorts {
 
 type FailStatus = 400 | 401 | 403 | 404 | 409 | 422 | 503;
 
+/**
+ * One line on stderr (collected by the container platform) when a match
+ * cannot be returned, keyed by the request ID the client also receives.
+ * It names where it failed, never the profile or the posting.
+ */
+function logUnavailable(
+  requestId: string,
+  reason: "auth" | "report_invalid" | "exception",
+  detail: Record<string, unknown>,
+) {
+  console.error(
+    JSON.stringify({
+      event: "match_unavailable",
+      requestId,
+      reason,
+      ...detail,
+    }),
+  );
+}
+
 export function createMatchRoutes(
   authDeps: () => ProfileBootstrapDeps,
   portsDeps: MatchPortsFactory = createSupabaseMatchPorts,
@@ -60,8 +80,10 @@ export function createMatchRoutes(
         return fail("unauthorized", "Authentication required", 401);
       if (auth.status === "forbidden")
         return fail("google_required", "Google login required", 403);
-      if (auth.status !== "ok")
+      if (auth.status !== "ok") {
+        logUnavailable(requestId, "auth", {});
         return fail("auth_unavailable", "Authentication unavailable", 503);
+      }
       let body: unknown;
       try {
         body = await c.req.json();
@@ -99,12 +121,19 @@ export function createMatchRoutes(
         case "created":
         case "existing": {
           const report = matchReportSchema.safeParse(result.report);
-          if (!report.success)
+          if (!report.success) {
+            logUnavailable(requestId, "report_invalid", {
+              paths: report.error.issues.map((issue) => issue.path.join(".")),
+            });
             return fail("service_unavailable", "Service unavailable", 503);
+          }
           return c.json(report.data, result.status === "created" ? 201 : 200);
         }
       }
-    } catch {
+    } catch (error) {
+      logUnavailable(requestId, "exception", {
+        error: error instanceof Error ? error.name : typeof error,
+      });
       return fail("service_unavailable", "Service unavailable", 503);
     }
   });

@@ -31,6 +31,13 @@ export function useMatchReport({
       return requestMatch(token, evaluationId, fetcher, signal);
     },
     staleTime: 60_000,
+    // A temporary failure is tried once more before it is shown; the POST
+    // is idempotent on the server.
+    retry: (failures, error) =>
+      failures < 1 &&
+      error instanceof MatchApiError &&
+      error.kind === "unavailable",
+    retryDelay: 500,
   });
   const errorKind =
     query.error instanceof MatchApiError
@@ -40,6 +47,8 @@ export function useMatchReport({
         : null;
   return {
     report: query.data ?? null,
+    requestId:
+      query.error instanceof MatchApiError ? query.error.requestId : null,
     loading: query.isPending,
     errorKind,
     retry: () => void query.refetch(),

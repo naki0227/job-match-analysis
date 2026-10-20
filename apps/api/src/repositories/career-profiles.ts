@@ -5,6 +5,7 @@ import {
   type CareerProfileResponse,
   type CommitCareerProfileRequest,
 } from "@job-match/contracts";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export type ReadProfileResult =
   | { status: "found"; value: CareerProfileResponse }
@@ -57,7 +58,7 @@ export function createSupabaseCareerProfileStore(
   const publishableKey = requiredEnv("SUPABASE_PUBLISHABLE_KEY");
   const adminClient = createClient(url, requiredEnv("SUPABASE_SECRET_KEY"), {
     auth: { autoRefreshToken: false, persistSession: false },
-    ...(fetcher ? { global: { fetch: fetcher } } : {}),
+    global: { fetch: tracedSupabaseFetch(fetcher) },
   });
 
   return {
@@ -66,7 +67,7 @@ export function createSupabaseCareerProfileStore(
         auth: { autoRefreshToken: false, persistSession: false },
         global: {
           headers: { Authorization: `Bearer ${accessToken}` },
-          ...(fetcher ? { fetch: fetcher } : {}),
+          fetch: tracedSupabaseFetch(fetcher),
         },
       });
       const version = await client

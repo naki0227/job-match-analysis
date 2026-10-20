@@ -38,6 +38,7 @@ describe("crawler metrics", () => {
         blocked: 2,
         blockedRendering: 1,
       });
+      metrics.jobBacklog({ queued: 2, expiredLeases: 0 });
     }).not.toThrow();
   });
 
@@ -53,6 +54,7 @@ describe("crawler metrics", () => {
       discovery: down,
       evaluation: down,
       sourceFetch: down,
+      jobBacklog: down,
     });
     expect(() =>
       safe.jevCall({
@@ -66,6 +68,9 @@ describe("crawler metrics", () => {
     ).not.toThrow();
     expect(() => safe.jevBudgetExhausted({ fragments: 1 })).not.toThrow();
     expect(() => safe.evaluation(evaluationEvent)).not.toThrow();
+    expect(() =>
+      safe.jobBacklog({ queued: 3, expiredLeases: 1 }),
+    ).not.toThrow();
     expect(() =>
       safe.sourceFetch({ renderer: "http", blocked: 0, blockedRendering: 0 }),
     ).not.toThrow();

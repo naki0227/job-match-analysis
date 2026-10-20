@@ -5,6 +5,7 @@ import {
   trustedClientIp,
   type ClientIpSource,
 } from "./client-ip.js";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 /** Must match the check constraint in the abuse signal migration. */
 export type AbuseEventType =
@@ -77,6 +78,7 @@ export function createSupabaseAbuseSignalStore(
 ): AbuseSignalStore {
   const client = createClient(url, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   // PostgREST reads bytea from the "\x<hex>" text form.
   const hex = (key: Buffer | null) =>

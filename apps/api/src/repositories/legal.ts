@@ -4,6 +4,7 @@ import {
 } from "@job-match/contracts";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export type LegalRpc = (
   name: string,
@@ -167,6 +168,7 @@ export function createSupabaseLegalRepository(): LegalRepository {
   if (!url || !secret) throw new LegalStoreError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createLegalRepository(async (name, args) => {
     const { data, error } = await client.rpc(name, args);

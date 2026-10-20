@@ -6,6 +6,7 @@ import {
   unknownDecisions,
   type DecisionEngine,
 } from "./decision-engine.js";
+import { tracedSupabaseFetch } from "./telemetry/supabase-fetch.js";
 
 /** Marks evaluations made while the daily Jev budget was exhausted. */
 export const BUDGET_EXHAUSTED_EVALUATOR = "jev-budget-exhausted";
@@ -110,6 +111,7 @@ export function createSupabaseJevBudget(
   return createJevBudget(
     createClient(url, secretKey, {
       auth: { autoRefreshToken: false, persistSession: false },
+      global: { fetch: tracedSupabaseFetch() },
     }),
     setting.dailyCandidates,
   );

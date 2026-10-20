@@ -4,6 +4,7 @@ import {
   AnalysisLeaseLostError,
   type ClaimedAnalysisJob,
 } from "./job-consumer.js";
+import { tracedSupabaseFetch } from "./telemetry/supabase-fetch.js";
 
 export class AnalysisSourceStoreError extends Error {
   constructor() {
@@ -16,6 +17,7 @@ export function createSupabaseAnalysisSourceStore(url: string, secret: string) {
   if (!url || !secret) throw new AnalysisSourceStoreError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return {
     async loadSource(sourceUrlId: string) {

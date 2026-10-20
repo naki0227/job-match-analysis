@@ -223,6 +223,70 @@
           "legendFormat": "{{http_response_status_code}}"
         }
       ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Supabase p95 per operation",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, db_operation) (rate(job_match_db_request_duration_seconds_bucket{job=\"job-match-api\",deployment_environment_name=\"$env\"}[$__rate_interval])))",
+          "legendFormat": "{{db_operation}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Supabase errors per operation",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (db_operation, outcome) (increase(job_match_db_request_duration_seconds_count{job=\"job-match-api\",deployment_environment_name=\"$env\",outcome!=\"ok\"}[$__interval]))",
+          "legendFormat": "{{db_operation}} {{outcome}}"
+        }
+      ]
     }
   ]
 }

@@ -5,6 +5,7 @@ import {
   type AnalysisJobStore,
   type AnalysisWork,
 } from "./job-consumer.js";
+import { tracedSupabaseFetch } from "./telemetry/supabase-fetch.js";
 
 type RpcClient = {
   rpc(
@@ -109,6 +110,7 @@ export function createSupabaseAnalysisJobStore(url: string, secret: string) {
   if (!url || !secret) throw new AnalysisJobStoreError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createAnalysisJobStore(client);
 }

@@ -30,6 +30,14 @@ export function requestTracing(): MiddlewareHandler {
           "http.request.method": c.req.method,
           "http.response.status_code": status,
         });
+        // The ID the user sees as 問い合わせ番号, to find this trace (#32).
+        const requestId = c.res.headers.get("X-Request-ID");
+        if (requestId && /^[0-9a-f-]{36}$/u.test(requestId))
+          span.setAttribute("job_match.request_id", requestId);
+        // A polled analysis job, to follow it into the crawler's span.
+        const jobId = route.includes(":jobId") ? c.req.param("jobId") : null;
+        if (jobId && /^[0-9a-f-]{36}$/u.test(jobId))
+          span.setAttribute("job_match.job_id", jobId);
         if (status >= 500) span.setStatus({ code: SpanStatusCode.ERROR });
         span.end();
       }

@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Hono } from "hono";
 import { authenticate } from "./auth/authenticate.js";
 import type { ProfileBootstrapDeps } from "./auth/profile-bootstrap.js";
+import { tracedSupabaseFetch } from "./telemetry/supabase-fetch.js";
 
 export type AccountStore = {
   /**
@@ -26,6 +27,7 @@ export function createSupabaseAccountStore(): AccountStore {
   if (!url || !secret) throw new AccountStoreError();
   const admin = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return {
     async deleteUser(userId) {

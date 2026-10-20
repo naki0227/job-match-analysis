@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { DiscoveryQuery } from "./queries.js";
 import type { DiscoveredPosting } from "./verify-posting.js";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export type ClaimedDiscovery = {
   discoveryId: string;
@@ -107,6 +108,7 @@ export function createSupabaseDiscoveryStore(
 ): DiscoveryStore {
   const client = createClient(url, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createDiscoveryStore(async (name, args) => {
     const { data, error } = await client.rpc(name, args);

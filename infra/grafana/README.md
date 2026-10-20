@@ -12,6 +12,10 @@ Operations dashboards only use route templates, methods, status codes and
 outcomes. Never add panels or variables keyed by user ids, share tokens, raw
 paths, IP/User-Agent values or their HMACs.
 
+Product Analytics dashboards query only views in the `analytics` schema
+through a login user that has nothing but the `analytics_reader` role
+(ADR-043). Never point them at a role with access to `public` tables.
+
 OTLP metric names are converted by Grafana Cloud: dots become underscores,
 counters gain `_total`, and histograms in seconds gain `_seconds`
 (`job_match.jev.duration` → `job_match_jev_duration_seconds_bucket`).

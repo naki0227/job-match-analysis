@@ -15,6 +15,8 @@ begin
   insert into expected_service_privileges values
     ('abuse_signal_events', '{SELECT,INSERT,DELETE}'),
     ('analysis_jobs', '{SELECT,INSERT,UPDATE}'),
+    ('analytics_consent_events', '{SELECT,INSERT}'),
+    ('analytics_consent_policies', '{SELECT}'),
     ('assessment_axes', '{SELECT}'),
     ('career_constraint_locations', '{SELECT,INSERT}'),
     ('career_constraints', '{SELECT,INSERT}'),

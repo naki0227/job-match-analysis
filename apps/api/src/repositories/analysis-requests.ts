@@ -110,6 +110,47 @@ export function createAnalysisRequestRepository(read: ReadAnalysisRequest) {
   };
 }
 
+export type ConsumeAnalysisRequestAllowance = (args: {
+  p_user_id: string;
+  p_since: string;
+  p_limit: number;
+}) => Promise<unknown>;
+
+/** The loose per-user limit on every analysis request (Issue #42). */
+export function createAnalysisRequestAllowance(
+  consume: ConsumeAnalysisRequestAllowance,
+) {
+  return {
+    async allow(input: {
+      userId: string;
+      since: string;
+      limit: number;
+    }): Promise<boolean> {
+      if (
+        !uuid.safeParse(input.userId).success ||
+        !z.iso.datetime({ offset: true }).safeParse(input.since).success ||
+        !Number.isSafeInteger(input.limit) ||
+        input.limit < 1
+      ) {
+        throw new RangeError("Invalid analysis request allowance");
+      }
+      let raw: unknown;
+      try {
+        raw = await consume({
+          p_user_id: input.userId,
+          p_since: input.since,
+          p_limit: input.limit,
+        });
+      } catch {
+        throw new AnalysisRequestError();
+      }
+      const parsed = z.boolean().safeParse(raw);
+      if (!parsed.success) throw new AnalysisRequestError();
+      return parsed.data;
+    },
+  };
+}
+
 export function createSupabaseAnalysisRequestRepository() {
   const url = process.env.SUPABASE_URL;
   const secret = process.env.SUPABASE_SECRET_KEY;
@@ -117,7 +158,7 @@ export function createSupabaseAnalysisRequestRepository() {
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  return createAnalysisRequestRepository(async (args) => {
+  const repository = createAnalysisRequestRepository(async (args) => {
     const { data, error } = await client.rpc(
       "request_personal_analysis_limited",
       args,
@@ -126,4 +167,13 @@ export function createSupabaseAnalysisRequestRepository() {
     if (error) throw new AnalysisRequestError();
     return data;
   });
+  const allowance = createAnalysisRequestAllowance(async (args) => {
+    const { data, error } = await client.rpc(
+      "consume_analysis_request_allowance",
+      args,
+    );
+    if (error) throw new AnalysisRequestError();
+    return data;
+  });
+  return { ...repository, ...allowance };
 }

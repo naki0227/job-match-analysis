@@ -10,6 +10,7 @@ export type AnalysisApiErrorKind =
   | "unauthorized"
   | "not_found"
   | "quota_exceeded"
+  | "rate_limited"
   | "unavailable";
 
 export class AnalysisApiError extends Error {
@@ -34,13 +35,22 @@ async function send(
   }
 }
 
-function classify(response: Response): AnalysisApiError | null {
+async function classify(response: Response): Promise<AnalysisApiError | null> {
   if (response.status === 400) return new AnalysisApiError("invalid_url");
   if (response.status === 401 || response.status === 403) {
     return new AnalysisApiError("unauthorized");
   }
   if (response.status === 404) return new AnalysisApiError("not_found");
-  if (response.status === 429) return new AnalysisApiError("quota_exceeded");
+  if (response.status === 429) {
+    // The loose limit on every request differs from the new-analysis quota.
+    const code = await response
+      .json()
+      .then((body: unknown) => (body as { code?: unknown } | null)?.code)
+      .catch(() => undefined);
+    return new AnalysisApiError(
+      code === "analysis_rate_limited" ? "rate_limited" : "quota_exceeded",
+    );
+  }
   if (!response.ok) return new AnalysisApiError("unavailable");
   return null;
 }
@@ -74,7 +84,7 @@ export async function requestAnalysis(
     },
     fetcher,
   );
-  const error = classify(response);
+  const error = await classify(response);
   if (error) throw error;
   return parseBody(response, (value) =>
     analysisPostResponseSchema.parse(value),
@@ -114,7 +124,7 @@ export async function readAnalysisJob(
     clearTimeout(timer);
     signal?.removeEventListener("abort", abort);
   }
-  const error = classify(response);
+  const error = await classify(response);
   if (error) throw error;
   const job = await parseBody(response, (value) =>
     analysisJobResponseSchema.parse(value),

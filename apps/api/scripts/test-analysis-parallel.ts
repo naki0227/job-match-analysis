@@ -92,13 +92,16 @@ const routes = createAnalysisRoutes(
     }),
     ensureProfile: async () => true,
   }),
-  () => repository,
+  // The request allowance itself is covered by the SQL tests.
+  () => ({ ...repository, allow: async () => true }),
   () => jobs,
   () => ({
     analyzerVersion: "issue19-http-v1",
     freshnessSeconds: 3600,
     newAnalysisLimit: 100,
     quotaWindowSeconds: 86_400,
+    requestLimit: 100,
+    requestWindowSeconds: 3_600,
     now: () => new Date("2026-09-29T02:00:00Z"),
   }),
 );

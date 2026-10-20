@@ -151,3 +151,11 @@ test("quota errors say that existing results remain available", () => {
   expect(screen.getByRole("alert")).toHaveTextContent("上限に達しました");
   expect(screen.getByRole("alert")).toHaveTextContent("解析済みの求人");
 });
+
+test("request-limit errors ask to wait and keep existing results available", () => {
+  renderState({ kind: "error", url, reason: "rate_limited" });
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "一時的に受付を止めています",
+  );
+  expect(screen.getByRole("alert")).toHaveTextContent("解析済みの結果");
+});

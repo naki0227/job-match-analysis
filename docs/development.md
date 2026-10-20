@@ -69,7 +69,7 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 - テストはJevの本番APIを呼ばない。Crawlerのunit test・統合テストは`createFakeDecisionEngine`を使い、CIは`JEV_API_KEY`などの秘密値を要求しない。実Jevの確認は`apps/api/scripts/jev-smoke.ts`で低頻度・手動に限る。
 - DBのfixtureは`supabase/tests/*.sql`と`apps/api/scripts/test-*-db.ts`に置き、`scripts/test-db-migration.sh`が適用順を管理する。migrationを追加したら、このスクリプトへup・テスト・rollbackを追加する。
 - ローカルSupabase（Auth・Data API）は、ルートの`.env`に`GOOGLE_CLIENT_ID`と`GOOGLE_CLIENT_SECRET`を置いて`pnpm exec supabase start`で起動し、`pnpm test:auth`で匿名・本人・サーバー資格情報の境界を確認する（[Auth](auth.md)）。
-- 画面を動かす時は2つのターミナルで`pnpm --filter api dev`と`pnpm --filter web dev`を実行する。APIの`.env.local`には`SUPABASE_URL`・`SUPABASE_PUBLISHABLE_KEY`・`SUPABASE_SECRET_KEY`と、`ANALYZER_VERSION`・`ANALYSIS_FRESHNESS_SECONDS`・`ANALYSIS_NEW_URL_LIMIT`・`ANALYSIS_QUOTA_WINDOW_SECONDS`が必要（値は運用判断）。画面の見た目だけなら`http://localhost:5173/#ui-preview`でサンプルデータを表示できる。
+- 画面を動かす時は2つのターミナルで`pnpm --filter api dev`と`pnpm --filter web dev`を実行する。APIの`.env.local`には`SUPABASE_URL`・`SUPABASE_PUBLISHABLE_KEY`・`SUPABASE_SECRET_KEY`と、`ANALYZER_VERSION`・`ANALYSIS_FRESHNESS_SECONDS`・`ANALYSIS_NEW_URL_LIMIT`・`ANALYSIS_QUOTA_WINDOW_SECONDS`・`ANALYSIS_REQUEST_LIMIT`・`ANALYSIS_REQUEST_WINDOW_SECONDS`が必要（値は運用判断）。画面の見た目だけなら`http://localhost:5173/#ui-preview`でサンプルデータを表示できる。
 - 共有ジョブを実際に処理する場合は、下の「ローカルCrawler worker」の設定でworkerを起動する。
 
 ## ローカルCrawler worker

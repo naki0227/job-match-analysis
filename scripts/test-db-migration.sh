@@ -249,6 +249,8 @@ if [ "$started" != '3' ] || [ "$active" != '3' ]; then
 fi
 psql_cmd -c "delete from public.job_discovery_requests where query_key like 'cap-%';
   delete from auth.users where id::text like '47200000-%';"
+psql_cmd < supabase/migrations/20261020130000_analysis_request_allowance.sql
+psql_cmd < supabase/tests/20261020130000_analysis_request_allowance.sql
 psql_cmd < supabase/tests/service_role_core_privileges.sql
 psql_cmd < supabase/tests/issue29_security.sql
 pnpm --filter @job-match/contracts build
@@ -265,6 +267,8 @@ psql_cmd < supabase/tests/legal_documents_v1_0_rollback.sql
 psql_cmd < supabase/rollback/20261001004539_legal_acknowledgement_rpcs.sql
 psql_cmd < supabase/tests/legal_acknowledgement_rpcs_rollback.sql
 JOB_MATCH_DB_CONTAINER="$container_name" pnpm --filter api exec node --import tsx scripts/test-job-resolver-db.ts
+psql_cmd < supabase/rollback/20261020130000_analysis_request_allowance.sql
+psql_cmd < supabase/tests/20261020130000_analysis_request_allowance_rollback.sql
 psql_cmd < supabase/rollback/20261002104119_axis_range_observation.sql
 psql_cmd < supabase/tests/20261002104119_axis_range_observation_rollback.sql
 psql_cmd < supabase/rollback/20261002053703_job_sections_facts.sql

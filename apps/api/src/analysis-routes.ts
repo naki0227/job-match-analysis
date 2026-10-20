@@ -34,6 +34,10 @@ export type AnalysisRoutePolicy = {
   /** Most new or refreshed URLs one user may start per quota window. */
   newAnalysisLimit: number;
   quotaWindowSeconds: number;
+  /** Most analysis requests of any kind, cache hits included, per window. */
+  requestLimit: number;
+  /** At most a day: request events are kept for one day only. */
+  requestWindowSeconds: number;
   now: () => Date;
 };
 
@@ -46,21 +50,35 @@ export function createAnalysisRoutePolicy(): AnalysisRoutePolicy {
   const freshnessSeconds = Number(process.env.ANALYSIS_FRESHNESS_SECONDS);
   const newAnalysisLimit = Number(process.env.ANALYSIS_NEW_URL_LIMIT);
   const quotaWindowSeconds = Number(process.env.ANALYSIS_QUOTA_WINDOW_SECONDS);
-  if (
-    !analyzerVersion?.trim() ||
-    !positiveInteger(freshnessSeconds) ||
-    !positiveInteger(newAnalysisLimit) ||
-    !positiveInteger(quotaWindowSeconds)
-  ) {
-    throw new Error("Analysis policy is not configured");
-  }
-  return {
-    analyzerVersion,
+  const requestLimit = Number(process.env.ANALYSIS_REQUEST_LIMIT);
+  const requestWindowSeconds = Number(
+    process.env.ANALYSIS_REQUEST_WINDOW_SECONDS,
+  );
+  const policy = {
+    analyzerVersion: analyzerVersion ?? "",
     freshnessSeconds,
     newAnalysisLimit,
     quotaWindowSeconds,
+    requestLimit,
+    requestWindowSeconds,
     now: () => new Date(),
   };
+  if (!validPolicy(policy)) {
+    throw new Error("Analysis policy is not configured");
+  }
+  return policy;
+}
+
+function validPolicy(policy: AnalysisRoutePolicy): boolean {
+  return (
+    policy.analyzerVersion.trim().length > 0 &&
+    positiveInteger(policy.freshnessSeconds) &&
+    positiveInteger(policy.newAnalysisLimit) &&
+    positiveInteger(policy.quotaWindowSeconds) &&
+    positiveInteger(policy.requestLimit) &&
+    positiveInteger(policy.requestWindowSeconds) &&
+    policy.requestWindowSeconds <= 86_400
+  );
 }
 
 type RequestStore = {
@@ -73,6 +91,12 @@ type RequestStore = {
     quotaSince: string;
     newAnalysisLimit: number;
   }) => Promise<AnalysisRequestResult>;
+  /** Records one request unless the user reached the limit since `since`. */
+  allow: (input: {
+    userId: string;
+    since: string;
+    limit: number;
+  }) => Promise<boolean>;
 };
 type JobStore = { get: (jobId: string) => Promise<AnalysisJob | null> };
 
@@ -110,6 +134,25 @@ export function createAnalysisRoutes(
         return fail("google_required", "Google login required", 403);
       if (auth.status !== "ok")
         return fail("auth_unavailable", "Authentication unavailable", 503);
+      const policy = policyDeps();
+      if (!validPolicy(policy))
+        return fail("service_unavailable", "Service unavailable", 503);
+      const now = policy.now().getTime();
+      const store = requestDeps();
+      // Every request counts here, cache hits included; the strict quota
+      // below only counts analyses that need a new job (ADR-039).
+      const allowed = await store.allow({
+        userId: auth.userId,
+        since: new Date(
+          now - policy.requestWindowSeconds * 1_000,
+        ).toISOString(),
+        limit: policy.requestLimit,
+      });
+      if (!allowed) {
+        metrics.analysisRequest("rate_limited");
+        signals.record(c.req, auth.userId, "analysis_rate_limited");
+        return fail("analysis_rate_limited", "Too many analysis requests", 429);
+      }
       const parsed = requestAnalysisSchema.safeParse(await c.req.json());
       if (!parsed.success) {
         metrics.analysisRequest("invalid");
@@ -122,18 +165,9 @@ export function createAnalysisRoutes(
         metrics.analysisRequest("invalid");
         return fail("invalid_url", "Invalid public URL", 400);
       }
-      const policy = policyDeps();
-      if (
-        !policy.analyzerVersion.trim() ||
-        !positiveInteger(policy.freshnessSeconds) ||
-        !positiveInteger(policy.newAnalysisLimit) ||
-        !positiveInteger(policy.quotaWindowSeconds)
-      )
-        return fail("service_unavailable", "Service unavailable", 503);
-      const now = policy.now().getTime();
       let result: AnalysisRequestResult;
       try {
-        result = await requestDeps().request({
+        result = await store.request({
           userId: auth.userId,
           rawUrl: parsed.data.url,
           normalizedUrl,
@@ -169,6 +203,7 @@ export function createAnalysisRoutes(
           sourceFetchedAt: result.sourceFetchedAt,
         };
         metrics.analysisRequest("fresh");
+        signals.record(c.req, auth.userId, "analysis_cached");
         return c.json(body, 200);
       }
       if (

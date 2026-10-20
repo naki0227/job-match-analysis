@@ -23,6 +23,8 @@ const policy = {
   freshnessSeconds: 3600,
   newAnalysisLimit: 5,
   quotaWindowSeconds: 86_400,
+  requestLimit: 100,
+  requestWindowSeconds: 3_600,
   now: () => new Date("2026-09-29T02:00:00Z"),
 };
 
@@ -55,6 +57,11 @@ function routes(args: {
     newAnalysisLimit: number;
   }) => Promise<AnalysisRequestResult>;
   get?: (id: string) => Promise<AnalysisJob | null>;
+  allow?: (input: {
+    userId: string;
+    since: string;
+    limit: number;
+  }) => Promise<boolean>;
 }) {
   return createAnalysisRoutes(
     auth(args.authStatus),
@@ -68,6 +75,7 @@ function routes(args: {
           evaluationId: null,
           sourceFetchedAt: null,
         })),
+      allow: args.allow ?? (async () => true),
     }),
     () => ({ get: args.get ?? (async () => null) }),
     () => policy,
@@ -217,9 +225,70 @@ test("新規解析の上限超過は429で返し、内部詳細を含めない",
 test("上限の設定が欠けると新規受付を503で止める", async () => {
   const app = createAnalysisRoutes(
     auth(),
-    () => ({ request: async () => assert.fail("must not be called") }),
+    () => ({
+      request: async () => assert.fail("must not be called"),
+      allow: async () => assert.fail("must not be called"),
+    }),
     () => ({ get: async () => null }),
     () => ({ ...policy, newAnalysisLimit: Number.NaN }),
+  );
+  assert.equal((await post(app)).status, 503);
+});
+
+test("全要求の上限はcache hitも数え、超過は429で新規解析の上限と区別する", async () => {
+  const seen: Array<{ userId: string; since: string; limit: number }> = [];
+  let requested = false;
+  const response = await post(
+    routes({
+      allow: async (input) => {
+        seen.push(input);
+        return false;
+      },
+      request: async () => {
+        requested = true;
+        return {
+          status: "fresh",
+          sourceUrlId,
+          jobId: null,
+          evaluationId,
+          sourceFetchedAt: fetchedAt,
+        };
+      },
+    }),
+  );
+  assert.equal(response.status, 429);
+  const body = (await response.json()) as Record<string, unknown>;
+  assert.equal(body.code, "analysis_rate_limited");
+  assert.equal(requested, false);
+  assert.deepEqual(seen, [
+    { userId, since: "2026-09-29T01:00:00.000Z", limit: 100 },
+  ]);
+});
+
+test("全要求の上限を確認できない時は503で止める", async () => {
+  const response = await post(
+    routes({
+      allow: async () => {
+        throw new Error("private DB details");
+      },
+    }),
+  );
+  assert.equal(response.status, 503);
+  assert.equal(
+    JSON.stringify(await response.json()).includes("private DB details"),
+    false,
+  );
+});
+
+test("全要求の上限の窓は1日以内でなければ受付を止める", async () => {
+  const app = createAnalysisRoutes(
+    auth(),
+    () => ({
+      request: async () => assert.fail("must not be called"),
+      allow: async () => assert.fail("must not be called"),
+    }),
+    () => ({ get: async () => null }),
+    () => ({ ...policy, requestWindowSeconds: 86_401 }),
   );
   assert.equal((await post(app)).status, 503);
 });

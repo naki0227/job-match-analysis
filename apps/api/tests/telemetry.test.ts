@@ -97,6 +97,8 @@ test("analysis outcomes separate cache hits, new work and quota rejections", asy
     freshnessSeconds: 3600,
     newAnalysisLimit: 10,
     quotaWindowSeconds: 86_400,
+    requestLimit: 100,
+    requestWindowSeconds: 3_600,
     now: () => new Date("2026-09-30T00:00:00Z"),
   };
   const sourceUrlId = randomUUID();
@@ -128,7 +130,7 @@ test("analysis outcomes separate cache hits, new work and quota rejections", asy
         }),
         ensureProfile: async () => true,
       }),
-      () => ({ request }),
+      () => ({ request, allow: async () => true }),
       () => ({ get: async () => null }),
       () => policy,
       metrics,

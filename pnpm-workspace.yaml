@@ -3,3 +3,6 @@ packages:
   - "packages/*"
 allowBuilds:
   esbuild: true
+overrides:
+  # satori pins fflate 0.7.3 (GHSA-px8p-9vwx-vf98, fixed in 0.7.5).
+  "fflate@>=0.7.0 <0.7.5": 0.7.5

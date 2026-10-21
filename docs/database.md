@@ -24,9 +24,13 @@
 
 `supabase/tests/issue29_security.sql`は全migration適用後に、全表のRLS、クライアントロールのSELECT許可リスト、公開関数の実行不可、別ユーザーの親子行の不可視、`auth.users`削除による個人データ（公開リンク・分析依頼を含む）の全削除と共有データの保持を確認する。新しい表を追加したら、この許可リストとCASCADEの対象を見直す。[ADR-038](adr/038-account-deletion-and-shared-data.md)。
 
+## Issue #40・#41のanalytics consentと集計schema
+
+[migration](../supabase/migrations/20261020120000_analytics_consent_schema.sql)は、目的・版付きの同意説明（`analytics_consent_policies`）と、本人の同意・撤回の追記履歴（`analytics_consent_events`、退会でCASCADE）を追加する。`analytics` schemaには集計viewだけを置き、Grafana用の`analytics_reader`はそのviewだけを読める。同意集合は権限を与えない`analytics_private`のviewで持つ。同意が要る集計は、有効な同意をした利用者だけで計算し、10人未満のcohortを返さない。[ADR-043](adr/043-analytics-consent-and-schema.md)。
+
 ## データの所有境界
 
-**個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。
+**個人データ:** auth.users → profiles → career_profile_versions → axis_values/constraints、profile_educations、user_legal_acknowledgements、analytics_consent_events、match_results。本人だけが閲覧でき、変更はサーバー処理に限定する。
 
 **共有データ:** companies、job_postings、source_urls、source_document_versions、evaluation_targets、evaluations/evaluated_axis_values/evidence、analysis_jobs。公開企業／求人の情報だけを保存する。共有評価へユーザープロフィールを混ぜない。
 

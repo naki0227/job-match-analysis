@@ -9,11 +9,30 @@ export type MatchApiErrorKind =
 
 export class MatchApiError extends Error {
   readonly kind: MatchApiErrorKind;
+  /** The server's ID for the failed request, to quote when asking for help. */
+  readonly requestId: string | null;
 
-  constructor(kind: MatchApiErrorKind) {
+  constructor(kind: MatchApiErrorKind, requestId: string | null = null) {
     super(kind);
     this.name = "MatchApiError";
     this.kind = kind;
+    this.requestId = requestId;
+  }
+}
+
+async function requestIdOf(response: Response): Promise<string | null> {
+  const header = response.headers.get("X-Request-ID");
+  if (header) return header;
+  try {
+    const body: unknown = await response.json();
+    return typeof body === "object" &&
+      body !== null &&
+      "requestId" in body &&
+      typeof body.requestId === "string"
+      ? body.requestId
+      : null;
+  } catch {
+    return null;
   }
 }
 
@@ -49,13 +68,20 @@ export async function requestMatch(
   } catch {
     throw new MatchApiError("unavailable");
   }
-  if (!response.ok) throw new MatchApiError(classify(response.status));
+  if (!response.ok)
+    throw new MatchApiError(
+      classify(response.status),
+      await requestIdOf(response),
+    );
   try {
     const report = matchReportSchema.parse(await response.json());
     if (report.job.evaluationId !== evaluationId) throw new Error("mismatch");
     return report;
   } catch {
-    throw new MatchApiError("unavailable");
+    throw new MatchApiError(
+      "unavailable",
+      response.headers.get("X-Request-ID"),
+    );
   }
 }
 

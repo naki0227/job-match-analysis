@@ -23,7 +23,7 @@ export function MatchSection({
   getAccessToken,
   onEditProfile,
 }: Props) {
-  const { report, loading, errorKind, retry } = useMatchReport({
+  const { report, loading, errorKind, requestId, retry } = useMatchReport({
     evaluationId,
     getAccessToken,
   });
@@ -53,6 +53,9 @@ export function MatchSection({
     return (
       <div className="notice danger" role="alert">
         <p>{errorMessages[errorKind]}</p>
+        {errorKind === "unavailable" && requestId && (
+          <p className="muted">問い合わせ番号: {requestId}</p>
+        )}
         {errorKind === "unavailable" && (
           <div className="actions">
             <button className="secondary" type="button" onClick={retry}>

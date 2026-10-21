@@ -1,16 +1,50 @@
+# Local reproduction of the production images (Issue #33). Secrets come only
+# from untracked env files at runtime; images never contain them.
+#   docker compose up --build              # web on :8080, API on :3000
+#   docker compose --profile crawler up    # also the crawler worker
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
 services:
   api:
+    <<: *hardened
     build:
       context: .
       dockerfile: ./apps/api/Dockerfile
+    env_file:
+      - path: ./apps/api/.env.local
+        required: false
+    environment:
+      PORT: "3000"
+    tmpfs: [/tmp]
     ports:
       - "3000:3000"
 
   web:
+    <<: *hardened
     build:
       context: .
       dockerfile: ./apps/web/Dockerfile
+    tmpfs: [/tmp]
     ports:
-      - "8080:80"
+      - "8080:8080"
     depends_on:
       - api
+
+  crawler:
+    <<: *hardened
+    profiles: [crawler]
+    build:
+      context: .
+      dockerfile: ./apps/crawler/Dockerfile
+    env_file:
+      - path: ./apps/crawler/.env.local
+        required: false
+    environment:
+      CRAWLER_RUN_MODE: drain
+      CRAWLER_DRAIN_MAX_JOBS: "10"
+    # Headless Chromium needs a writable home and more shared memory.
+    tmpfs: [/tmp, /home/node]
+    shm_size: 256m

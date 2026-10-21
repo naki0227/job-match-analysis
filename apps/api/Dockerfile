@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:24.22.1-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN pnpm --filter api build
 
 RUN pnpm --filter api deploy --prod --legacy /app/deploy
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:24.22.1-bookworm-slim AS runtime
 
 WORKDIR /app
 

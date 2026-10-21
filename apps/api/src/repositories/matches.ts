@@ -15,6 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { emptyJobOverview, JOB_FACT_KINDS, toJobFacts } from "./job-facts.js";
 import { MatchStoreError } from "./match-store-error.js";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export { MatchStoreError };
 
@@ -325,6 +326,7 @@ export function createSupabaseMatchRepository(): MatchRepository {
   if (!url || !secret) throw new MatchStoreError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createMatchRepository(
     async (name, args) => {

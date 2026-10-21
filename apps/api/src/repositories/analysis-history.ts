@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 const uuid = z.uuid();
 const cursorSchema = z.object({
@@ -124,6 +125,7 @@ export function createSupabaseAnalysisHistoryRepository() {
   if (!url || !secret) throw new AnalysisHistoryReadError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createAnalysisHistoryRepository(async (args) => {
     const { data, error } = await client.rpc(

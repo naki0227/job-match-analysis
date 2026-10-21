@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export type VerifiedUser = { id: string; hasGoogleIdentity: boolean };
 export type VerifyResult =
@@ -23,9 +24,11 @@ export function createSupabaseProfileBootstrapDeps(): ProfileBootstrapDeps {
   const secretKey = requiredEnv("SUPABASE_SECRET_KEY");
   const authClient = createClient(url, publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   const adminClient = createClient(url, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
 
   return {

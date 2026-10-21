@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "./telemetry/supabase-fetch.js";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -51,6 +52,7 @@ export function createSupabaseSourceRetentionStore(
   if (!url || !secret) throw new SourceRetentionError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return {
     async loadExpiredIds(cutoff, limit) {

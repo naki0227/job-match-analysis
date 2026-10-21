@@ -5,6 +5,7 @@ import type {
 } from "@job-match/contracts";
 import { z } from "zod";
 import type { HistoryCursor } from "../history-cursor.js";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 const rowSchema = z.object({
   job_posting_id: z.uuid(),
@@ -129,6 +130,7 @@ export function createSupabaseHistoryPageRepository() {
   if (!url || !secret) throw new HistoryPageReadError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createHistoryPageRepository(async (args) => {
     const { data, error } = await client.rpc(

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export class PendingAnalysisError extends Error {
   constructor() {
@@ -46,6 +47,7 @@ export function createSupabasePendingAnalysisStore(): PendingAnalysisStore {
   if (!url || !secret) throw new PendingAnalysisError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createPendingAnalysisStore(async (args) => {
     const { data, error } = await client.rpc(

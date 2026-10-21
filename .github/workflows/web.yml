@@ -10,7 +10,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - ".node-version"
       - ".github/workflows/web.yml"
       - "scripts/check-web-bundle-secrets.sh"
   pull_request:
@@ -20,7 +19,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - ".node-version"
       - ".github/workflows/web.yml"
       - "scripts/check-web-bundle-secrets.sh"
 
@@ -40,7 +38,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: "24.22.1"
           cache: "pnpm"
 
       - name: Install dependencies

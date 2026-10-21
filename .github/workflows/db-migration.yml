@@ -23,7 +23,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - ".node-version"
       - ".github/workflows/db-migration.yml"
   pull_request:
     paths:
@@ -45,7 +44,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - ".node-version"
       - ".github/workflows/db-migration.yml"
 
 permissions:
@@ -65,7 +63,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: "24.22.1"
           cache: "pnpm"
 
       - name: Install dependencies

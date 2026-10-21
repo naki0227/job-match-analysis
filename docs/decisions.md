@@ -55,6 +55,7 @@
 | [ADR-050](adr/050-non-ats-job-pages.md) | robots.txtの4xx（429を除く）はルールなし（RFC 9309）。ランドマークのないページはbodyを本文にし、JSON-LDのない求人はh1・og:site_name・titleの一致から同一性を作る。文字列の`hiringOrganization`を受け付ける。DDGSの「結果なし」は再試行できる失敗にする | LINEヤフー・アクセンチュアなどATS以外の求人をURLから解析できる | 4xxのrobotsを根拠に取得するサイトが増える。探索の質は残課題 |
 | [ADR-051](adr/051-official-site-discovery.md) | 企業名からの探索は、Wikipedia/Wikidata（robots.txtが許可するページだけ）で公式サイトを特定し、公式サイトのトップ・sitemap・ATSリンクから求人を集める。検索エンジン（DDGS）は、それで見つからない時だけ使う | 無料で、bot判定に左右されない。LINEヤフー・アクセンチュアなど6/8社で求人が見つかる | Wikipediaに記事がない企業や、JSでしか描画しない採用サイトは見つからない |
 | [ADR-052](adr/052-gbizinfo-and-ats-board-apis.md) | 公式サイトの特定にgBizINFO（法人名の完全一致、APIトークンがある時だけ）を加え、Greenhouse・Lever・Ashby・Workableのボードは公開APIで求人をまとめて取得する（公式サイトからたどったボードか、企業名を名乗るボードだけ） | Wikipediaにない企業の公式サイトを特定できる。ATSの求人を取得上限に左右されずに集められる | gBizINFOの`company_url`は未登録の法人も多い。ATSのAPIの形式が変わると、その経路は使えない |
+| [ADR-053](adr/053-match-neutrality-and-candidate-projection.md) | 提携・掲載料等の商業metadataをMatchEngineの入力にせず、企業向け情報は本人が許可した項目だけを一方向のcandidate projectionへ投影する。匿名公開・スカウト受信・org単位のidentity revealは別々のopt-in | 本人向け比較の中立性を保ち、個人の生データを企業へ直接渡さない | 提携による優先表示はできず、投影と撤回の実装が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 

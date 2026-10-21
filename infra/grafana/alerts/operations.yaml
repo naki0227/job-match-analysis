@@ -1,0 +1,57 @@
+# Prometheus-style alert rules for Grafana Cloud (Issue #32).
+# Load with: mimirtool rules load infra/grafana/alerts/operations.yaml
+# Labels follow the dashboard rules in ../README.md: no user ids, tokens,
+# raw paths or request ids.
+namespace: job-match
+groups:
+  - name: job-match-api
+    rules:
+      - alert: ApiHighErrorRatio
+        expr: |
+          sum by (deployment_environment_name) (rate(http_server_request_duration_seconds_count{job="job-match-api",http_response_status_code=~"5.."}[10m]))
+            / sum by (deployment_environment_name) (rate(http_server_request_duration_seconds_count{job="job-match-api"}[10m]))
+            > 0.05
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: API 5xx ratio above 5% for 10 minutes
+          runbook: docs/runbooks/incidents.md
+      - alert: ApiSlowRoute
+        expr: |
+          histogram_quantile(0.95, sum by (le, http_route, deployment_environment_name) (rate(http_server_request_duration_seconds_bucket{job="job-match-api"}[10m])))
+            > 2
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "API p95 above 2s on {{ $labels.http_route }}"
+          runbook: docs/runbooks/incidents.md
+      - alert: SupabaseErrors
+        expr: |
+          sum by (job, db_operation, deployment_environment_name) (increase(job_match_db_request_duration_seconds_count{outcome!="ok"}[10m]))
+            > 5
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Supabase {{ $labels.db_operation }} failing from {{ $labels.job }}"
+          runbook: docs/runbooks/incidents.md
+  - name: job-match-crawler
+    rules:
+      - alert: AnalysisBacklogGrowing
+        expr: max by (deployment_environment_name) (job_match_analysis_job_queued) > 20
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: More than 20 analysis jobs queued for 30 minutes
+          runbook: docs/runbooks/incidents.md
+      - alert: AnalysisLeasesExpired
+        expr: max by (deployment_environment_name) (job_match_analysis_job_expired_leases) > 0
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Running analysis jobs kept an expired lease for 30 minutes (Issue #85)
+          runbook: docs/runbooks/incidents.md

@@ -6,6 +6,7 @@ import { runCrawlerCycle } from "./crawler-cycle.js";
 import { createJevDecisionEngine } from "./integrations/jev/decision-engine.js";
 import { safeCrawlerMetrics } from "./crawler-metrics.js";
 import { createOtelCrawlerMetrics } from "./crawler-metrics-otel.js";
+import { createSupabaseJobBacklog } from "./job-backlog.js";
 import { createSupabaseAnalysisJobStore } from "./job-store.js";
 import {
   createBudgetedDecisionEngine,
@@ -125,9 +126,14 @@ async function main(): Promise<void> {
         maxAttempts: config.CRAWLER_MAX_ATTEMPTS,
       }
     : undefined;
+  const backlog = createSupabaseJobBacklog(
+    config.SUPABASE_URL,
+    config.SUPABASE_SECRET_KEY,
+  );
   const cycle = () =>
     runCrawlerCycle({
       discovery,
+      backlog,
       jobStore,
       retentionStore,
       leaseSeconds: config.CRAWLER_LEASE_SECONDS,

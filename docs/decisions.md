@@ -46,6 +46,7 @@
 | [ADR-040](adr/040-free-mvp-hosting-split.md) | 月額0円MVPはWebをCloudflare Pages、APIをAzure Container Apps、crawlerをContainer Apps Job、DB/AuthをSupabase Free、imageをGHCRに置く。OCI/k3sは後続 | 既存のNode API・Playwright crawler・DBのjob管理をそのまま使え、無料枠内で動く | scale to zeroの初回遅延、Job起動待ち、egress制御の限定 |
 | [ADR-041](adr/041-operational-observability-boundary.md) | 運用観測はOTelで計装し、Grafana Cloud FreeへOTLPで直接送る。Datadogは将来の追加候補 | ベンダー非依存、送信失敗でも本体が止まらない、0円で運用観測できる | Grafana Cloud Freeの上限と保持14日 |
 | [ADR-042](adr/042-abuse-signals.md) | 不正利用signalは生IP/UAを保存せず、日次HMACの仮名を7日だけ保持し、security用途に限る | 利用者ID上限の回避を仮名で検知しつつ追跡を難しくする | 日をまたぐ追跡不可、信頼proxy境界がない時はIP signalなし |
+| [ADR-043](adr/043-analytics-consent-and-schema.md) | 製品分析は目的・版付きの任意同意の履歴と、`analytics` schemaの集計viewだけで行う。Grafanaは読み取り専用roleでviewだけを読み、cohortは卒業年度だけから導出し10人未満を返さない | 生テーブルを渡さず、撤回・版更新・退会を次の集計へ反映する | 外部提供の閾値・同意画面・本人向けInsightは別途 |
 | [ADR-044](adr/044-whole-context-evaluation.md) | 求人評価はkeyword事前選別をやめ、上限付きの本文断片を1回のJev requestで全未解決軸について判定し、根拠断片を複数保存する。根拠を特定できない判定はunknown | 言い回しに依存せず判定でき、根拠が複数残る。1求人1回の上限でコストを抑える | 入力tokenの増加、上限超過時の優先付けは語彙依存が残る |
 | [ADR-045](adr/045-job-resolver.md) | 企業名＋職種から既存の求人を特定するJob Resolverを、機械的なdiscovery（既存DB、opt-inのATS公開一覧）→domainによる絞り込み→Jevによる候補IDの選択（URLは生成させない）で構成する。曖昧なら上位3件を利用者に選ばせる | 存在しない求人を指さない。判定基準を説明でき、URL入力も残る | 初期は解析済み企業のみ。公式採用ページは未対応。検索回数の制限なし |
 | [ADR-046](adr/046-legal-consent-flow.md) | 利用規約（同意）とプライバシーポリシー（確認）の現在の版への記録を利用開始の条件にする。本文はDBが正、記録はserverが現在版だけを受け付け、文書未登録時はfail closed | 誰がどの版にいつ同意したかを示せ、改定時に再同意を求められる | 有効な文書が未登録だと誰も利用できない（意図どおり） |
@@ -55,6 +56,7 @@
 | [ADR-050](adr/050-non-ats-job-pages.md) | robots.txtの4xx（429を除く）はルールなし（RFC 9309）。ランドマークのないページはbodyを本文にし、JSON-LDのない求人はh1・og:site_name・titleの一致から同一性を作る。文字列の`hiringOrganization`を受け付ける。DDGSの「結果なし」は再試行できる失敗にする | LINEヤフー・アクセンチュアなどATS以外の求人をURLから解析できる | 4xxのrobotsを根拠に取得するサイトが増える。探索の質は残課題 |
 | [ADR-051](adr/051-official-site-discovery.md) | 企業名からの探索は、Wikipedia/Wikidata（robots.txtが許可するページだけ）で公式サイトを特定し、公式サイトのトップ・sitemap・ATSリンクから求人を集める。検索エンジン（DDGS）は、それで見つからない時だけ使う | 無料で、bot判定に左右されない。LINEヤフー・アクセンチュアなど6/8社で求人が見つかる | Wikipediaに記事がない企業や、JSでしか描画しない採用サイトは見つからない |
 | [ADR-052](adr/052-gbizinfo-and-ats-board-apis.md) | 公式サイトの特定にgBizINFO（法人名の完全一致、APIトークンがある時だけ）を加え、Greenhouse・Lever・Ashby・Workableのボードは公開APIで求人をまとめて取得する（公式サイトからたどったボードか、企業名を名乗るボードだけ） | Wikipediaにない企業の公式サイトを特定できる。ATSの求人を取得上限に左右されずに集められる | gBizINFOの`company_url`は未登録の法人も多い。ATSのAPIの形式が変わると、その経路は使えない |
+| [ADR-053](adr/053-match-neutrality-and-candidate-projection.md) | 提携・掲載料等の商業metadataをMatchEngineの入力にせず、企業向け情報は本人が許可した項目だけを一方向のcandidate projectionへ投影する。匿名公開・スカウト受信・org単位のidentity revealは別々のopt-in | 本人向け比較の中立性を保ち、個人の生データを企業へ直接渡さない | 提携による優先表示はできず、投影と撤回の実装が必要 |
 
 ## 技術スパイクで検証・継続確認する項目
 

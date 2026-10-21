@@ -8,6 +8,7 @@ import {
 } from "@job-match/contracts";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 const uuid = z.uuid();
 const timestamp = z.iso.datetime({ offset: true });
@@ -143,6 +144,7 @@ export function createSupabaseShareRepository(): ShareRepository {
   if (!url || !secret) throw new ShareStoreError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createShareRepository(async (name, args) => {
     const { data, error } = await client.rpc(name, args);

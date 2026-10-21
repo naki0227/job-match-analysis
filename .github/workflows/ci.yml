@@ -197,3 +197,8 @@ jobs:
 
       - name: Build Web image
         run: docker build -f apps/web/Dockerfile -t job-match-web:ci .
+
+      - name: Check images run as non-root without baked secrets
+        run: |
+          sh scripts/check-image.sh job-match-api:ci
+          sh scripts/check-image.sh job-match-web:ci

@@ -1,0 +1,74 @@
+name: DB backup
+
+# Issue #31: a daily, encrypted, off-site copy of the production database
+# (docs/runbooks/backup-restore.md). Supabase Free keeps no backups of its
+# own to restore from, so this is the only copy.
+on:
+  schedule:
+    # 03:17 JST, outside the busy hours.
+    - cron: "17 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production-backup
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+    steps:
+      - name: Check configuration
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_AGE_RECIPIENT" ]; then
+            echo "::error::SUPABASE_DB_URL (secret) and BACKUP_AGE_RECIPIENT (variable) must be set in the production-backup environment"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+
+      - name: Install age
+        run: sudo apt-get update -q && sudo apt-get install -y -q age
+
+      - name: Dump roles, schema and data
+        run: |
+          mkdir -p "$RUNNER_TEMP/backup"
+          cd "$RUNNER_TEMP/backup"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f data.sql --use-copy --data-only
+
+      - name: Encrypt
+        id: encrypt
+        run: |
+          name="job-match-db-$(date -u +%Y%m%dT%H%MZ).tar.age"
+          sh scripts/backup/encrypt-backup.sh "$RUNNER_TEMP/backup" "$RUNNER_TEMP/$name"
+          # Nothing unencrypted is left for later steps.
+          rm -rf "$RUNNER_TEMP/backup"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "size=$(stat -c %s "$RUNNER_TEMP/$name")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.encrypt.outputs.name }}
+          path: ${{ runner.temp }}/${{ steps.encrypt.outputs.name }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summary
+        run: |
+          echo "Encrypted backup ${{ steps.encrypt.outputs.name }} (${{ steps.encrypt.outputs.size }} bytes), kept 30 days." >> "$GITHUB_STEP_SUMMARY"

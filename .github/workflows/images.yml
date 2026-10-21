@@ -13,6 +13,8 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/images.yml"
       - ".github/workflows/deploy-api.yml"
+      - "scripts/check-image.sh"
+      - "scripts/smoke-image.sh"
   pull_request:
     paths:
       - "apps/api/**"
@@ -23,6 +25,8 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/images.yml"
       - ".github/workflows/deploy-api.yml"
+      - "scripts/check-image.sh"
+      - "scripts/smoke-image.sh"
 
 permissions:
   contents: read
@@ -45,8 +49,14 @@ jobs:
           file: apps/${{ matrix.image }}/Dockerfile
           platforms: linux/amd64
           push: false
+          load: true
+          tags: job-match-${{ matrix.image }}:pr
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      - name: Check non-root user and no baked secrets
+        run: sh scripts/check-image.sh job-match-${{ matrix.image }}:pr
+      - name: Smoke test read-only
+        run: sh scripts/smoke-image.sh ${{ matrix.image }} job-match-${{ matrix.image }}:pr
 
   # main publishes amd64 (Azure) and arm64 (future OCI) and reports digests;
   # deployments reference the digest, not a mutable tag. A successful main run
@@ -82,22 +92,14 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/job-match-${{ matrix.image }}:main
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-      - name: Smoke test both platforms by digest
+      - name: Smoke test and check both platforms by digest
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/job-match-${{ matrix.image }}@${{ steps.push.outputs.digest }}
           KIND: ${{ matrix.image }}
         run: |
           for platform in linux/amd64 linux/arm64; do
-            if [ "$KIND" = api ]; then
-              docker run --rm --platform "$platform" -w /app/apps/api --entrypoint node "$IMAGE" \
-                -e "import('@resvg/resvg-js').then(()=>import('/app/apps/api/dist/share-page/og-font.js')).then(m=>m.loadOgFont()).then(f=>console.log(process.arch,'font',f.length))"
-            else
-              docker run --rm --platform "$platform" -w /app/apps/crawler "$IMAGE" \
-                node -e "console.log(process.arch, process.env.CRAWLER_BROWSER_EXECUTABLE)"
-              # DDGS is the pinned version with its DuckDuckGo engine (no network).
-              docker run --rm --platform "$platform" --entrypoint /opt/ddgs/bin/python "$IMAGE" \
-                /app/apps/crawler/ddgs/search.py --self-check
-            fi
+            sh scripts/smoke-image.sh "$KIND" "$IMAGE" "$platform"
+            sh scripts/check-image.sh "$IMAGE" "$platform"
             # A digest reference holds one platform locally at a time.
             docker image rm "$IMAGE"
           done

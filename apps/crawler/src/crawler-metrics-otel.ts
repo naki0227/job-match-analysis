@@ -38,6 +38,16 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
     description:
       "Source pages read, by renderer and whether rendering was partial",
   });
+  const queued = meter.createGauge("job_match.analysis_job.queued", {
+    description: "Analysis jobs waiting at the start of a crawler cycle",
+  });
+  const expiredLeases = meter.createGauge(
+    "job_match.analysis_job.expired_leases",
+    {
+      description:
+        "Running analysis jobs whose lease expired (a crashed worker's)",
+    },
+  );
   const discovery = createDiscoveryInstruments(meter);
   const quality = createEvaluationInstruments(meter);
   return {
@@ -72,6 +82,10 @@ export function createOtelCrawlerMetrics(): CrawlerMetrics {
         renderer,
         render: blockedRendering > 0 ? "partial" : "complete",
       }),
+    jobBacklog: ({ queued: waiting, expiredLeases: expired }) => {
+      queued.record(waiting);
+      expiredLeases.record(expired);
+    },
   };
 }
 

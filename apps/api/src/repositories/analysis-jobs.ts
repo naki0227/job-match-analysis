@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 const storedJobSchema = z.object({
   status: z.enum(["queued", "running", "completed", "failed"]),
@@ -50,6 +51,7 @@ export function createSupabaseAnalysisJobRepository() {
   if (!url || !secret) throw new AnalysisJobReadError();
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return createAnalysisJobRepository(async (jobId) => {
     const { data, error } = await client

@@ -65,10 +65,13 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 | 3 | `sh scripts/test-db-restore.sh` | 同上 | ダミーデータのdump/restoreとFK・RLS・版履歴 | DB migration |
 | 4 | `pnpm test:e2e` | ローカルChrome、API不要（Playwrightが応答をfixtureで返す） | ログイン済み画面の入力・解析・履歴・公開ページの導線 | Web |
 | 5 | `docker build -f apps/api/Dockerfile .`／`apps/web/Dockerfile` | Docker | 本番imageのbuild | CI |
+| 6 | `docker compose up --build`（workerも動かす時は`--profile crawler`） | Docker | 本番imageを読み取り専用・全capability削除・`no-new-privileges`で起動。Webは`:8080`、APIは`:3000` | — |
+| 7 | `sh scripts/check-image.sh <image>`・`sh scripts/smoke-image.sh <api\|crawler> <image>` | Docker | 非rootユーザー、秘密値らしい環境変数・`.env`ファイルがimageに無いこと、読み取り専用での起動 | CI・Images |
 
 - テストはJevの本番APIを呼ばない。Crawlerのunit test・統合テストは`createFakeDecisionEngine`を使い、CIは`JEV_API_KEY`などの秘密値を要求しない。実Jevの確認は`apps/api/scripts/jev-smoke.ts`で低頻度・手動に限る。
 - DBのfixtureは`supabase/tests/*.sql`と`apps/api/scripts/test-*-db.ts`に置き、`scripts/test-db-migration.sh`が適用順を管理する。migrationを追加したら、このスクリプトへup・テスト・rollbackを追加する。
 - ローカルSupabase（Auth・Data API）は、ルートの`.env`に`GOOGLE_CLIENT_ID`と`GOOGLE_CLIENT_SECRET`を置いて`pnpm exec supabase start`で起動し、`pnpm test:auth`で匿名・本人・サーバー資格情報の境界を確認する（[Auth](auth.md)）。
+- Composeは`apps/api/.env.local`と`apps/crawler/.env.local`を実行時だけ読み、無ければ空のまま起動する。秘密値はimageへ入れない（`.dockerignore`で`.env*`を除外し、CIの`check-image.sh`で確認する）。PRはlinux/amd64をbuild・検査し、mainはlinux/amd64とlinux/arm64をGHCRへpushしてdigestを出力し、両platformで同じ検査をする。
 - 画面を動かす時は2つのターミナルで`pnpm --filter api dev`と`pnpm --filter web dev`を実行する。APIの`.env.local`には`SUPABASE_URL`・`SUPABASE_PUBLISHABLE_KEY`・`SUPABASE_SECRET_KEY`と、`ANALYZER_VERSION`・`ANALYSIS_FRESHNESS_SECONDS`・`ANALYSIS_NEW_URL_LIMIT`・`ANALYSIS_QUOTA_WINDOW_SECONDS`・`ANALYSIS_REQUEST_LIMIT`・`ANALYSIS_REQUEST_WINDOW_SECONDS`が必要（値は運用判断）。画面の見た目だけなら`http://localhost:5173/#ui-preview`でサンプルデータを表示できる。
 - 共有ジョブを実際に処理する場合は、下の「ローカルCrawler worker」の設定でworkerを起動する。
 

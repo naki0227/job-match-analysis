@@ -1,4 +1,5 @@
 import { noopCrawlerMetrics, type CrawlerMetrics } from "./crawler-metrics.js";
+import type { JobBacklog } from "./job-backlog.js";
 import {
   consumeOneDiscovery,
   type DiscoveryOutcome,
@@ -29,6 +30,8 @@ export async function runCrawlerCycle(args: {
   metrics?: CrawlerMetrics;
   /** Web discovery (ADR-047); runs only when no analysis job is waiting. */
   discovery?: DiscoveryRuntime;
+  /** Backlog counts for the dashboard (#32); never stops the cycle. */
+  backlog?: JobBacklog;
 }): Promise<{
   clearedSourceTexts: number;
   analysis: ConsumeResult;
@@ -40,6 +43,13 @@ export async function runCrawlerCycle(args: {
     batchSize: args.retentionBatchSize,
   });
   const metrics = args.metrics ?? noopCrawlerMetrics;
+  if (args.backlog) {
+    try {
+      metrics.jobBacklog(await args.backlog());
+    } catch {
+      // A missing measurement must not delay the waiting jobs.
+    }
+  }
   const started = performance.now();
   let analysis: ConsumeResult;
   try {

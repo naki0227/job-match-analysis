@@ -7,6 +7,7 @@ import {
 } from "@job-match/domain";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 
 export type ResolverRpc = (
   name: string,
@@ -210,6 +211,7 @@ export function supabaseResolverRpc(env: NodeJS.ProcessEnv): ResolverRpc {
   if (!url || !secret) throw new Error("Supabase is not configured");
   const client = createClient(url, secret, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: tracedSupabaseFetch() },
   });
   return async (name, args) => {
     const { data, error } = await client.rpc(name, args);

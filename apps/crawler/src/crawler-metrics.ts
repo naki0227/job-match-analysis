@@ -76,6 +76,11 @@ export type CrawlerMetrics = {
   discovery: (event: DiscoveryEvent) => void;
   evaluation: (event: EvaluationEvent) => void;
   sourceFetch: (event: SourceFetchEvent) => void;
+  /**
+   * Jobs waiting at the start of a cycle, and running jobs whose lease has
+   * expired (a crashed worker's, recovered by the next claim).
+   */
+  jobBacklog: (event: { queued: number; expiredLeases: number }) => void;
 };
 
 export const noopCrawlerMetrics: CrawlerMetrics = {
@@ -86,6 +91,7 @@ export const noopCrawlerMetrics: CrawlerMetrics = {
   discovery: () => {},
   evaluation: () => {},
   sourceFetch: () => {},
+  jobBacklog: () => {},
 };
 
 /** Telemetry failures must never stop evaluation. */
@@ -107,5 +113,6 @@ export function safeCrawlerMetrics(inner: CrawlerMetrics): CrawlerMetrics {
     discovery: guard(inner.discovery),
     evaluation: guard(inner.evaluation),
     sourceFetch: guard(inner.sourceFetch),
+    jobBacklog: guard(inner.jobBacklog),
   };
 }

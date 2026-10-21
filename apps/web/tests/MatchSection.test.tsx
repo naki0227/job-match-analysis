@@ -53,16 +53,34 @@ test("asks for a career profile before comparing", async () => {
   expect(onEditProfile).toHaveBeenCalled();
 });
 
-test("temporary failures can be retried", async () => {
+test("a temporary failure is tried once more by itself", async () => {
   const fetcher = vi
     .fn()
     .mockResolvedValueOnce(json({ code: "service_unavailable" }, 503))
     .mockResolvedValueOnce(json(sampleReport, 200));
   vi.stubGlobal("fetch", fetcher);
   renderSection();
-  fireEvent.click(await screen.findByRole("button", { name: "再試行" }));
   expect(
     await screen.findByRole("heading", { name: "サンプルテック株式会社" }),
   ).toBeInTheDocument();
   expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test("a repeated failure shows its request ID and can be retried", async () => {
+  const unavailable = () =>
+    json({ code: "service_unavailable", requestId: "req-123" }, 503);
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(unavailable())
+    .mockResolvedValueOnce(unavailable())
+    .mockResolvedValueOnce(json(sampleReport, 200));
+  vi.stubGlobal("fetch", fetcher);
+  renderSection();
+  const alert = await screen.findByRole("alert", {}, { timeout: 3000 });
+  expect(alert).toHaveTextContent("問い合わせ番号: req-123");
+  fireEvent.click(screen.getByRole("button", { name: "再試行" }));
+  expect(
+    await screen.findByRole("heading", { name: "サンプルテック株式会社" }),
+  ).toBeInTheDocument();
+  expect(fetcher).toHaveBeenCalledTimes(3);
 });

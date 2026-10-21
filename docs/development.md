@@ -56,7 +56,7 @@ CIは成功の証拠だが、診断の妥当性・求人情報の鮮度・規約
 
 ## ローカルの起動とテストの順番（Issue #28）
 
-前提はNode.js 24、pnpm 11、Docker。ルートで`pnpm install --frozen-lockfile`を実行する。秘密値は`apps/api/.env.local`・`apps/web/.env.local`・ルートの無追跡`.env`だけに置き、Gitへ入れない。
+前提はNode.js 24（`.node-version`の版）、pnpm 11、Docker。ルートで`pnpm install --frozen-lockfile`を実行する。秘密値は`apps/api/.env.local`・`apps/web/.env.local`・ルートの無追跡`.env`だけに置き、Gitへ入れない。
 
 | 順番 | コマンド | 使うもの | 確認すること | CI |
 |---|---|---|---|---|

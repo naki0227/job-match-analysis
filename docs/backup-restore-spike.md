@@ -11,3 +11,7 @@
 RPO/RTOはそれぞれ24時間を目標とするが、現時点で達成済みとは言えない。保存先、暗号化鍵と復号権限、保持期間、日次実行の監視、実Supabase別環境への復元演習を決めてから運用手順を確定する。Supabase公式文書は[Freeプランで定期的なオフサイトexportを推奨](https://supabase.com/docs/guides/platform/backups)し、[CLIによるroles/schema/dataの分割dumpと別プロジェクトへの復元手順](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)を示している。プランやCLIの仕様は運用開始時に再確認する。
 
 VM消失、DB障害、Jev障害の縮退・復旧手順も#31の残作業。特にVM再作成は#34〜#36のインフラ構成、Jev停止中の応答は#22・#23の契約に合わせて検証する。
+
+## その後（2026-10-20）
+
+本番の方針・日次の暗号化バックアップ・復元手順は`docs/runbooks/backup-restore.md`、障害時の縮退と復旧は`docs/runbooks/incidents.md`に移した。形式の確認は`scripts/test-db-backup-encryption.sh`がCIで行う。

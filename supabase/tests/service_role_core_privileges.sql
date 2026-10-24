@@ -46,6 +46,7 @@ begin
     ('source_document_versions', '{SELECT,INSERT,UPDATE}'),
     ('source_urls', '{SELECT,INSERT,UPDATE}'),
     ('user_analysis_quota_events', '{SELECT,INSERT}'),
+    ('user_analysis_request_events', '{SELECT,INSERT,DELETE}'),
     ('user_analysis_requests', '{SELECT,INSERT,UPDATE}'),
     ('user_legal_acknowledgements', '{SELECT,INSERT}');
 

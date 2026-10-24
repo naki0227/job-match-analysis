@@ -7,7 +7,13 @@ import type { WorkerTriggerOutcome } from "../worker-trigger/worker-trigger.js";
  * (share tokens), queries, user IDs, tokens or request bodies.
  */
 export type AnalysisOutcome =
-  "fresh" | "stale" | "queued" | "quota_rejected" | "invalid" | "failed";
+  | "fresh"
+  | "stale"
+  | "queued"
+  | "quota_rejected"
+  | "rate_limited"
+  | "invalid"
+  | "failed";
 
 export type ApiMetrics = {
   request: (event: {

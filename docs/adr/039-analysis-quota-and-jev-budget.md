@@ -28,13 +28,23 @@ Issue #42では、取得済み評価の再利用（cache hit）は軽いが、�
 | `ANALYSIS_NEW_URL_LIMIT` | `10` | 1利用者あたり、期間内に新規・更新が必要なURLは10件まで |
 | `ANALYSIS_QUOTA_WINDOW_SECONDS` | `86400` | 期間は24時間 |
 | `CRAWLER_JEV_DAILY_CANDIDATE_BUDGET` | `unlimited` | Jevの日次予算で制限しない |
+| `ANALYSIS_REQUEST_LIMIT` | `120`（2026年10月20日追加、提案値） | 1利用者あたり、期間内の解析要求はcache hitを含めて120件まで |
+| `ANALYSIS_REQUEST_WINDOW_SECONDS` | `3600`（同上） | 期間は1時間（最大1日） |
 
 これらは運用設定であり、ドメイン規則ではない。実測後に有限の予算へ戻せる。
 - 制限や予算は評価値やMatch判定を変えない。上限による拒否は受付前に起き、予算切れは明示的な`unknown`になる。
 
+## 追記: cache hitを含む全要求の上限（2026年10月20日、Issue #42）
+
+- cache hitは安いが無制限ではない。DBの読み取りとMatch作成を大量に繰り返す自動化を防ぐため、新規解析の厳しい上限とは別に、すべての解析要求（cache hit・新規・stale・不正なURL）を数える緩い上限を置く。
+- `consume_analysis_request_allowance(user, since, limit)`は本人単位のadvisory lock下で期間内の`user_analysis_request_events`を数え、上限内なら1件を追記して`true`を返す。期間は1日以内に限り、1日より古い行はその利用者の次の要求で消す。
+- APIは認証直後、本文の検証より前に確認する。超過したら429 `analysis_rate_limited`（新規解析の`analysis_quota_exceeded`とは別のcode）。確認できなければ503（fail closed）。
+- metricは`job_match.analysis.requests{outcome}`に`rate_limited`を加える。cache hit（`fresh`）・新規（`queued`・`stale`）・新規上限の拒否（`quota_rejected`）・全要求上限の拒否（`rate_limited`）は、すでに別のoutcomeとして数えている。
+- 上限値は必須設定。上の`120件/1時間`は通常の閲覧では届かない値として提案したもので、運用値はユーザーが決める。
+
 ## メリット・デメリット
 
-複数のAPI・workerプロセスでも上限を超えず、IP共有の利用者同士が上限を奪い合わない。一方、予算切れの評価も鮮度期間中はcacheとして再利用されるため、予算回復後もすぐには再判定されない。IP・User-Agent・取得失敗率などの監査signalと、cache hit/新規の別メトリクスは観測基盤（#32）と合わせて後続で扱う。
+複数のAPI・workerプロセスでも上限を超えず、IP共有の利用者同士が上限を奪い合わない。一方、予算切れの評価も鮮度期間中はcacheとして再利用されるため、予算回復後もすぐには再判定されない。監査signalはADR-042の追記を参照。
 
 ## 見直し条件
 

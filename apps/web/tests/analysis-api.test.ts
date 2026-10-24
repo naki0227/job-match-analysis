@@ -82,6 +82,28 @@ test.each([
   ).toBe(kind);
 });
 
+test("a 429 for the overall request limit is told apart from the new-analysis quota", async () => {
+  expect(
+    await kindOf(
+      requestAnalysis("t", "https://a.example.com", async () =>
+        json(
+          { code: "analysis_rate_limited", message: "x", requestId: "r" },
+          429,
+        ),
+      ),
+    ),
+  ).toBe("rate_limited");
+  expect(
+    await kindOf(
+      requestAnalysis(
+        "t",
+        "https://a.example.com",
+        async () => new Response("not json", { status: 429 }),
+      ),
+    ),
+  ).toBe("quota_exceeded");
+});
+
 test("network failures and contract violations are unavailable", async () => {
   expect(
     await kindOf(

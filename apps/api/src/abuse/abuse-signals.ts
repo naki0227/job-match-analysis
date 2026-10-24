@@ -11,6 +11,8 @@ import { tracedSupabaseFetch } from "../telemetry/supabase-fetch.js";
 export type AbuseEventType =
   | "analysis_new"
   | "analysis_quota_rejected"
+  | "analysis_cached"
+  | "analysis_rate_limited"
   | "career_profile_saved"
   | "share_created";
 

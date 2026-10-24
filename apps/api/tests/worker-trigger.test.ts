@@ -259,7 +259,7 @@ test("queued and stale requests wake a worker; cache hits do not", async () => {
         }),
         ensureProfile: async () => true,
       }),
-      () => ({ request: async () => result }),
+      () => ({ request: async () => result, allow: async () => true }),
       () => ({
         get: async () => ({ status: "queued" as const, evaluationId: null }),
       }),
@@ -268,6 +268,8 @@ test("queued and stale requests wake a worker; cache hits do not", async () => {
         freshnessSeconds: 3600,
         newAnalysisLimit: 10,
         quotaWindowSeconds: 86_400,
+        requestLimit: 100,
+        requestWindowSeconds: 3_600,
         now: () => new Date("2026-09-30T00:00:00Z"),
       }),
       metrics,

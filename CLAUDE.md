@@ -7,7 +7,7 @@
 ### 作業開始時（コードに触る前）
 
 1. Vault が無ければ `add_repo`（owner `naki0227` / repo `personal-knowledge`）で追加して clone する。追加できなければ、最終報告に「Vault未検索・未更新（理由）」と書いて作業を進める。
-2. `02-Projects/Repository-Memories/job-match-analysis.md`（このリポジトリのノート）を読む。
+2. `02-Projects/Repository-Memories/job-match-analysis.md`（このリポジトリのノート）を読む。無ければ作業終了時に、README と構成を確かめて既存ノートと同じ形式で作る。
 3. 今回の作業の技術名・問題の種類・設計上の関心事で `rg -i` 検索し、見つかったノートの `[[リンク]]` を必要な範囲でたどる。
 4. 最初の報告に「Vault: 参照したノート / 該当なし」を1行書く。ノートは `source_date` と `status` を確認し、現在の実装はこのリポジトリのコードとテストで確かめる。
 

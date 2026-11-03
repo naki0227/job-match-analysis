@@ -24,7 +24,7 @@ if [ -f "$vault/AGENTS.md" ]; then
 [共通知識基盤] naki0227/personal-knowledge を $vault で読める。このリポジトリの CLAUDE.md の手順に従うこと。
 - 作業開始時: $vault/$note を読み、今回の技術名・問題の種類で rg 検索して [[リンク]] をたどる。参照したノート (なければ「該当なし」) を最初の報告に1行書く。
 - 作業終了時: 再利用できる設計判断・不採用理由・不具合やレビューの教訓があれば Vault の既存ノートを更新して PR にする。なければ最終報告に「Vault更新なし（理由）」と書く。
-- 判断: 迷ったら .claude/skills/dev-judgment（AI が決めるか本人に戻すか）、作業の始めと終わりは .claude/skills/dev-workflow を使う。
+- 進め方: 作る・良くするときは .claude/skills/dev-lifecycle（課題から運用まで）、迷ったら .claude/skills/dev-judgment（AI が決めるか本人に戻すか）、作業の始めと終わりは .claude/skills/dev-workflow を使う。
 MSG
 else
   cat <<MSG
@@ -32,7 +32,7 @@ else
 作業前に add_repo (owner: naki0227, repo: personal-knowledge) で追加して $vault に clone し、このリポジトリの CLAUDE.md の手順に従うこと。
 ローカル端末で別の場所に Clone がある場合は、環境変数 PERSONAL_KNOWLEDGE_DIR でその場所を指定する。
 追加できなければ、最終報告に「Vault未検索・未更新（理由）」と書く。
-判断: 迷ったら .claude/skills/dev-judgment（AI が決めるか本人に戻すか）、作業の始めと終わりは .claude/skills/dev-workflow を使う（Vault が無くても読める）。
+進め方: 作る・良くするときは .claude/skills/dev-lifecycle（課題から運用まで）、迷ったら .claude/skills/dev-judgment（AI が決めるか本人に戻すか）、作業の始めと終わりは .claude/skills/dev-workflow を使う（Vault が無くても読める）。
 MSG
 fi
 exit 0

@@ -33,8 +33,8 @@
   出典: `06-Personal/github-pr-issue-lessons-2026-10.md`（gojuon-minesweeper PR #75、useful-map PR #3）
 - 脆弱性対応の更新で機能が静かに壊れる恐れがあるなら、更新を保留して理由を記録する（これは AI が決めてよい）。
   出典: 同上（Expo SDK 58 の保留）
-- バージョンは固定する。無条件の `latest` を使わない。
-  出典: `01-Engineering/global-development-rules.md` §9
+- 版は、その時点の**最新の安定版**を使い、記憶ではなく公式の資料で確かめてから固定する。無条件の `latest` 指定のまま放置しない。慣れているかどうかで技術や版を選ばない。詳しくは `tech-selection.md`。
+  出典: 本人の回答（2026-11-03）、`01-Engineering/global-development-rules.md` §9
 
 ## DB・API・認可
 - 一意性はアプリの事前確認だけに頼らず、DB の UNIQUE 制約で最後に守る。競合時のエラーと、必要なら冪等性も作る。

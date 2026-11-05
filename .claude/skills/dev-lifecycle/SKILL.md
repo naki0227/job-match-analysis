@@ -15,9 +15,9 @@ description: 何かを作る・良くするときに、課題の発見から運�
 | 4 | 何を作るか | 解き方を広く洗い出して1つ選び、最小の形と「作らないもの」を決めた | `references/think.md` |
 | 5 | 制約・条件・状況を確かめる | 費用・障害の許容・性能・プライバシー・期限・既存の状況を数字や事実で書いた | `references/build.md` |
 | 6 | どうやって作るか | 技術と設計を選び、理由と採らなかった案を残した | `references/build.md`、`dev-judgment` の `tech-selection.md` |
-| 7 | 形を作る | 触れる・見える形（モック、試作、API の契約、画面の骨組み）で、4 の考えが合っているか確かめた | `references/build.md` |
+| 7 | 形を作る | 触れる・見える形（モック、試作、API の契約、画面の骨組み）で、4 の考えが合っているか確かめた。iOS アプリは `app-quality-bar` の世界観・トークン・手応えの表を決めた | `references/build.md`、`app-quality-bar` |
 | 8 | 実装 | — | `dev-workflow` |
-| 9 | テスト | 振る舞いの保証を、壊して確かめた | `dev-workflow` |
+| 9 | テスト | 振る舞いの保証を、壊して確かめた。iOS アプリは全画面を撮り、`app-quality-bar` の採点で合計 18 以上・0 なし | `dev-workflow`、`app-quality-bar` の `references/review.md` |
 | 10 | 性能テスト・E2E | 目標値を先に決めて測り、主な流れを端から端まで確かめた | `references/ship.md` |
 | 11 | リリース | 順序・段階・戻し方を決め、本人の承認を得て出した | `references/ship.md` |
 | 12 | 運用 | 障害を検知・切り分けでき、利用者の反応を次の 1 に戻す仕組みがある | `references/ship.md` |
